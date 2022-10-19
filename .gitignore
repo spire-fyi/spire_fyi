@@ -133,6 +133,7 @@ dmypy.json
 .streamlit/secrets.toml
 
 data/sdk_*
+data/users.csv.gz
 
 *.bak
 *.bak/*

@@ -1,3 +1,4 @@
+import datetime
 import logging
 from pathlib import Path
 import time
@@ -13,13 +14,23 @@ __all__ = [
     "add_labels_to_df",
     "apply_program_name" "combine_flipside_date_data",
     "get_flipside_labels",
+    "get_program_chart_data",
     "load_labeled_program_data",
     "load_weekly_new_program_data",
     "load_weekly_program_data",
+    "agg_method_dict",
+    "metric_dict",
 ]
 
 API_KEY = st.secrets["flipside"]["api_key"]
 sdk = ShroomDK(API_KEY)
+
+agg_method_dict = {
+    "mean": "Average within date range",
+    "sum": "Total within date range",
+    "max": "Highest daily usage during date range",
+}
+metric_dict = {"SIGNERS": "Number of signers", "TX_COUNT": "Transaction Count"}
 
 
 def combine_flipside_date_data(data_dir, add_date=False):
@@ -66,16 +77,16 @@ def create_label_query(addresses):
     return query
 
 
-def get_flipside_labels(df):
+def get_flipside_labels(df, output_prefix,col):
     # #TODO combine with solana.fm
-    program_ids = df.PROGRAM_ID.unique()
-    labels = create_label_query(program_ids)
-    query_flipside_data([labels, Path("data/flipside_labels.csv")])
+    ids = df[col].unique()
+    labels = create_label_query(ids)
+    query_flipside_data([labels, Path(f"data/{output_prefix}_flipside_labels.csv")])
 
 
-def get_solana_fm_labels(df):
-    program_ids = df.PROGRAM_ID.unique()
-    split_ids = [program_ids[i : i + 100] for i in range(0, len(program_ids), 100)]
+def get_solana_fm_labels(df, output_prefix,col):
+    ids = df[col].unique()
+    split_ids = [ids[i : i + 100] for i in range(0, len(ids), 100)]
 
     labels_url = "https://hyper.solana.fm/v2/address/"
     label_results = []
@@ -95,7 +106,7 @@ def get_solana_fm_labels(df):
         .dropna(subset="FriendlyName")
         .reset_index(drop=True)
     )
-    df.to_csv("data/solana_fm_labels.csv")
+    df.to_csv(f"data/{output_prefix}_solana_fm_labels.csv")
 
 
 def load_label_df():
@@ -126,6 +137,32 @@ def apply_program_name(row):
             return friendly_name
     else:
         return f"{label.title()}: {address_name.title()}"
+
+
+def get_program_chart_data(df, metric, num_programs, agg_method, date_range, exclude_solana):
+    if date_range == "All dates":
+        chart_df = df.copy()
+    elif date_range == "Year to Date":
+        chart_df = df.copy()[df.Date >= "2022-01-01"]
+    else:
+        chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
+
+    if exclude_solana:
+        chart_df = chart_df[chart_df.LABEL != "solana"]
+    program_ids = (
+        chart_df.groupby("PROGRAM_ID")
+        .agg({metric: agg_method})
+        .sort_values(by=metric, ascending=False)
+        .iloc[:num_programs]
+        .index
+    )
+    chart_df = (
+        chart_df[chart_df.PROGRAM_ID.isin(program_ids)]
+        .sort_values(by=["Date", metric], ascending=False)
+        .reset_index()
+    )
+
+    return chart_df
 
 
 # @st.experimental_memo(ttl=60 * 10)
