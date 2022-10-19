@@ -7,7 +7,8 @@ import spire_fyi.utils as utils
 if __name__ == "__main__":
     df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
     df.to_csv("data/programs.csv.gz", index=False, compression="gzip")
-    utils.get_label_df(df)
+    utils.get_flipside_labels(df)
+    utils.get_solana_fm_labels(df)
 
     labeled_df = utils.add_labels_to_df(df)
     labeled_df.to_csv("data/programs_labeled.csv.gz", index=False, compression="gzip")

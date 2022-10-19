@@ -130,7 +130,7 @@ date_range = st.radio(
 
 chart_df = get_program_chart_data(df, metric, num_programs, agg_method, date_range, exclude_solana)
 chart_df["Name"] = chart_df.apply(
-    lambda x: x.PROGRAM_ID if pd.isna(x.ADDRESS_NAME) else f"{x.LABEL.title()}: {x.ADDRESS_NAME.title()}",
+    utils.apply_program_name,
     axis=1,
 )
 
@@ -161,8 +161,16 @@ chart = (
     .interactive()
 )
 st.altair_chart(chart, use_container_width=True)
-chart_df
-st.write(df[df.PROGRAM_ID == "FsJ3A3u2vn5cTVofAjvy6y5kwABJAqYWpe4975bi2epH"])
+with st.expander("View and Download Data Table"):
+    st.write(chart_df)
+    st.download_button(
+        "Press to Download",
+        chart_df.to_csv().encode("utf-8"),
+        f"program_ids_top{num_programs}_{agg_method}_{date_range.replace(' ', '')}_{metric}.csv",
+        "text/csv",
+        key="download-program-ids",
+    )
+
 # #%ODO: melt, multiline tooltip
 # df = df.melt(
 #     id_vars=["Date", "CREATOR", "LABEL_TYPE", "LABEL_SUBTYPE", "LABEL", "ADDRESS_NAME"]
@@ -171,15 +179,24 @@ st.write(df[df.PROGRAM_ID == "FsJ3A3u2vn5cTVofAjvy6y5kwABJAqYWpe4975bi2epH"])
 
 
 st.header("Programs by date")
-weekly_program_data = utils.combine_flipside_date_data("data/sdk_weekly_program_count_sol", add_date=False)
-weekly_new_program_data = utils.combine_flipside_date_data(
-    "data/sdk_weekly_new_program_count_sol", add_date=False
-)
+weekly_program_data = utils.load_weekly_program_data()
+weekly_new_program_data = utils.load_weekly_new_program_data()
 
-weekly_program_data
+c1, c2 = st.columns(2)
 chart = (
-    alt.Chart(weekly_program_data, title="Unique Program Count- Weekly")
-    .mark_area()
+    alt.Chart(weekly_program_data, title="Unique Program Count: Weekly")
+    .mark_area(
+        line={"color": "#4B3D60"},
+        color=alt.Gradient(
+            gradient="linear",
+            stops=[alt.GradientStop(color="#4B3D60", offset=0), alt.GradientStop(color="#FD5E53", offset=1)],
+            x1=1,
+            x2=1,
+            y1=1,
+            y2=0,
+        ),
+        interpolate="monotone",
+    )
     .encode(
         x=alt.X("yearmonthdate(WEEK)", title="Date"),
         y=alt.Y("UNIQUE_PROGRAMS", title="Number of Programs"),
@@ -191,25 +208,34 @@ chart = (
     .interactive()
     .properties(height=600)
 )
-st.altair_chart(chart, use_container_width=True)
+c1.altair_chart(chart, use_container_width=True)
 
-weekly_new_program_data
-# #TODO add cumulative
-chart = (
-    alt.Chart(weekly_new_program_data, title="New Programs- Weekly")
-    .mark_bar(width=10)
-    .encode(
-        x=alt.X("yearmonthdate(WEEK)", title="Date"),
-        y=alt.Y("New Programs"),
-        tooltip=[
-            alt.Tooltip("yearmonthdate(WEEK)", title="Date (start of week)"),
-            alt.Tooltip("New Programs"),
-        ],
-    )
-    .interactive()
-    .properties(height=600)
+base = alt.Chart(weekly_new_program_data, title="New Programs: Weekly").encode(
+    x=alt.X("yearmonthdate(WEEK):T", title="Date"),
+    tooltip=[
+        alt.Tooltip("yearmonthdate(WEEK):T", title="Date (start of week)"),
+        alt.Tooltip("New Programs"),
+        alt.Tooltip("Cumulative Programs"),
+    ],
 )
-st.altair_chart(chart, use_container_width=True)
+bar = base.mark_bar(width=5, color="#4B3D60").encode(
+    y=alt.Y("New Programs"),
+)
+line = base.mark_line(color="#FFE373").encode(
+    y="Cumulative Programs",
+)
+chart = (bar + line).interactive().properties(height=600).resolve_scale(y="independent")
+c2.altair_chart(chart, use_container_width=True)
+with st.expander("View and Download Data Table"):
+    combined_program_df = weekly_new_program_data.merge(weekly_program_data, on="WEEK")
+    st.write(combined_program_df)
+    st.download_button(
+        "Press to Download",
+        combined_program_df.to_csv().encode("utf-8"),
+        f"weekly_program_counts.csv",
+        "text/csv",
+        key="download-weekly-program",
+    )
 
 
 st.header("Figures to create")
