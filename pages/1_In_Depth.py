@@ -4,6 +4,7 @@ import pandas as pd
 from PIL import Image
 
 import spire_fyi.utils as utils
+import spire_fyi.charts as charts
 
 alt.data_transformers.disable_max_rows()
 image = Image.open("assets/images/spire_background.png")
@@ -28,6 +29,13 @@ st.subheader("Program Analysis")
 df = utils.load_labeled_program_data()
 df["Date"] = pd.to_datetime(df["Date"])
 
+# #TODO: implement program search
+# chart_type = st.radio("Choose how to view data", ['Top Programs', 'Select Programs'], horizontal=True, key='program_chart_type')
+# if chart_type == 'Top Programs':
+# ...
+# else:
+#     selections = st.multiselect("Choose which Programs to look at", df.PROGRAM_ID.unique())
+# #---
 c1, c2, c3, c4 = st.columns(4)
 metric = c1.radio(
     "Choose a metric",
@@ -45,6 +53,7 @@ agg_method = c3.radio(
     key="program_agg_method",
 )
 exclude_solana = c4.checkbox("Exclude Solana System Programs?", key="program_exclude_solana")
+log_scale = c4.checkbox("Log Scale?", key="program_log_scale")
 date_range = st.radio(
     "Choose a date range:",
     [  # #TODO: not doing more dates until more data is queried
@@ -67,33 +76,9 @@ chart_df["Name"] = chart_df.apply(
     axis=1,
 )
 
-chart = (
-    alt.Chart(chart_df)
-    .mark_line()
-    .encode(
-        x=alt.X("yearmonthdatehours(Date)", title=None),
-        y=alt.Y(metric, title=utils.metric_dict[metric], sort="-y"),
-        color=alt.Color(
-            "Name",
-            title="Program Name",
-            scale=alt.Scale(scheme="turbo"),
-            sort=alt.EncodingSortField(metric, op=agg_method, order="descending"),
-        ),
-        tooltip=[
-            alt.Tooltip("yearmonthdatehours(Date)", title="Date"),
-            alt.Tooltip("TX_COUNT", title=utils.metric_dict["TX_COUNT"], format=","),
-            alt.Tooltip("SIGNERS", title=utils.metric_dict["SIGNERS"], format=","),
-            alt.Tooltip("PROGRAM_ID", title="Program ID"),
-            alt.Tooltip("LABEL_TYPE", title="Label Type"),
-            alt.Tooltip("LABEL_SUBTYPE", title="Label Subtype"),
-            alt.Tooltip("LABEL", title="Label"),
-            alt.Tooltip("ADDRESS_NAME", title="Address Name"),
-        ],
-    )
-    .properties(height=800, width=800)
-    .interactive()
-)
+chart = charts.alt_line_chart(chart_df, metric,log_scale)
 st.altair_chart(chart, use_container_width=True)
+
 with st.expander("View and Download Data Table"):
     st.write(chart_df)
     st.download_button(
@@ -104,8 +89,3 @@ with st.expander("View and Download Data Table"):
         key="download-program-ids",
     )
 
-# #%ODO: melt, multiline tooltip
-# df = df.melt(
-#     id_vars=["Date", "CREATOR", "LABEL_TYPE", "LABEL_SUBTYPE", "LABEL", "ADDRESS_NAME"]
-# )
-# df

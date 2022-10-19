@@ -12,7 +12,7 @@ if __name__ == "__main__":
     utils.get_flipside_labels(program_df, "program", "PROGRAM_ID")
     utils.get_solana_fm_labels(program_df, "program", "PROGRAM_ID")
 
-    labeled_program_df = utils.add_labels_to_df(program_df)
+    labeled_program_df = utils.add_program_labels(program_df)
     labeled_program_df.to_csv("data/programs_labeled.csv.gz", index=False, compression="gzip")
 
     user_df = utils.combine_flipside_date_data("data/sdk_new_users_sol", add_date=False)

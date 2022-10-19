@@ -11,7 +11,7 @@ from shroomdk import ShroomDK
 
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 __all__ = [
-    "add_labels_to_df",
+    "add_program_labels",
     "apply_program_name" "combine_flipside_date_data",
     "get_flipside_labels",
     "get_program_chart_data",
@@ -35,7 +35,7 @@ metric_dict = {"SIGNERS": "Number of signers", "TX_COUNT": "Transaction Count"}
 
 def combine_flipside_date_data(data_dir, add_date=False):
     d = Path(data_dir)
-    data_files = d.glob("*.csv*")  # include both .csv and .csv.gz
+    data_files = d.glob("*.csv")
     dfs = []
     for x in data_files:
         df = pd.read_csv(x)
@@ -77,14 +77,14 @@ def create_label_query(addresses):
     return query
 
 
-def get_flipside_labels(df, output_prefix,col):
+def get_flipside_labels(df, output_prefix, col):
     # #TODO combine with solana.fm
     ids = df[col].unique()
     labels = create_label_query(ids)
     query_flipside_data([labels, Path(f"data/{output_prefix}_flipside_labels.csv")])
 
 
-def get_solana_fm_labels(df, output_prefix,col):
+def get_solana_fm_labels(df, output_prefix, col):
     ids = df[col].unique()
     split_ids = [ids[i : i + 100] for i in range(0, len(ids), 100)]
 
@@ -98,26 +98,19 @@ def get_solana_fm_labels(df, output_prefix,col):
     combined_labels = {}
     for x in label_results:
         combined_labels = {**combined_labels, **x}
-    df = (
-        pd.DataFrame.from_dict(combined_labels)
-        .T.reset_index()
-        .drop(columns="Address")
-        .rename(columns={"index": "ADDRESS"})
-        .dropna(subset="FriendlyName")
-        .reset_index(drop=True)
-    )
-    df.to_csv(f"data/{output_prefix}_solana_fm_labels.csv")
+    df = pd.DataFrame.from_dict(combined_labels).T.dropna(subset="FriendlyName").reset_index(drop=True).rename(columns={'Address':'ADDRESS'})
+    df.to_csv(f"data/{output_prefix}_solana_fm_labels.csv", index=False)
 
 
-def load_label_df():
-    fs_labs = pd.read_csv("data/flipside_labels.csv")
-    solfm_labs = pd.read_csv("data/solana_fm_labels.csv")
+def load_program_label_df():
+    fs_labs = pd.read_csv("data/program_flipside_labels.csv")
+    solfm_labs = pd.read_csv("data/program_solana_fm_labels.csv")
     merged = fs_labs.merge(solfm_labs, on="ADDRESS", how="outer")
     return merged
 
 
-def add_labels_to_df(df):
-    label_df = load_label_df()
+def add_program_labels(df):
+    label_df = load_program_label_df()
     df = df.merge(label_df, left_on="PROGRAM_ID", right_on="ADDRESS", how="left").drop(
         axis=1, columns=["ADDRESS", "BLOCKCHAIN"]
     )
@@ -159,7 +152,7 @@ def get_program_chart_data(df, metric, num_programs, agg_method, date_range, exc
     chart_df = (
         chart_df[chart_df.PROGRAM_ID.isin(program_ids)]
         .sort_values(by=["Date", metric], ascending=False)
-        .reset_index()
+        .reset_index(drop=True)
     )
 
     return chart_df
