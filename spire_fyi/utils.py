@@ -18,6 +18,9 @@ __all__ = [
     "load_labeled_program_data",
     "load_weekly_new_program_data",
     "load_weekly_program_data",
+    "load_weekly_user_data",
+    "load_weekly_last_use_data",
+    "load_weekly_days_since_last_use_data",
     "agg_method_dict",
     "metric_dict",
 ]
@@ -26,11 +29,14 @@ API_KEY = st.secrets["flipside"]["api_key"]
 sdk = ShroomDK(API_KEY)
 
 agg_method_dict = {
-    "mean": "Average within date range",
-    "sum": "Total within date range",
-    "max": "Highest daily usage during date range",
+    "mean": "Average usage within date range",
+    "sum": "Total usage within date range",
+    "max": "Max daily usage during date range",
 }
-metric_dict = {"SIGNERS": "Number of signers", "TX_COUNT": "Transaction Count"}
+metric_dict = {
+    "TX_COUNT": "Transaction Count",
+    "SIGNERS": "Number of signers",
+}
 
 
 def combine_flipside_date_data(data_dir, add_date=False):
@@ -98,7 +104,12 @@ def get_solana_fm_labels(df, output_prefix, col):
     combined_labels = {}
     for x in label_results:
         combined_labels = {**combined_labels, **x}
-    df = pd.DataFrame.from_dict(combined_labels).T.dropna(subset="FriendlyName").reset_index(drop=True).rename(columns={'Address':'ADDRESS'})
+    df = (
+        pd.DataFrame.from_dict(combined_labels)
+        .T.dropna(subset="FriendlyName")
+        .reset_index(drop=True)
+        .rename(columns={"Address": "ADDRESS"})
+    )
     df.to_csv(f"data/{output_prefix}_solana_fm_labels.csv", index=False)
 
 
@@ -132,7 +143,14 @@ def apply_program_name(row):
         return f"{label.title()}: {address_name.title()}"
 
 
-def get_program_chart_data(df, metric, num_programs, agg_method, date_range, exclude_solana):
+def get_program_chart_data(
+    df,
+    metric,
+    agg_method,
+    date_range,
+    exclude_solana,
+    programs,
+):
     if date_range == "All dates":
         chart_df = df.copy()
     elif date_range == "Year to Date":
@@ -142,13 +160,16 @@ def get_program_chart_data(df, metric, num_programs, agg_method, date_range, exc
 
     if exclude_solana:
         chart_df = chart_df[chart_df.LABEL != "solana"]
-    program_ids = (
-        chart_df.groupby("PROGRAM_ID")
-        .agg({metric: agg_method})
-        .sort_values(by=metric, ascending=False)
-        .iloc[:num_programs]
-        .index
-    )
+    if type(programs) == int:
+        program_ids = (
+            chart_df.groupby("PROGRAM_ID")
+            .agg({metric: agg_method})
+            .sort_values(by=metric, ascending=False)
+            .iloc[:programs]
+            .index
+        )
+    else:
+        program_ids = programs
     chart_df = (
         chart_df[chart_df.PROGRAM_ID.isin(program_ids)]
         .sort_values(by=["Date", metric], ascending=False)
@@ -174,3 +195,65 @@ def load_weekly_new_program_data():
     df = df.sort_values(by="WEEK")
     df["Cumulative Programs"] = df["New Programs"].cumsum()
     return df
+
+
+def load_weekly_user_data():
+    df = pd.read_csv("data/weekly_users.csv")
+    datecols = ["CREATION_DATE"]
+    df[datecols] = df[datecols].apply(pd.to_datetime)
+    return df
+
+
+def load_weekly_last_use_data():
+    df = pd.read_csv("data/weekly_users_last_use.csv")
+    datecols = ["LAST_USE"]
+    df[datecols] = df[datecols].apply(pd.to_datetime)
+    return df
+
+
+def load_weekly_days_since_last_use_data():
+    df = pd.read_csv("data/weekly_days_since_last_use.csv")
+    datecols = ["CREATION_DATE"]
+    df[datecols] = df[datecols].apply(pd.to_datetime)
+    return df
+
+
+def load_weekly_days_active_data():
+    df = pd.read_csv("data/weekly_days_active.csv")
+    datecols = ["CREATION_DATE"]
+    df[datecols] = df[datecols].apply(pd.to_datetime)
+    return df
+
+
+def load_nft_data_homepage():
+    buyers_sellers = (
+        pd.read_json(
+            "https://node-api.flipsidecrypto.com/api/v2/queries/3d71d36a-ca9a-4fcf-97a9-802dbbc2b98d/data/latest"
+        )
+        .rename(
+            columns={
+                "WEEK": "Date",
+                "MARKETPLACE": "Marketplace",
+                "DAILY_TXS": "Transaction Count",
+                "DAILY_BUYERS": "Buyers",
+                "DAILY_SELLERS": "Sellers",
+                "NFTS_SOLD": "NFTs Sold",
+                "SOL_AMOUNT": "Sale Amount (SOL)",
+            }
+        )
+        .melt(
+            id_vars=[
+                "Date",
+                "Marketplace",
+                "Transaction Count",
+                "NFTs Sold",
+                "Sale Amount (SOL)",
+            ]
+        )
+    )
+    mints_by_purchaser = pd.read_json(
+        "https://node-api.flipsidecrypto.com/api/v2/queries/ac73a290-6f2e-4e15-be6f-203562bbd911/data/latest"
+    )
+    return buyers_sellers, mints_by_purchaser
+
+
