@@ -172,7 +172,7 @@ def query_flipside_data(query_info, save=True):
         return output_file
     except Exception as e:
         logging.info(f"[ERROR] ({query_file}) {e}")
-        raise
+        return
 
 
 def get_submitted_queries_from_json(submitted_query_file):
@@ -191,9 +191,9 @@ if __name__ == "__main__":
     query_info = []
     # #TODO: change dates/programs
     for q, dates in [
-        ("sdk_programs_sol", past_90d),
-        ("sdk_new_users_sol", past_90d),
-        ("sdk_transactions_sol", past_90d),
+        ("sdk_programs_sol", all_dates_2022),
+        ("sdk_new_users_sol", all_dates_2022),
+        ("sdk_transactions_sol", all_dates_2022),
         ("sdk_weekly_new_program_count_sol", all_weeks),
         ("sdk_weekly_program_count_sol", all_weeks),
     ]:

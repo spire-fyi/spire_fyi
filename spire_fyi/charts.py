@@ -40,7 +40,8 @@ def alt_line_chart(
         empty="none",
         clear="mouseout",
     )
-    lines = base.mark_line().encode(
+    legend_selection = alt.selection_multi(fields=["Name"], bind="legend")
+    lines = base.mark_line(point=True).encode(
         y=alt.Y(
             f"{metric}:Q",
             title=utils.metric_dict[metric],
@@ -52,9 +53,9 @@ def alt_line_chart(
             scale=alt.Scale(scheme="turbo"),
             sort=alt.EncodingSortField(metric, op="count", order="descending"),
         ),
+        opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.15)),
     )
-
-    points = lines.mark_point().transform_filter(selection)
+    points = lines.mark_point(size=50).transform_filter(selection)
     rule = (
         base.transform_pivot("Name", value=metric, groupby=["Date"])
         .mark_rule()
@@ -74,7 +75,7 @@ def alt_line_chart(
     )
     chart = lines + points + rule
 
-    return chart.interactive().properties(height=800, width=800)
+    return chart.add_selection(legend_selection).interactive().properties(height=800, width=800)
 
 
 def alt_line_metric(chart_df, metric, agg_method):
