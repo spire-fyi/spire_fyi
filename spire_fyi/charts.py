@@ -58,7 +58,7 @@ def alt_line_chart(
     points = lines.mark_point(size=50).transform_filter(selection)
     rule = (
         base.transform_pivot("Name", value=metric, groupby=["Date"])
-        .mark_rule()
+        .mark_rule(color="#983832")
         .encode(
             opacity=alt.condition(selection, alt.value(0.3), alt.value(0)),
             tooltip=[alt.Tooltip("yearmonthdate(Date)", title="Date")]
@@ -75,7 +75,12 @@ def alt_line_chart(
     )
     chart = lines + points + rule
 
-    return chart.add_selection(legend_selection).interactive().properties(height=800, width=800)
+    return (
+        chart.add_selection(legend_selection)
+        .interactive()
+        .properties(height=800, width=800)
+        # .configure_axis(grid=False)
+    )
 
 
 def alt_line_metric(chart_df, metric, agg_method):
@@ -105,4 +110,66 @@ def alt_line_metric(chart_df, metric, agg_method):
         .properties(height=800, width=800)
         .interactive()
     )
+    return chart
+
+
+def alt_weekly_unique_chart(df, title, y, ytitle):
+    chart = (
+        alt.Chart(df, title=title)
+        .mark_area(
+            line={"color": "#4B3D60"},
+            color=alt.Gradient(
+                gradient="linear",
+                stops=[
+                    alt.GradientStop(color="#4B3D60", offset=0),
+                    alt.GradientStop(color="#FD5E53", offset=1),
+                ],
+                x1=1,
+                x2=1,
+                y1=1,
+                y2=0,
+            ),
+            interpolate="monotone",
+        )
+        .encode(
+            x=alt.X("yearmonthdate(WEEK)", title="Date"),
+            y=alt.Y(y, title=ytitle),
+            tooltip=[
+                alt.Tooltip(
+                    "yearmonthdate(WEEK)",
+                    title="Date (start of week)",
+                ),
+                alt.Tooltip(y, title=ytitle, format=","),
+            ],
+        )
+        .interactive()
+        .properties(height=600)
+    )
+    return chart
+
+
+def alt_weekly_cumulative_chart(df, title, bar_y, line_y):
+
+    base = alt.Chart(df, title=title).encode(
+        x=alt.X("yearmonthdate(WEEK):T", title="Date"),
+        tooltip=[
+            alt.Tooltip("yearmonthdate(WEEK):T", title="Date (start of week)"),
+            alt.Tooltip(bar_y, format=","),
+            alt.Tooltip(line_y, format=","),
+        ],
+    )
+    bar = base.mark_bar(width=3, color="#4B3D60").encode(
+        y=alt.Y(bar_y),
+    )
+    line = base.mark_line(color="#FFE373").encode(
+        y=alt.Y(line_y)
+    )
+    chart = (
+        (bar + line)
+        .interactive()
+        .properties(height=600)
+        .resolve_scale(y="independent")
+        .properties(height=600)
+    )
+
     return chart

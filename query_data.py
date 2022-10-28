@@ -48,7 +48,7 @@ past_90d = [
 all_weeks = [
     f"{x:%Y-%m-%d}"
     for x in pd.date_range(
-        datetime.date(2020, 3, 16), (datetime.datetime.today() - pd.Timedelta("7d")), freq="7d"
+        datetime.date(2020, 3, 16), (datetime.datetime.today() - pd.Timedelta("1d")), freq="7d"
     )
 ]
 
@@ -57,6 +57,13 @@ def create_query_by_date(date, query_basename):
     env = Environment(loader=FileSystemLoader("./sql"))
     template = env.get_template(f"{query_basename}.sql")
     query = template.render({"date": f"'{date}'"})
+    return query
+
+
+def create_query_by_date_and_program(date, query_basename, program):
+    env = Environment(loader=FileSystemLoader("./sql"))
+    template = env.get_template(f"{query_basename}.sql")
+    query = template.render({"date": f"'{date}'", "program_id": f"'{program}'"})
     return query
 
 
@@ -73,6 +80,34 @@ def get_queries_by_date(date, query_basename, update_cache=False):
     output_file = Path(output_dir, f"{query_basename}_{date.replace(' ', '_')}.csv")
     if update_cache or not output_file.exists():
         return query, output_file
+
+
+def get_queries_by_date_and_programs(date, query_basename, df, update_cache=False):
+    program_ids = get_program_ids(df)
+    queries_to_do = []
+    for program in program_ids:
+        if len(chart_df[(chart_df.Date == date) & (chart_df.PROGRAM_ID == program)]) > 0:
+            query = create_query_by_date_and_program(date, query_basename, program)
+            output_dir = Path(f"data/{query_basename}")
+            output_file = Path(output_dir, f"{query_basename}_{date.replace(' ', '_')}_{program}.csv")
+            if update_cache or not output_file.exists():
+                queries_to_do.append((query, output_file))
+    return queries_to_do
+
+
+def get_program_ids(df):
+    prog_list = []
+    for agg_method in ["mean", "sum", "max"]:
+        for metric in ["TX_COUNT", "SIGNERS"]:
+            program_ids = (
+                df.groupby("PROGRAM_ID")
+                .agg({metric: agg_method})
+                .sort_values(by=metric, ascending=False)
+                .iloc[:30]
+                .index
+            )
+            prog_list.extend(program_ids.to_list())
+    return pd.unique(prog_list)
 
 
 def create_query(query, output_file):
@@ -187,29 +222,37 @@ def get_submitted_queries_from_json(submitted_query_file):
 if __name__ == "__main__":
     # #TODO make cli...
     update_cache = False
+    chart_df = pd.read_csv("data/programs_labeled.csv.gz")
+    chart_df["Date"] = pd.to_datetime(chart_df.Date)
+    chart_df = chart_df[chart_df.LABEL != "solana"]
+    chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta("31d"))]
 
     query_info = []
     # #TODO: change dates/programs
     for q, dates in [
+        ("sdk_programs_new_users_sol", all_dates_2022),
         ("sdk_programs_sol", all_dates_2022),
         ("sdk_new_users_sol", all_dates_2022),
         ("sdk_transactions_sol", all_dates_2022),
         ("sdk_weekly_new_program_count_sol", all_weeks),
         ("sdk_weekly_program_count_sol", all_weeks),
+        ("sdk_weekly_new_users_sol", all_weeks),
+        ("sdk_weekly_users_sol", all_weeks),
     ]:
         for date in dates:
             queries_to_do = get_queries_by_date(date, q)
             if queries_to_do is not None:
                 query_info.append(queries_to_do)
 
-    # #TODO: choose either the pool or this option. this one may lead to issues with clogging the queue
-    # logging.info(f"Running {len(query_info)} queries...")
-    # queries = submit_flipside_queries(query_info)
-    # #TODO: remove, read in from file
-    # queries = get_submitted_queries_from_json('data/submitted_queries.json')
-    # get_flipside_query_data(queries)
+    for q, dates in [
+        ("sdk_signers_by_programID_new_users_sol", past_30d),
+        ("sdk_signers_by_programID_sol", past_90d),
+    ]:  # for program_ids
+        for date in dates:
+            queries_to_do = get_queries_by_date_and_programs(date, q, chart_df)
+            if queries_to_do != []:
+                query_info.extend(queries_to_do)
 
-    # #TODO: remove this pool way of sumitting
     logging.info(f"Running {len(query_info)} queries...")
     with Pool() as p:
         p.map(query_flipside_data, query_info)
