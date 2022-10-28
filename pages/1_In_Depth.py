@@ -1,11 +1,11 @@
-import numpy as np
-import streamlit as st
 import altair as alt
+import numpy as np
 import pandas as pd
+import streamlit as st
 from PIL import Image
 
-import spire_fyi.utils as utils
 import spire_fyi.charts as charts
+import spire_fyi.utils as utils
 
 alt.data_transformers.disable_max_rows()
 image = Image.open("assets/images/spire_background.png")

@@ -1,5 +1,5 @@
-import streamlit as st
 import altair as alt
+import streamlit as st
 from PIL import Image
 
 alt.data_transformers.disable_max_rows()

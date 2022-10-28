@@ -1,6 +1,7 @@
-import pandas as pd
 import altair as alt
+import pandas as pd
 import streamlit as st
+
 import spire_fyi.utils as utils
 
 
@@ -161,9 +162,7 @@ def alt_weekly_cumulative_chart(df, title, bar_y, line_y):
     bar = base.mark_bar(width=3, color="#4B3D60").encode(
         y=alt.Y(bar_y),
     )
-    line = base.mark_line(color="#FFE373").encode(
-        y=alt.Y(line_y)
-    )
+    line = base.mark_line(color="#FFE373").encode(y=alt.Y(line_y))
     chart = (
         (bar + line)
         .interactive()

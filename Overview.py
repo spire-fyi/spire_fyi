@@ -7,8 +7,8 @@ import streamlit.components.v1 as components
 from PIL import Image
 from scipy.stats import ttest_ind, ttest_rel
 
-import spire_fyi.utils as utils
 import spire_fyi.charts as charts
+import spire_fyi.utils as utils
 
 alt.data_transformers.disable_max_rows()
 image = Image.open("assets/images/spire_background.png")

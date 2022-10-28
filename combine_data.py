@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-import spire_fyi.utils as utils
-import pandas as pd
 import datetime
+
+import pandas as pd
+
+import spire_fyi.utils as utils
 
 # #TODO: add to cli
 
@@ -22,7 +24,9 @@ if __name__ == "__main__":
     utils.get_solana_fm_labels(program_new_users_df, "program", "PROGRAM_ID")
 
     labeled_program_new_users_df = utils.add_program_labels(program_new_users_df)
-    labeled_program_new_users_df.to_csv("data/programs_new_users_labeled.csv.gz", index=False, compression="gzip")
+    labeled_program_new_users_df.to_csv(
+        "data/programs_new_users_labeled.csv.gz", index=False, compression="gzip"
+    )
 
     user_df = utils.combine_flipside_date_data("data/sdk_new_users_sol", add_date=False)
     datecols = ["CREATION_DATE", "LAST_USE"]
@@ -56,8 +60,12 @@ if __name__ == "__main__":
     )
     grouped.to_csv("data/weekly_days_since_last_use.csv", index=False)
 
-    user_df['Days Active']=(user_df.LAST_USE - user_df.CREATION_DATE).dt.total_seconds() /3600/24
-    grouped = user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d"))["Days Active"].mean().reset_index()
+    user_df["Days Active"] = (user_df.LAST_USE - user_df.CREATION_DATE).dt.total_seconds() / 3600 / 24
+    grouped = (
+        user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d"))["Days Active"]
+        .mean()
+        .reset_index()
+    )
     grouped.to_csv("data/weekly_days_active.csv", index=False)
 
     # #TODO: need to divide the ~500k+ addresses into ~10 queries to add labels, if necessary
@@ -78,7 +86,7 @@ if __name__ == "__main__":
     )
     weekly_new_program_data.to_csv("data/weekly_new_program.csv", index=False)
 
-    weekly_user_data = utils.combine_flipside_date_data('data/sdk_weekly_users_sol', add_date=False)
+    weekly_user_data = utils.combine_flipside_date_data("data/sdk_weekly_users_sol", add_date=False)
     weekly_user_data.to_csv("data/weekly_users.csv", index=False)
-    weekly_new_user_data = utils.combine_flipside_date_data('data/sdk_weekly_new_users_sol', add_date=False)
+    weekly_new_user_data = utils.combine_flipside_date_data("data/sdk_weekly_new_users_sol", add_date=False)
     weekly_new_user_data.to_csv("data/weekly_new_users.csv", index=False)
