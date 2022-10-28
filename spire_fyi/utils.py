@@ -1,7 +1,7 @@
 import datetime
 import logging
-from pathlib import Path
 import time
+from pathlib import Path
 
 import pandas as pd
 import requests
@@ -21,6 +21,7 @@ __all__ = [
     "load_weekly_user_data",
     "load_weekly_last_use_data",
     "load_weekly_days_since_last_use_data",
+    "load_defi_data",
     "agg_method_dict",
     "metric_dict",
 ]
@@ -180,30 +181,140 @@ def get_program_chart_data(
 
 
 # @st.experimental_memo(ttl=60 * 10)
-def load_labeled_program_data():
-    return pd.read_csv("data/programs_labeled.csv.gz")
+def load_labeled_program_data(new_users_only=False):
+    if new_users_only:
+        return pd.read_csv("data/programs_new_users_labeled.csv.gz")
+    else:
+        return pd.read_csv("data/programs_labeled.csv.gz")
 
 
 # @st.experimental_memo(ttl=60 * 10)
 def load_weekly_program_data():
-    return pd.read_csv("data/weekly_program.csv")
+    df = pd.read_csv("data/weekly_program.csv")
+    datecols = ["WEEK"]
+    df[datecols] = df[datecols].apply(pd.to_datetime)
+    return df
 
 
 # @st.experimental_memo(ttl=60 * 10)
 def load_weekly_new_program_data():
     df = pd.read_csv("data/weekly_new_program.csv")
     df = df.sort_values(by="WEEK")
+    df = df.reset_index(drop=True)
     df["Cumulative Programs"] = df["New Programs"].cumsum()
-    return df
-
-
-def load_weekly_user_data():
-    df = pd.read_csv("data/weekly_users.csv")
-    datecols = ["CREATION_DATE"]
+    datecols = ["WEEK"]
     df[datecols] = df[datecols].apply(pd.to_datetime)
     return df
 
 
+# @st.experimental_memo(ttl=60 * 10)
+def load_weekly_user_data():
+    df = pd.read_csv("data/weekly_users.csv")
+    datecols = ["WEEK"]
+    df[datecols] = df[datecols].apply(pd.to_datetime)
+    return df
+
+
+# @st.experimental_memo(ttl=60 * 10)
+def load_weekly_new_user_data():
+    df = pd.read_csv("data/weekly_new_users.csv")
+    datecols = ["WEEK"]
+    df[datecols] = df[datecols].apply(pd.to_datetime)
+    df = df.sort_values(by="WEEK")
+    df = df.rename(columns={"NEW_USERS": "New Users"})
+    df["Cumulative Users"] = df["New Users"].cumsum()
+    return df
+
+
+# @st.experimental_memo(ttl=60 * 10)
+def load_nft_data():
+    main_data = (
+        pd.read_json(
+            "https://node-api.flipsidecrypto.com/api/v2/queries/3d71d36a-ca9a-4fcf-97a9-802dbbc2b98d/data/latest"
+        )
+        .rename(
+            columns={
+                "WEEK": "Date",
+                "MARKETPLACE": "Marketplace",
+                "TXS": "Transaction Count",
+                "BUYERS": "Buyers",
+                "SELLERS": "Sellers",
+                "NFTS_SOLD": "NFTs Sold",
+                "SOL_AMOUNT": "Sale Amount (SOL)",
+            }
+        )
+        .sort_values(by="Date", ascending=False)
+        .reset_index(drop=True)
+    )
+    buyers_sellers = main_data.melt(
+        id_vars=[
+            "Date",
+            "Marketplace",
+            "Transaction Count",
+            "NFTs Sold",
+            "Sale Amount (SOL)",
+        ]
+    )
+    marketplace_info = main_data.melt(
+        id_vars=[
+            "Date",
+            "Buyers",
+            "Sellers",
+            "Transaction Count",
+            "NFTs Sold",
+            "Sale Amount (SOL)",
+        ]
+    )
+    mints_by_purchaser = (
+        pd.read_json(
+            "https://node-api.flipsidecrypto.com/api/v2/queries/ac73a290-6f2e-4e15-be6f-203562bbd911/data/latest"
+        )
+        .rename(columns={"DATE": "Date", "AVERAGE_MINTS": "Average Mints per Address"})
+        .sort_values(by="Date", ascending=False)
+        .reset_index(drop=True)
+    )
+    mints_by_chain = (
+        pd.read_json(
+            "https://node-api.flipsidecrypto.com/api/v2/queries/d40f62a3-d937-460c-938d-a699b5be9f6e/data/latest"
+        )
+        .rename(columns={"DATE": "Date", "CHAIN": "Chain", "MINTS": "Count", "MINTERS": "Unique Users"})
+        .sort_values(by="Date", ascending=False)
+        .reset_index(drop=True)
+    )
+    mints_by_chain["Type"] = "Mints"
+    sales_by_chain = pd.read_json(
+        "https://node-api.flipsidecrypto.com/api/v2/queries/d79d5037-6777-44eb-a881-e0243af11cea/data/latest"
+    ).rename(columns={"DATE": "Date", "CHAIN": "Chain", "SALES": "Count", "BUYERS": "Unique Users"})
+    sales_by_chain["Type"] = "Sales"
+    by_chain_data = (
+        pd.concat([mints_by_chain, sales_by_chain])
+        .sort_values(by=["Type", "Date", "Chain"], ascending=False)
+        .reset_index(drop=True)
+    )[["Date", "Chain", "Unique Users", "Type", "Count"]]
+    return buyers_sellers, marketplace_info, mints_by_purchaser, by_chain_data
+
+
+# @st.experimental_memo(ttl=60 * 10)
+def load_defi_data():
+    df = (
+        pd.read_json(
+            "https://node-api.flipsidecrypto.com/api/v2/queries/02d025f0-9eb1-4bff-b317-299c8b251178/data/latest"
+        )
+        .sort_values(by=["WEEK", "SWAP_PROGRAM"])
+        .reset_index(drop=True)
+        .rename(
+            columns={
+                "WEEK": "Date",
+                "SWAP_PROGRAM": "Swap Program",
+                "DAILY_TXS": "Transaction Count",
+                "DAILY_BUYERS": "Unique Users",
+            }
+        )
+    )
+    return df
+
+
+# #TODO: not used currently
 def load_weekly_last_use_data():
     df = pd.read_csv("data/weekly_users_last_use.csv")
     datecols = ["LAST_USE"]
@@ -225,35 +336,4 @@ def load_weekly_days_active_data():
     return df
 
 
-def load_nft_data_homepage():
-    buyers_sellers = (
-        pd.read_json(
-            "https://node-api.flipsidecrypto.com/api/v2/queries/3d71d36a-ca9a-4fcf-97a9-802dbbc2b98d/data/latest"
-        )
-        .rename(
-            columns={
-                "WEEK": "Date",
-                "MARKETPLACE": "Marketplace",
-                "DAILY_TXS": "Transaction Count",
-                "DAILY_BUYERS": "Buyers",
-                "DAILY_SELLERS": "Sellers",
-                "NFTS_SOLD": "NFTs Sold",
-                "SOL_AMOUNT": "Sale Amount (SOL)",
-            }
-        )
-        .melt(
-            id_vars=[
-                "Date",
-                "Marketplace",
-                "Transaction Count",
-                "NFTs Sold",
-                "Sale Amount (SOL)",
-            ]
-        )
-    )
-    mints_by_purchaser = pd.read_json(
-        "https://node-api.flipsidecrypto.com/api/v2/queries/ac73a290-6f2e-4e15-be6f-203562bbd911/data/latest"
-    )
-    return buyers_sellers, mints_by_purchaser
-
-
+# #---
