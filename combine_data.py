@@ -20,8 +20,8 @@ if __name__ == "__main__":
     # New users only
     program_new_users_df = utils.combine_flipside_date_data("data/sdk_programs_new_users_sol", add_date=False)
     program_new_users_df.to_csv("data/programs_new_users.csv.gz", index=False, compression="gzip")
-    utils.get_flipside_labels(program_new_users_df, "program", "PROGRAM_ID")
-    utils.get_solana_fm_labels(program_new_users_df, "program", "PROGRAM_ID")
+    utils.get_flipside_labels(program_new_users_df, "program_new_users", "PROGRAM_ID")
+    utils.get_solana_fm_labels(program_new_users_df, "program_new_users", "PROGRAM_ID")
 
     labeled_program_new_users_df = utils.add_program_labels(program_new_users_df)
     labeled_program_new_users_df.to_csv(
@@ -68,14 +68,6 @@ if __name__ == "__main__":
     )
     grouped.to_csv("data/weekly_days_active.csv", index=False)
 
-    # #TODO: need to divide the ~500k+ addresses into ~10 queries to add labels, if necessary
-    # utils.get_flipside_labels(last30d_users, "user", "ADDRESS")
-    # utils.get_solana_fm_labels(last30d_users, "user", "ADDRESS")
-
-    # labeled_user_df = utils.add_labels_to_df(last30d_users)
-    # labeled_user_df.to_csv("data/users_labeled.csv.gz", index=False, compression="gzip")
-    # #---
-
     weekly_program_data = utils.combine_flipside_date_data(
         "data/sdk_weekly_program_count_sol", add_date=False
     )
@@ -90,3 +82,25 @@ if __name__ == "__main__":
     weekly_user_data.to_csv("data/weekly_users.csv", index=False)
     weekly_new_user_data = utils.combine_flipside_date_data("data/sdk_weekly_new_users_sol", add_date=False)
     weekly_new_user_data.to_csv("data/weekly_new_users.csv", index=False)
+
+    # Network stuff
+    signers_by_programID = utils.combine_flipside_date_data(
+        "data/sdk_signers_by_programID_sol", add_date=True, with_program=True
+    ).rename(columns={"DATE": "Date", "PROGRAM_ID": "Program ID", "SIGNERS": "Address"})
+    signers_by_programID.to_csv("data/signers_by_programID.csv.gz", compression="gzip", index=False)
+
+    signers_by_programID_new_users = utils.combine_flipside_date_data(
+        "data/sdk_signers_by_programID_new_users_sol", add_date=True, with_program=True
+    ).rename(columns={"DATE": "Date", "PROGRAM_ID": "Program ID", "SIGNERS": "Address"})
+    signers_by_programID_new_users.to_csv(
+        "data/signers_by_programID_new_users.csv.gz", compression="gzip", index=False
+    )
+    # #---
+
+    # #TODO: need to divide the ~500k+ addresses into ~10 queries to add labels, if necessary
+    # utils.get_flipside_labels(last30d_users, "user", "ADDRESS")
+    # utils.get_solana_fm_labels(last30d_users, "user", "ADDRESS")
+
+    # labeled_user_df = utils.add_labels_to_df(last30d_users)
+    # labeled_user_df.to_csv("data/users_labeled.csv.gz", index=False, compression="gzip")
+    # #---

@@ -4,6 +4,7 @@ import json
 import logging
 from multiprocessing import Pool
 from pathlib import Path
+import shutil
 from time import sleep
 
 import numpy as np
@@ -29,6 +30,13 @@ all_dates = [
 all_dates_2022 = [
     f"{x:%Y-%m-%d}"
     for x in pd.date_range(datetime.date(2022, 1, 1), (datetime.datetime.today() - pd.Timedelta("1d")))
+]
+past_7d = [
+    f"{x:%Y-%m-%d}"
+    for x in pd.date_range(
+        (datetime.datetime.today() - pd.Timedelta("8d")),
+        (datetime.datetime.today() - pd.Timedelta("1d")),
+    )
 ]
 past_30d = [
     f"{x:%Y-%m-%d}"
@@ -91,7 +99,15 @@ def get_queries_by_date_and_programs(date, query_basename, df, update_cache=Fals
             output_dir = Path(f"data/{query_basename}")
             output_file = Path(output_dir, f"{query_basename}_{date.replace(' ', '_')}_{program}.csv")
             if update_cache or not output_file.exists():
-                queries_to_do.append((query, output_file))
+                pre_ran = Path(
+                    "data/sdk_signers_by_programID_new_users_sol--all_user-programIDs",
+                    f"{query_basename}_{date.replace(' ', '_')}_{program}.csv",
+                )
+                if pre_ran.exists():
+                    logging.info(f"Copying {pre_ran} to {output_file}")
+                    shutil.copy(pre_ran, output_file)
+                else:
+                    queries_to_do.append((query, output_file))
     return queries_to_do
 
 
@@ -227,6 +243,13 @@ if __name__ == "__main__":
     chart_df = chart_df[chart_df.LABEL != "solana"]
     chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta("31d"))]
 
+    chart_df_new_users = pd.read_csv("data/programs_new_users_labeled.csv.gz")
+    chart_df_new_users["Date"] = pd.to_datetime(chart_df_new_users.Date)
+    chart_df_new_users = chart_df_new_users[chart_df_new_users.LABEL != "solana"]
+    chart_df_new_users = chart_df_new_users[
+        chart_df_new_users.Date >= (datetime.datetime.today() - pd.Timedelta("31d"))
+    ]
+
     query_info = []
     # #TODO: change dates/programs
     for q, dates in [
@@ -244,12 +267,12 @@ if __name__ == "__main__":
             if queries_to_do is not None:
                 query_info.append(queries_to_do)
 
-    for q, dates in [
-        ("sdk_signers_by_programID_new_users_sol", past_30d),
-        ("sdk_signers_by_programID_sol", past_90d),
+    for q, dates, df in [
+        ("sdk_signers_by_programID_new_users_sol", past_30d, chart_df_new_users),
+        ("sdk_signers_by_programID_sol", past_30d, chart_df),
     ]:  # for program_ids
         for date in dates:
-            queries_to_do = get_queries_by_date_and_programs(date, q, chart_df)
+            queries_to_do = get_queries_by_date_and_programs(date, q, df)
             if queries_to_do != []:
                 query_info.extend(queries_to_do)
 

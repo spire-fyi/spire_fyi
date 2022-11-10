@@ -40,14 +40,18 @@ metric_dict = {
 }
 
 
-def combine_flipside_date_data(data_dir, add_date=False):
+def combine_flipside_date_data(data_dir, add_date=False, with_program=False):
     d = Path(data_dir)
     data_files = d.glob("*.csv")
     dfs = []
     for x in data_files:
+        logging.info(f"Reading in {x}")
         df = pd.read_csv(x)
-        if add_date:
+        if add_date and not with_program:
             date_str = x.name.split("_")[-1].split(".csv")[0]
+            df["DATE"] = date_str
+        if add_date and with_program:
+            date_str = x.name.split("_")[-2]
             df["DATE"] = date_str
         dfs.append(df)
     combined_df = pd.concat(dfs)
