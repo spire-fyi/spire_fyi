@@ -223,6 +223,16 @@ chart = (
 )
 st.altair_chart(chart, use_container_width=True)
 
+with st.expander("View and Download Data Table"):
+    st.write(defi_data)
+    st.download_button(
+        "Click to Download",
+        defi_data.to_csv(index=False).encode("utf-8"),
+        f"weekly_defi.csv",
+        "text/csv",
+        key="download-weekly-defi",
+    )
+
 st.header("Additional Figures")
 components.iframe(
     "https://app.flipsidecrypto.com/dashboard/spireee-wip-NKWJbS",
