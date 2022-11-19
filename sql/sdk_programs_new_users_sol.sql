@@ -1,8 +1,7 @@
 WITH solana_wallets AS (
     SELECT
         signers [0] AS address,
-        MIN(DATE(block_timestamp)) AS creation_date,
-        MAX(DATE(block_timestamp)) AS last_use
+        MIN(DATE(block_timestamp)) AS creation_date
     FROM
         solana.core.fact_transactions
     GROUP BY
@@ -11,8 +10,7 @@ WITH solana_wallets AS (
 solana_new_wallets AS (
     SELECT
         address,
-        creation_date,
-        last_use
+        creation_date
     FROM
         solana_wallets
     WHERE
@@ -25,7 +23,11 @@ SELECT
     COUNT(DISTINCT t.signers [0]) AS signers
 FROM
     solana.core.fact_events e
-    JOIN solana.core.fact_transactions t ON (e.tx_id = t.tx_id)
+    JOIN solana.core.fact_transactions t
+    ON (
+        e.tx_id = t.tx_id
+        AND e.block_timestamp :: DATE = t.block_timestamp :: DATE
+    )
 WHERE
     e.block_timestamp :: DATE = {{ date }}
     AND t.signers [0] IN (

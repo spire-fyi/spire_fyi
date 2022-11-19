@@ -18,7 +18,7 @@ st.set_page_config(
 c1, c2 = st.columns([1, 3])
 
 c2.header("Spire")
-c2.caption("A viewpoint above Solana data")
+c2.caption("A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/).")
 c1.image(
     image,
     width=200,
