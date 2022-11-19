@@ -12,6 +12,7 @@ FROM
     JOIN solana.core.fact_transactions t
     ON (
         e.tx_id = t.tx_id
+        AND e.block_timestamp :: DATE = t.block_timestamp :: DATE
     )
 WHERE
     e.block_timestamp :: DATE = {{ date }}

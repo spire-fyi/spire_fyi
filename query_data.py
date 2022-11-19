@@ -38,10 +38,24 @@ past_7d = [
         (datetime.datetime.today() - pd.Timedelta("1d")),
     )
 ]
+past_14d = [
+    f"{x:%Y-%m-%d}"
+    for x in pd.date_range(
+        (datetime.datetime.today() - pd.Timedelta("15d")),
+        (datetime.datetime.today() - pd.Timedelta("1d")),
+    )
+]
 past_30d = [
     f"{x:%Y-%m-%d}"
     for x in pd.date_range(
         (datetime.datetime.today() - pd.Timedelta("31d")),
+        (datetime.datetime.today() - pd.Timedelta("1d")),
+    )
+]
+past_60d = [
+    f"{x:%Y-%m-%d}"
+    for x in pd.date_range(
+        (datetime.datetime.today() - pd.Timedelta("61d")),
         (datetime.datetime.today() - pd.Timedelta("1d")),
     )
 ]
@@ -203,13 +217,20 @@ def get_flipside_query_data(submitted_queries):
         get_flipside_query_data(running)
 
 
-def query_flipside_data(query_info, save=True):
+def query_flipside_data(enumerated_query_info, save=True):
+    i, query_info = enumerated_query_info
     query, output_file = query_info
     query_file = Path(output_file.parent, "queries", f"{output_file.stem}.sql")
     logging.info(f"#@# Querying data for {output_file} ...")
     query_file.parent.mkdir(exist_ok=True, parents=True)
     with open(query_file, "w") as f:
         f.write(query)
+    if i % 1 == 0:
+        sleep(3)
+    if i % 5 == 0:
+        sleep(5)
+    if i % 10 == 0:
+        sleep(10)
     try:
         query_result_set = sdk.query(query, cached=False)
         if save:
@@ -238,17 +259,6 @@ def get_submitted_queries_from_json(submitted_query_file):
 if __name__ == "__main__":
     # #TODO make cli...
     update_cache = False
-    chart_df = pd.read_csv("data/programs_labeled.csv.gz")
-    chart_df["Date"] = pd.to_datetime(chart_df.Date)
-    chart_df = chart_df[chart_df.LABEL != "solana"]
-    chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta("31d"))]
-
-    chart_df_new_users = pd.read_csv("data/programs_new_users_labeled.csv.gz")
-    chart_df_new_users["Date"] = pd.to_datetime(chart_df_new_users.Date)
-    chart_df_new_users = chart_df_new_users[chart_df_new_users.LABEL != "solana"]
-    chart_df_new_users = chart_df_new_users[
-        chart_df_new_users.Date >= (datetime.datetime.today() - pd.Timedelta("31d"))
-    ]
 
     query_info = []
     # #TODO: change dates/programs
@@ -267,18 +277,37 @@ if __name__ == "__main__":
             if queries_to_do is not None:
                 query_info.append(queries_to_do)
 
-    for q, dates, df in [
-        ("sdk_signers_by_programID_new_users_sol", past_30d, chart_df_new_users),
-        ("sdk_signers_by_programID_sol", past_30d, chart_df),
-    ]:  # for program_ids
-        for date in dates:
-            queries_to_do = get_queries_by_date_and_programs(date, q, df)
-            if queries_to_do != []:
-                query_info.extend(queries_to_do)
+    for dates, max_date_string in [  # HACK
+        (past_7d, "8d"),
+        (past_14d, "15d"),
+        (past_30d, "31d"),
+        (past_60d, "61d"),
+        (past_90d, "91d"),
+    ]:
+        chart_df = pd.read_csv("data/programs_labeled.csv.gz")
+        chart_df["Date"] = pd.to_datetime(chart_df.Date)
+        chart_df = chart_df[chart_df.LABEL != "solana"]
+        chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))]
+
+        chart_df_new_users = pd.read_csv("data/programs_new_users_labeled.csv.gz")
+        chart_df_new_users["Date"] = pd.to_datetime(chart_df_new_users.Date)
+        chart_df_new_users = chart_df_new_users[chart_df_new_users.LABEL != "solana"]
+        chart_df_new_users = chart_df_new_users[
+            chart_df_new_users.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))
+        ]
+
+        for q, df in [
+            ("sdk_signers_by_programID_new_users_sol", chart_df_new_users),
+            ("sdk_signers_by_programID_sol", chart_df),
+        ]:  # for program_ids
+            for date in dates:
+                queries_to_do = get_queries_by_date_and_programs(date, q, df)
+                if queries_to_do != []:
+                    query_info.extend(queries_to_do)
 
     logging.info(f"Running {len(query_info)} queries...")
     with Pool() as p:
-        p.map(query_flipside_data, query_info)
+        p.map(query_flipside_data, list(enumerate(query_info)))
 
     # #TODO combine data, get program_ids
     # df = combine_flipside_date_data("data/sdk_programs_sol")
