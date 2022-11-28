@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import datetime
+from itertools import combinations
 
+import networkx as nx
+import numpy as np
 import pandas as pd
 
 import spire_fyi.utils as utils
@@ -104,3 +107,179 @@ if __name__ == "__main__":
     # labeled_user_df = utils.add_labels_to_df(last30d_users)
     # labeled_user_df.to_csv("data/users_labeled.csv.gz", index=False, compression="gzip")
     # #---
+
+    # Network tables
+    def get_labeled_program_df(df, programs):
+        all_programs_df = pd.DataFrame({"ProgramID": pd.unique(programs)})
+        all_programs_labeled = df.groupby("PROGRAM_ID").Name.first().reset_index()
+        all_programs_df = all_programs_df.merge(
+            all_programs_labeled[["PROGRAM_ID", "Name"]].rename(columns={"PROGRAM_ID": "ProgramID"}),
+            on="ProgramID",
+        )
+        return all_programs_df
+
+    def get_net_and_programs(labeled_programs, signers, label, cutoff_date):
+        programs_labeled = labeled_programs.copy()[labeled_programs.LABEL != "solana"]
+        programs_labeled = programs_labeled[programs_labeled.Date >= cutoff_date]
+        programs = utils.get_program_ids(programs_labeled)
+
+        df = signers.copy()
+        df = df["Date"] = pd.to_datetime(df.Date)
+        df = df[df.Date >= cutoff_date]
+        df = df[df["Program ID"].isin(programs)]
+
+        combos = list(combinations(programs, 2))
+
+        labels = programs_labeled.groupby("PROGRAM_ID").Name.first().reset_index()
+        df = df.merge(labels.rename(columns={"PROGRAM_ID": "Program ID"}), on="Program ID")
+
+        prog_user_dict = {}
+        for x in programs:
+            prog_user_dict[x] = (
+                df[df["Program ID"] == x].Name.iloc[0],
+                df[df["Program ID"] == x].Address.unique(),
+            )
+
+        df_list = []
+        for i, j in combos:
+            name1, prog1_users = prog_user_dict[i]
+            name2, prog2_users = prog_user_dict[j]
+            if len(prog1_users) < 10 or len(prog2_users) < 10:
+                continue
+            else:
+                all_users = np.union1d(prog1_users, prog2_users)
+                overlap = np.intersect1d(prog1_users, prog2_users, assume_unique=True)
+
+                n_users = len(all_users)
+                n_overlap = len(overlap)
+
+                df_dict = {}
+                df_dict["Program1"] = i
+                df_dict["Program2"] = j
+                df_dict["Name1"] = name1
+                df_dict["Name2"] = name2
+                df_dict["weight"] = n_overlap / n_users
+                df_dict["Timedelta"] = label
+
+                df_list.append(df_dict)
+        net_df = pd.DataFrame(df_list)
+
+        return net_df, programs
+
+    labeled_program_df["Date"] = pd.to_datetime(labeled_program_df.Date)
+    labeled_program_df["Name"] = labeled_program_df.apply(utils.apply_program_name, axis=1)
+
+    labeled_program_new_users_df["Date"] = pd.to_datetime(labeled_program_new_users_df.Date)
+    labeled_program_new_users_df["Name"] = labeled_program_new_users_df.apply(
+        utils.apply_program_name, axis=1
+    )
+
+    cutoff_dates = [
+        ("7d", datetime.datetime.today() - pd.Timedelta("8d")),
+        ("14d", datetime.datetime.today() - pd.Timedelta("15d")),
+        ("30d", datetime.datetime.today() - pd.Timedelta("31d")),
+        ("60d", datetime.datetime.today() - pd.Timedelta("61d")),
+        ("90d", datetime.datetime.today() - pd.Timedelta("91d")),
+    ]
+
+    all_programs = []
+    all_programs_new_users = []
+    net_dfs = []
+    net_dfs_new_users = []
+
+    for label, cutoff_date in cutoff_dates:
+        net_df, programs = get_net_and_programs(labeled_program_df, signers_by_programID, label, cutoff_date)
+        net_dfs.append(net_df)
+        all_programs.extend(list(programs))
+
+        net_df_new_users, programs_new_users = get_net_and_programs(labeled_program_new_users_df, signers_by_programID_new_users, label, cutoff_date)
+        net_dfs_new_users.append(net_df_new_users)
+        all_programs_new_users.extend(list(programs_new_users))
+
+    all_net_df = pd.concat(net_dfs)
+    all_net_df.to_csv("data/all_net.csv", index=False)
+    all_programs_df = get_labeled_program_df(labeled_program_df, all_programs)
+    all_programs_df.to_csv("data/all_programs.csv", index=False)
+
+    all_net_df_new_users = pd.concat(net_dfs_new_users)
+    all_net_df_new_users.to_csv("data/all_net_new_users.csv", index=False)
+    all_programs_new_users_df = get_labeled_program_df(labeled_program_new_users_df, all_programs_new_users)
+    all_programs_new_users_df.to_csv("data/all_programs_new_users.csv", index=False)
+        # programs_labeled = labeled_program_df.copy()[labeled_program_df.LABEL != "solana"]
+        # programs_labeled = programs_labeled[programs_labeled.Date  >= cutoff_date]
+        # programs = utils.get_program_ids(programs_labeled)
+
+        # df = signers_by_programID.copy()
+        # df = df["Date"] = pd.to_datetime(df.Date)
+        # df = df[df.Date > cutoff_date]
+        # df = df[df["Program ID"].isin(programs)]
+
+        # combos = list(combinations(programs, 2))
+
+        # labels = programs_labeled.groupby("PROGRAM_ID").Name.first().reset_index()
+        # df = df.merge(labels.rename(columns={"PROGRAM_ID": "Program ID"}), on="Program ID")
+
+        # prog_user_dict = {}
+        # for x in programs:
+        #     prog_user_dict[x] = (
+        #         df[df["Program ID"] == x].Name.iloc[0],
+        #         df[df["Program ID"] == x].Address.unique()
+        #     )
+
+        # df_list = []
+        # for i, j in combos:
+        #     name1, prog1_users = prog_user_dict[i]
+        #     name2, prog2_users = prog_user_dict[j]
+        #     if len(prog1_users) < 10 or len(prog2_users) < 10:
+        #         continue
+        #     else:
+        #         all_users = np.union1d(prog1_users, prog2_users)
+        #         overlap = np.intersect1d(prog1_users, prog2_users, assume_unique=True)
+
+        #         n_users = len(all_users)
+        #         n_overlap = len(overlap)
+
+        #         df_dict = {}
+        #         df_dict["Program1"] = i
+        #         df_dict["Program2"] = j
+        #         df_dict["Name1"] = name1
+        #         df_dict["Name2"] = name2
+        #         df_dict["weight"] = n_overlap / n_users
+        #         df_dict['Timedelta'] = label
+
+        #         df_list.append(df_dict)
+        # net_df = pd.DataFrame(df_list)
+        # net_dfs.append(net_df)
+
+        # all_programs.extend(list(programs))
+
+        # labeled_program_df_ = labeled_program_df.copy()[labeled_program_df.LABEL != "solana"]
+        # labeled_program_df_ = labeled_program_df_[labeled_program_df_.Date >= cutoff_date]
+        # programs = utils.get_program_ids(labeled_program_df_)
+        # all_programs.extend(list(programs))
+
+        # all_programs_df = pd.DataFrame({"ProgramID": pd.unique(all_programs)})
+        # all_programs_labeled = labeled_program_df.groupby("PROGRAM_ID").Name.first().reset_index()
+        # all_programs_df = all_programs_df.merge(
+        #     all_programs_labeled[["PROGRAM_ID", "Name"]].rename(columns={"PROGRAM_ID": "ProgramID"}),
+        #     on="ProgramID",
+        # )
+
+        # # new users
+        # labeled_program_new_users_df_ = labeled_program_new_users_df.copy()[
+        #     labeled_program_new_users_df.LABEL != "solana"
+        # ]
+        # labeled_program_new_users_df_ = labeled_program_new_users_df_[
+        #     labeled_program_new_users_df_.Date >= cutoff_date
+        # ]
+        # programs_new_users = utils.get_program_ids(labeled_program_new_users_df_)
+        # all_programs_new_users.extend(list(programs_new_users))
+
+        # all_programs_new_users_df = pd.DataFrame({"ProgramID": pd.unique(all_programs_new_users)})
+        # all_programs_new_users_labeled = (
+        #     labeled_program_new_users_df.groupby("PROGRAM_ID").Name.first().reset_index()
+        # )
+        # all_programs_new_users_df = all_programs_new_users_df.merge(
+        #     all_programs_new_users_labeled[["PROGRAM_ID", "Name"]].rename(columns={"PROGRAM_ID": "ProgramID"}),
+        #     on="ProgramID",
+        # )

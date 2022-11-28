@@ -15,6 +15,8 @@ from shroomdk import ShroomDK
 from shroomdk.api import CreateQueryResp
 from shroomdk.models import Query
 
+import spire_fyi.utils as utils
+
 API_KEY = st.secrets["flipside"]["api_key"]
 sdk = ShroomDK(API_KEY)
 
@@ -105,7 +107,7 @@ def get_queries_by_date(date, query_basename, update_cache=False):
 
 
 def get_queries_by_date_and_programs(date, query_basename, df, update_cache=False):
-    program_ids = get_program_ids(df)
+    program_ids = utils.get_program_ids(df)
     queries_to_do = []
     for program in program_ids:
         if len(chart_df[(chart_df.Date == date) & (chart_df.PROGRAM_ID == program)]) > 0:
@@ -123,21 +125,6 @@ def get_queries_by_date_and_programs(date, query_basename, df, update_cache=Fals
                 else:
                     queries_to_do.append((query, output_file))
     return queries_to_do
-
-
-def get_program_ids(df):
-    prog_list = []
-    for agg_method in ["mean", "sum", "max"]:
-        for metric in ["TX_COUNT", "SIGNERS"]:
-            program_ids = (
-                df.groupby("PROGRAM_ID")
-                .agg({metric: agg_method})
-                .sort_values(by=metric, ascending=False)
-                .iloc[:30]
-                .index
-            )
-            prog_list.extend(program_ids.to_list())
-    return pd.unique(prog_list)
 
 
 def create_query(query, output_file):

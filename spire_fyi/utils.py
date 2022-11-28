@@ -12,7 +12,8 @@ from shroomdk import ShroomDK
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 __all__ = [
     "add_program_labels",
-    "apply_program_name" "combine_flipside_date_data",
+    "apply_program_name",
+    "combine_flipside_date_data",
     "get_flipside_labels",
     "get_program_chart_data",
     "load_labeled_program_data",
@@ -24,6 +25,7 @@ __all__ = [
     "load_defi_data",
     "agg_method_dict",
     "metric_dict",
+    "get_program_ids",
 ]
 
 API_KEY = st.secrets["flipside"]["api_key"]
@@ -160,7 +162,8 @@ def get_program_chart_data(
     elif date_range == "Year to Date":
         chart_df = df.copy()[df.Date >= "2022-01-01"]
     else:
-        chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
+        d = f"{int(date_range[:-1])+1}d"
+        chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(d))]
 
     if exclude_solana:
         chart_df = chart_df[chart_df.LABEL != "solana"]
@@ -340,3 +343,17 @@ def load_weekly_days_active_data():
 
 
 # #---
+
+def get_program_ids(df):
+    prog_list = []
+    for agg_method in ["mean", "sum", "max"]:
+        for metric in ["TX_COUNT", "SIGNERS"]:
+            program_ids = (
+                df.groupby("PROGRAM_ID")
+                .agg({metric: agg_method})
+                .sort_values(by=metric, ascending=False)
+                .iloc[:30]
+                .index
+            )
+            prog_list.extend(program_ids.to_list())
+    return pd.unique(prog_list)
