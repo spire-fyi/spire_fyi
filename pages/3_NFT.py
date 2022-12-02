@@ -5,7 +5,7 @@ from PIL import Image
 import spire_fyi.utils as utils
 
 alt.data_transformers.disable_max_rows()
-image = Image.open("assets/images/spire_background.png")
+image = Image.open("assets/images/spire_logo.png")
 
 st.set_page_config(
     page_title="Spire",
