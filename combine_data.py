@@ -1,285 +1,486 @@
 #!/usr/bin/env python3
 import datetime
+import gc
 from itertools import combinations
+import json
+import logging
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
 import pandas as pd
+import requests
 
 import spire_fyi.utils as utils
 
-# #TODO: add to cli
+helius_key = "440a0b83-5ec8-4a8a-95ff-ba6f69499e98"
 
 
-if __name__ == "__main__":
-    program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
-    program_df.to_csv("data/programs.csv.gz", index=False, compression="gzip")
-    utils.get_flipside_labels(program_df, "program", "PROGRAM_ID")
-    utils.get_solana_fm_labels(program_df, "program", "PROGRAM_ID")
-
-    labeled_program_df = utils.add_program_labels(program_df)
-    labeled_program_df.to_csv("data/programs_labeled.csv.gz", index=False, compression="gzip")
-
-    # New users only
-    program_new_users_df = utils.combine_flipside_date_data("data/sdk_programs_new_users_sol", add_date=False)
-    program_new_users_df.to_csv("data/programs_new_users.csv.gz", index=False, compression="gzip")
-    utils.get_flipside_labels(program_new_users_df, "program_new_users", "PROGRAM_ID")
-    utils.get_solana_fm_labels(program_new_users_df, "program_new_users", "PROGRAM_ID")
-
-    labeled_program_new_users_df = utils.add_program_labels(program_new_users_df)
-    labeled_program_new_users_df.to_csv(
-        "data/programs_new_users_labeled.csv.gz", index=False, compression="gzip"
+def get_labeled_program_df(df, programs):
+    all_programs_df = pd.DataFrame({"ProgramID": pd.unique(programs)})
+    all_programs_labeled = df.groupby("PROGRAM_ID").Name.first().reset_index()
+    all_programs_df = all_programs_df.merge(
+        all_programs_labeled[["PROGRAM_ID", "Name"]].rename(columns={"PROGRAM_ID": "ProgramID"}),
+        on="ProgramID",
     )
+    return all_programs_df
 
-    user_df = utils.combine_flipside_date_data("data/sdk_new_users_sol", add_date=False)
-    datecols = ["CREATION_DATE", "LAST_USE"]
-    user_df[datecols] = user_df[datecols].apply(pd.to_datetime)
-    last30d_users = user_df[user_df.CREATION_DATE > (datetime.datetime.today() - pd.Timedelta("31d"))]
 
-    user_df.to_csv("data/users.csv.gz", index=False, compression="gzip")
-    last30d_users.to_csv("data/last30d_users.csv.gz", index=False, compression="gzip")
+def get_net_and_programs(labeled_programs, signers, label, cutoff_date):
+    programs_labeled = labeled_programs.copy()[labeled_programs.LABEL != "solana"]
+    programs_labeled = programs_labeled[programs_labeled.Date >= cutoff_date]
+    programs = utils.get_program_ids(programs_labeled)
 
-    user_df["Days since last use"] = (datetime.datetime.today() - pd.Timedelta("1d")) - user_df.LAST_USE
+    df = signers.copy()
+    df["Date"] = pd.to_datetime(df.Date)
+    df = df[df.Date >= cutoff_date]
+    df = df[df["Program ID"].isin(programs)]
 
-    grouped = (
-        user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d")).ADDRESS.count().reset_index()
-    )
-    grouped.to_csv("data/weekly_users.csv", index=False)
-    grouped = user_df.groupby(pd.Grouper(key="LAST_USE", axis=0, freq="7d")).ADDRESS.count().reset_index()
-    grouped.to_csv("data/weekly_users_last_use.csv", index=False)
+    combos = list(combinations(programs, 2))
 
-    user_df["Days since last use"] = (
-        ((datetime.datetime.today() - pd.Timedelta("1d")) - user_df.LAST_USE).dt.total_seconds() / 3600 / 24
-    )
-    grouped = (
-        user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d"))["Days since last use"]
-        .mean()
-        .reset_index()
-    )
-    grouped["Days since creation"] = (
-        ((datetime.datetime.today() - pd.Timedelta("1d")) - grouped.CREATION_DATE).dt.total_seconds()
-        / 3600
-        / 24
-    )
-    grouped.to_csv("data/weekly_days_since_last_use.csv", index=False)
+    labels = programs_labeled.groupby("PROGRAM_ID").Name.first().reset_index()
+    df = df.merge(labels.rename(columns={"PROGRAM_ID": "Program ID"}), on="Program ID")
 
-    user_df["Days Active"] = (user_df.LAST_USE - user_df.CREATION_DATE).dt.total_seconds() / 3600 / 24
-    grouped = (
-        user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d"))["Days Active"]
-        .mean()
-        .reset_index()
-    )
-    grouped.to_csv("data/weekly_days_active.csv", index=False)
-
-    weekly_program_data = utils.combine_flipside_date_data(
-        "data/sdk_weekly_program_count_sol", add_date=False
-    )
-    weekly_program_data.to_csv("data/weekly_program.csv", index=False)
-
-    weekly_new_program_data = utils.combine_flipside_date_data(
-        "data/sdk_weekly_new_program_count_sol", add_date=False
-    )
-    weekly_new_program_data.to_csv("data/weekly_new_program.csv", index=False)
-
-    weekly_user_data = utils.combine_flipside_date_data("data/sdk_weekly_users_sol", add_date=False)
-    weekly_user_data.to_csv("data/weekly_users.csv", index=False)
-    weekly_new_user_data = utils.combine_flipside_date_data("data/sdk_weekly_new_users_sol", add_date=False)
-    weekly_new_user_data.to_csv("data/weekly_new_users.csv", index=False)
-
-    # Network stuff
-    signers_by_programID = utils.combine_flipside_date_data(
-        "data/sdk_signers_by_programID_sol", add_date=True, with_program=True
-    ).rename(columns={"DATE": "Date", "PROGRAM_ID": "Program ID", "SIGNERS": "Address"})
-    signers_by_programID.to_csv("data/signers_by_programID.csv.gz", compression="gzip", index=False)
-
-    signers_by_programID_new_users = utils.combine_flipside_date_data(
-        "data/sdk_signers_by_programID_new_users_sol", add_date=True, with_program=True
-    ).rename(columns={"DATE": "Date", "PROGRAM_ID": "Program ID", "SIGNERS": "Address"})
-    signers_by_programID_new_users.to_csv(
-        "data/signers_by_programID_new_users.csv.gz", compression="gzip", index=False
-    )
-    # #---
-
-    # #TODO: need to divide the ~500k+ addresses into ~10 queries to add labels, if necessary
-    # utils.get_flipside_labels(last30d_users, "user", "ADDRESS")
-    # utils.get_solana_fm_labels(last30d_users, "user", "ADDRESS")
-
-    # labeled_user_df = utils.add_labels_to_df(last30d_users)
-    # labeled_user_df.to_csv("data/users_labeled.csv.gz", index=False, compression="gzip")
-    # #---
-
-    # Network tables
-    def get_labeled_program_df(df, programs):
-        all_programs_df = pd.DataFrame({"ProgramID": pd.unique(programs)})
-        all_programs_labeled = df.groupby("PROGRAM_ID").Name.first().reset_index()
-        all_programs_df = all_programs_df.merge(
-            all_programs_labeled[["PROGRAM_ID", "Name"]].rename(columns={"PROGRAM_ID": "ProgramID"}),
-            on="ProgramID",
-        )
-        return all_programs_df
-
-    def get_net_and_programs(labeled_programs, signers, label, cutoff_date):
-        programs_labeled = labeled_programs.copy()[labeled_programs.LABEL != "solana"]
-        programs_labeled = programs_labeled[programs_labeled.Date >= cutoff_date]
-        programs = utils.get_program_ids(programs_labeled)
-
-        df = signers.copy()
-        df = df["Date"] = pd.to_datetime(df.Date)
-        df = df[df.Date >= cutoff_date]
-        df = df[df["Program ID"].isin(programs)]
-
-        combos = list(combinations(programs, 2))
-
-        labels = programs_labeled.groupby("PROGRAM_ID").Name.first().reset_index()
-        df = df.merge(labels.rename(columns={"PROGRAM_ID": "Program ID"}), on="Program ID")
-
-        prog_user_dict = {}
-        for x in programs:
+    prog_user_dict = {}
+    for x in programs:
+        try:
             prog_user_dict[x] = (
                 df[df["Program ID"] == x].Name.iloc[0],
                 df[df["Program ID"] == x].Address.unique(),
             )
+        except IndexError:
+            print(x)
+            prog_user_dict[x] = (
+                x,
+                np.array([]),
+            )
 
-        df_list = []
-        for i, j in combos:
-            name1, prog1_users = prog_user_dict[i]
-            name2, prog2_users = prog_user_dict[j]
-            if len(prog1_users) < 10 or len(prog2_users) < 10:
+    df_list = []
+    for i, j in combos:
+        name1, prog1_users = prog_user_dict[i]
+        name2, prog2_users = prog_user_dict[j]
+        if len(prog1_users) < 10 or len(prog2_users) < 10:
+            continue
+        else:
+            all_users = np.union1d(prog1_users, prog2_users)
+            overlap = np.intersect1d(prog1_users, prog2_users, assume_unique=True)
+
+            n_users = len(all_users)
+            n_overlap = len(overlap)
+
+            df_dict = {}
+            df_dict["Program1"] = i
+            df_dict["Program2"] = j
+            df_dict["Name1"] = name1
+            df_dict["Name2"] = name2
+            df_dict["weight"] = n_overlap / n_users
+            df_dict["Timedelta"] = label
+
+            df_list.append(df_dict)
+    net_df = pd.DataFrame(df_list)
+
+    return net_df, programs
+
+
+def get_top_creator_info(creators):
+    data = {"creator_address": "", "creator_share": 0}
+    for x in creators:
+        if x["share"] > data["creator_share"]:
+            data["creator_share"] = x["share"]
+            data["creator_address"] = x["address"]
+    return data
+
+
+def get_important_metadata(enumerated_splits, filehandle):
+    url = f"https://api.helius.xyz/v0/tokens/metadata?api-key={helius_key}"
+    important_metadata = []
+    mints_no_metadata = []
+    for i, x in enumerated_splits:
+        if i % 100 == 0:
+            logging.info(f"Working on request {i}")
+        mints = x.tolist()
+        r = requests.post(url, json={"mintAccounts": mints})
+        metadata = r.json()
+        for y in metadata:
+            mint = y["mint"]
+            filehandle.write(f"{mint}\n")
+            try:
+                onchain = y["onChainData"]
+                onchaindata = onchain["data"]
+            except:
+                mints_no_metadata.append(mint)
                 continue
-            else:
-                all_users = np.union1d(prog1_users, prog2_users)
-                overlap = np.intersect1d(prog1_users, prog2_users, assume_unique=True)
 
-                n_users = len(all_users)
-                n_overlap = len(overlap)
+            try:
+                name = onchaindata["name"]
+            except:
+                name = ""
+            try:
+                symbol = onchaindata["symbol"]
+            except:
+                symbol = ""
+            try:
+                seller_fee_basis_points = onchaindata["sellerFeeBasisPoints"]
+            except:
+                seller_fee_basis_points = 0
+            try:
+                uri = onchaindata["uri"]
+            except:
+                uri = ""
+            try:
+                update_authority = onchain["updateAuthority"]
+            except:
+                update_authority = ""
+            try:
+                creator_info = get_top_creator_info(onchaindata["creators"])
+            except:
+                creator_info = {"creator_address": "", "creator_share": 0}
 
-                df_dict = {}
-                df_dict["Program1"] = i
-                df_dict["Program2"] = j
-                df_dict["Name1"] = name1
-                df_dict["Name2"] = name2
-                df_dict["weight"] = n_overlap / n_users
-                df_dict["Timedelta"] = label
+            data = {
+                "mint": mint,
+                "name": name,
+                "symbol": symbol,
+                "seller_fee_basis_points": seller_fee_basis_points,
+                "uri": uri,
+                "update_authority": update_authority,
+                **creator_info,
+            }
+            with open(f"data/nft_metadata/{mint}.json", "w") as f:
+                json.dump(data, f)
+            important_metadata.append(data)
+    return pd.DataFrame(important_metadata), mints_no_metadata
 
-                df_list.append(df_dict)
-        net_df = pd.DataFrame(df_list)
 
-        return net_df, programs
+def fix_carriage_return_error(df):
+    """There is a `\r` character in some NFT metadata, which breaks parsing.
+    Hack to fix this
+    """
+    # First collection fix:
+    idx = df[df.BLOCK_TIMESTAMP.isna() & (df.TX_ID == "GBwAAou24vCFiBayvpqkurXiUYKUbBUJY7yGbRMqwNZX")].index
+    idx2 = idx - 1
+    idx = df[df.BLOCK_TIMESTAMP.isna() & (df.TX_ID == "GBwAAou24vCFiBayvpqkurXiUYKUbBUJY7yGbRMqwNZX")].index
+    idx2 = idx - 1
+    for i, j in zip(idx, idx2):
+        df.iloc[j, df.columns.get_loc("update_authority")] = df.iloc[i, df.columns.get_loc("TX_ID")]
+        df.iloc[j, df.columns.get_loc("creator_address")] = df.iloc[i, df.columns.get_loc("PURCHASER")]
+        df.iloc[j, df.columns.get_loc("creator_share")] = df.iloc[i, df.columns.get_loc("SELLER")]
+    df = df.drop(idx)
+    df = df.reset_index(drop=True)
 
-    labeled_program_df["Date"] = pd.to_datetime(labeled_program_df.Date)
-    labeled_program_df["Name"] = labeled_program_df.apply(utils.apply_program_name, axis=1)
+    # Second collection fix
+    idx = df[df.BLOCK_TIMESTAMP.isna() & (df.TX_ID == "BAR")].index
+    idx2 = idx - 1
+    for i, j in zip(idx, idx2):
+        df.iloc[j, df.columns.get_loc("symbol")] = df.iloc[i, df.columns.get_loc("TX_ID")]
+        df.iloc[j, df.columns.get_loc("seller_fee_basis_points")] = df.iloc[
+            i, df.columns.get_loc("PURCHASER")
+        ]
+        df.iloc[j, df.columns.get_loc("uri")] = df.iloc[i, df.columns.get_loc("SELLER")]
+        df.iloc[j, df.columns.get_loc("update_authority")] = df.iloc[i, df.columns.get_loc("MINT")]
+        df.iloc[j, df.columns.get_loc("creator_address")] = df.iloc[i, df.columns.get_loc("SALES_AMOUNT")]
+        df.iloc[j, df.columns.get_loc("creator_share")] = df.iloc[i, df.columns.get_loc("name")]
+    df = df.drop(idx)
+    df = df.reset_index(drop=True)
 
-    labeled_program_new_users_df["Date"] = pd.to_datetime(labeled_program_new_users_df.Date)
-    labeled_program_new_users_df["Name"] = labeled_program_new_users_df.apply(
-        utils.apply_program_name, axis=1
+    # fix types
+    df = df.fillna(
+        {
+            "name": "",
+            "symbol": "",
+            "seller_fee_basis_points": 0,
+            "uri": "",
+            "update_authority": "",
+            "creator_address": "",
+            "creator_share": 0,
+        }
+    )
+    df = df.astype(
+        {
+            "BLOCK_TIMESTAMP": "datetime64[ns]",
+            "SALES_AMOUNT": float,
+            "seller_fee_basis_points": float,
+            "creator_share": float,
+        }
     )
 
-    cutoff_dates = [
-        ("7d", datetime.datetime.today() - pd.Timedelta("8d")),
-        ("14d", datetime.datetime.today() - pd.Timedelta("15d")),
-        ("30d", datetime.datetime.today() - pd.Timedelta("31d")),
-        ("60d", datetime.datetime.today() - pd.Timedelta("61d")),
-        ("90d", datetime.datetime.today() - pd.Timedelta("91d")),
-    ]
+    return df
 
-    all_programs = []
-    all_programs_new_users = []
-    net_dfs = []
-    net_dfs_new_users = []
 
-    for label, cutoff_date in cutoff_dates:
-        net_df, programs = get_net_and_programs(labeled_program_df, signers_by_programID, label, cutoff_date)
-        net_dfs.append(net_df)
-        all_programs.extend(list(programs))
+def get_collection_name(row):
+    s = row["symbol"].strip()
+    try:
+        n = row["name"].strip()
+    except AttributeError:
+        print(row)
+        raise
+    if s != "":
+        return s.strip()
+    elif "#" in n:
+        split = n.split("#")
+        if len(split) != 2:
+            return split[0].strip()
+        elif n.startswith("#"):
+            if split[0] == "" and split[1].strip().isnumeric():
+                return row.creator_address.strip()
+            else:
+                rest = split[1].split()
+                if rest[0].strip().isnumeric():
+                    return " ".join(x for x in rest[1:] if x.isalnum()).strip()
+                else:
+                    return row.creator_address.strip()
+        elif split[1].strip().isnumeric():
+            return split[0].strip()
+        elif split[0] == "":
+            rest = rest = split[1].split()
+            return " ".join(x for x in rest if x.isalnum()).strip()
+    elif ":" in n:
+        return n.split(":")[0].strip()
+    elif "|" in n:
+        return n.split("|")[0].strip()
+    elif "-" in n:
+        split = n.split("-")
+        if split[0] == "TYR":
+            return " ".join(x.strip() for x in split if x.isalpha()).strip()
+        else:
+            return n.split("-")[0].strip()
+    elif not n[-1].isnumeric():
+        return n.strip()
 
-        net_df_new_users, programs_new_users = get_net_and_programs(labeled_program_new_users_df, signers_by_programID_new_users, label, cutoff_date)
-        net_dfs_new_users.append(net_df_new_users)
-        all_programs_new_users.extend(list(programs_new_users))
+    else:
+        return row.creator_address.strip()
 
-    all_net_df = pd.concat(net_dfs)
-    all_net_df.to_csv("data/all_net.csv", index=False)
-    all_programs_df = get_labeled_program_df(labeled_program_df, all_programs)
-    all_programs_df.to_csv("data/all_programs.csv", index=False)
 
-    all_net_df_new_users = pd.concat(net_dfs_new_users)
-    all_net_df_new_users.to_csv("data/all_net_new_users.csv", index=False)
-    all_programs_new_users_df = get_labeled_program_df(labeled_program_new_users_df, all_programs_new_users)
-    all_programs_new_users_df.to_csv("data/all_programs_new_users.csv", index=False)
-        # programs_labeled = labeled_program_df.copy()[labeled_program_df.LABEL != "solana"]
-        # programs_labeled = programs_labeled[programs_labeled.Date  >= cutoff_date]
-        # programs = utils.get_program_ids(programs_labeled)
+# #TODO: add to cli
+if __name__ == "__main__":
+    do_main = False
+    do_nft = False
+    combine_nft = True
 
-        # df = signers_by_programID.copy()
-        # df = df["Date"] = pd.to_datetime(df.Date)
-        # df = df[df.Date > cutoff_date]
-        # df = df[df["Program ID"].isin(programs)]
+    if do_main:
+        program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
+        program_df.to_csv("data/programs.csv.gz", index=False, compression="gzip")
+        utils.get_flipside_labels(program_df, "program", "PROGRAM_ID")
+        utils.get_solana_fm_labels(program_df, "program", "PROGRAM_ID")
 
-        # combos = list(combinations(programs, 2))
+        labeled_program_df = utils.add_program_labels(program_df)
+        labeled_program_df.to_csv("data/programs_labeled.csv.gz", index=False, compression="gzip")
 
-        # labels = programs_labeled.groupby("PROGRAM_ID").Name.first().reset_index()
-        # df = df.merge(labels.rename(columns={"PROGRAM_ID": "Program ID"}), on="Program ID")
+        # New users only
+        program_new_users_df = utils.combine_flipside_date_data(
+            "data/sdk_programs_new_users_sol", add_date=False
+        )
+        program_new_users_df.to_csv("data/programs_new_users.csv.gz", index=False, compression="gzip")
+        utils.get_flipside_labels(program_new_users_df, "program_new_users", "PROGRAM_ID")
+        utils.get_solana_fm_labels(program_new_users_df, "program_new_users", "PROGRAM_ID")
 
-        # prog_user_dict = {}
-        # for x in programs:
-        #     prog_user_dict[x] = (
-        #         df[df["Program ID"] == x].Name.iloc[0],
-        #         df[df["Program ID"] == x].Address.unique()
-        #     )
+        labeled_program_new_users_df = utils.add_program_labels(program_new_users_df)
+        labeled_program_new_users_df.to_csv(
+            "data/programs_new_users_labeled.csv.gz", index=False, compression="gzip"
+        )
 
-        # df_list = []
-        # for i, j in combos:
-        #     name1, prog1_users = prog_user_dict[i]
-        #     name2, prog2_users = prog_user_dict[j]
-        #     if len(prog1_users) < 10 or len(prog2_users) < 10:
-        #         continue
-        #     else:
-        #         all_users = np.union1d(prog1_users, prog2_users)
-        #         overlap = np.intersect1d(prog1_users, prog2_users, assume_unique=True)
+        user_df = utils.combine_flipside_date_data("data/sdk_new_users_sol", add_date=False)
+        datecols = ["CREATION_DATE", "LAST_USE"]
+        user_df[datecols] = user_df[datecols].apply(pd.to_datetime)
+        last30d_users = user_df[user_df.CREATION_DATE > (datetime.datetime.today() - pd.Timedelta("31d"))]
 
-        #         n_users = len(all_users)
-        #         n_overlap = len(overlap)
+        user_df.to_csv("data/users.csv.gz", index=False, compression="gzip")
+        last30d_users.to_csv("data/last30d_users.csv.gz", index=False, compression="gzip")
 
-        #         df_dict = {}
-        #         df_dict["Program1"] = i
-        #         df_dict["Program2"] = j
-        #         df_dict["Name1"] = name1
-        #         df_dict["Name2"] = name2
-        #         df_dict["weight"] = n_overlap / n_users
-        #         df_dict['Timedelta'] = label
+        user_df["Days since last use"] = (datetime.datetime.today() - pd.Timedelta("1d")) - user_df.LAST_USE
 
-        #         df_list.append(df_dict)
-        # net_df = pd.DataFrame(df_list)
-        # net_dfs.append(net_df)
+        grouped = (
+            user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d")).ADDRESS.count().reset_index()
+        )
+        grouped.to_csv("data/weekly_users.csv", index=False)
+        grouped = user_df.groupby(pd.Grouper(key="LAST_USE", axis=0, freq="7d")).ADDRESS.count().reset_index()
+        grouped.to_csv("data/weekly_users_last_use.csv", index=False)
 
-        # all_programs.extend(list(programs))
+        user_df["Days since last use"] = (
+            ((datetime.datetime.today() - pd.Timedelta("1d")) - user_df.LAST_USE).dt.total_seconds()
+            / 3600
+            / 24
+        )
+        grouped = (
+            user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d"))["Days since last use"]
+            .mean()
+            .reset_index()
+        )
+        grouped["Days since creation"] = (
+            ((datetime.datetime.today() - pd.Timedelta("1d")) - grouped.CREATION_DATE).dt.total_seconds()
+            / 3600
+            / 24
+        )
+        grouped.to_csv("data/weekly_days_since_last_use.csv", index=False)
 
-        # labeled_program_df_ = labeled_program_df.copy()[labeled_program_df.LABEL != "solana"]
-        # labeled_program_df_ = labeled_program_df_[labeled_program_df_.Date >= cutoff_date]
-        # programs = utils.get_program_ids(labeled_program_df_)
-        # all_programs.extend(list(programs))
+        user_df["Days Active"] = (user_df.LAST_USE - user_df.CREATION_DATE).dt.total_seconds() / 3600 / 24
+        grouped = (
+            user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d"))["Days Active"]
+            .mean()
+            .reset_index()
+        )
+        grouped.to_csv("data/weekly_days_active.csv", index=False)
 
-        # all_programs_df = pd.DataFrame({"ProgramID": pd.unique(all_programs)})
-        # all_programs_labeled = labeled_program_df.groupby("PROGRAM_ID").Name.first().reset_index()
-        # all_programs_df = all_programs_df.merge(
-        #     all_programs_labeled[["PROGRAM_ID", "Name"]].rename(columns={"PROGRAM_ID": "ProgramID"}),
-        #     on="ProgramID",
-        # )
+        weekly_program_data = utils.combine_flipside_date_data(
+            "data/sdk_weekly_program_count_sol", add_date=False
+        )
+        weekly_program_data.to_csv("data/weekly_program.csv", index=False)
 
-        # # new users
-        # labeled_program_new_users_df_ = labeled_program_new_users_df.copy()[
-        #     labeled_program_new_users_df.LABEL != "solana"
-        # ]
-        # labeled_program_new_users_df_ = labeled_program_new_users_df_[
-        #     labeled_program_new_users_df_.Date >= cutoff_date
-        # ]
-        # programs_new_users = utils.get_program_ids(labeled_program_new_users_df_)
-        # all_programs_new_users.extend(list(programs_new_users))
+        weekly_new_program_data = utils.combine_flipside_date_data(
+            "data/sdk_weekly_new_program_count_sol", add_date=False
+        )
+        weekly_new_program_data.to_csv("data/weekly_new_program.csv", index=False)
 
-        # all_programs_new_users_df = pd.DataFrame({"ProgramID": pd.unique(all_programs_new_users)})
-        # all_programs_new_users_labeled = (
-        #     labeled_program_new_users_df.groupby("PROGRAM_ID").Name.first().reset_index()
-        # )
-        # all_programs_new_users_df = all_programs_new_users_df.merge(
-        #     all_programs_new_users_labeled[["PROGRAM_ID", "Name"]].rename(columns={"PROGRAM_ID": "ProgramID"}),
-        #     on="ProgramID",
-        # )
+        weekly_user_data = utils.combine_flipside_date_data("data/sdk_weekly_users_sol", add_date=False)
+        weekly_user_data.to_csv("data/weekly_users.csv", index=False)
+        weekly_new_user_data = utils.combine_flipside_date_data(
+            "data/sdk_weekly_new_users_sol", add_date=False
+        )
+        weekly_new_user_data.to_csv("data/weekly_new_users.csv", index=False)
+
+        # Network stuff
+        signers_by_programID = utils.combine_flipside_date_data(
+            "data/sdk_signers_by_programID_sol", add_date=True, with_program=True
+        ).rename(columns={"DATE": "Date", "PROGRAM_ID": "Program ID", "SIGNERS": "Address"})
+        signers_by_programID.to_csv("data/signers_by_programID.csv.gz", compression="gzip", index=False)
+
+        signers_by_programID_new_users = utils.combine_flipside_date_data(
+            "data/sdk_signers_by_programID_new_users_sol", add_date=True, with_program=True
+        ).rename(columns={"DATE": "Date", "PROGRAM_ID": "Program ID", "SIGNERS": "Address"})
+        signers_by_programID_new_users.to_csv(
+            "data/signers_by_programID_new_users.csv.gz", compression="gzip", index=False
+        )
+
+        # #---
+
+        # #TODO: need to divide the ~500k+ addresses into ~10 queries to add labels, if necessary
+        # utils.get_flipside_labels(last30d_users, "user", "ADDRESS")
+        # utils.get_solana_fm_labels(last30d_users, "user", "ADDRESS")
+
+        # labeled_user_df = utils.add_labels_to_df(last30d_users)
+        # labeled_user_df.to_csv("data/users_labeled.csv.gz", index=False, compression="gzip")
+        # #---
+
+        # Network tables
+        labeled_program_df["Date"] = pd.to_datetime(labeled_program_df.Date)
+        labeled_program_df["Name"] = labeled_program_df.apply(utils.apply_program_name, axis=1)
+
+        labeled_program_new_users_df["Date"] = pd.to_datetime(labeled_program_new_users_df.Date)
+        labeled_program_new_users_df["Name"] = labeled_program_new_users_df.apply(
+            utils.apply_program_name, axis=1
+        )
+
+        cutoff_dates = [
+            ("7d", datetime.datetime.today() - pd.Timedelta("8d")),
+            ("14d", datetime.datetime.today() - pd.Timedelta("15d")),
+            ("30d", datetime.datetime.today() - pd.Timedelta("31d")),
+            ("60d", datetime.datetime.today() - pd.Timedelta("61d")),
+            ("90d", datetime.datetime.today() - pd.Timedelta("91d")),
+        ]
+
+        all_programs = []
+        all_programs_new_users = []
+        net_dfs = []
+        net_dfs_new_users = []
+
+        for label, cutoff_date in cutoff_dates:
+            print(cutoff_date)
+            print("#@# all programs")
+            net_df, programs = get_net_and_programs(
+                labeled_program_df, signers_by_programID, label, cutoff_date
+            )
+            net_dfs.append(net_df)
+            all_programs.extend(list(programs))
+            print("#@# new users only")
+            net_df_new_users, programs_new_users = get_net_and_programs(
+                labeled_program_new_users_df, signers_by_programID_new_users, label, cutoff_date
+            )
+            net_dfs_new_users.append(net_df_new_users)
+            all_programs_new_users.extend(list(programs_new_users))
+            print("---")
+
+        all_net_df = pd.concat(net_dfs)
+        all_net_df.to_csv("data/all_net.csv", index=False)
+        all_programs_df = get_labeled_program_df(labeled_program_df, all_programs)
+        all_programs_df.to_csv("data/all_programs.csv", index=False)
+
+        all_net_df_new_users = pd.concat(net_dfs_new_users)
+        all_net_df_new_users.to_csv("data/all_net_new_users.csv", index=False)
+        all_programs_new_users_df = get_labeled_program_df(
+            labeled_program_new_users_df, all_programs_new_users
+        )
+        all_programs_new_users_df.to_csv("data/all_programs_new_users.csv", index=False)
+
+        # NFT
+        # Clear memory so this runs on my laptop
+        del program_df
+        del labeled_program_df
+        del program_new_users_df
+        del labeled_program_new_users_df
+        del user_df
+        del last30d_users
+        del grouped
+        del weekly_program_data
+        del weekly_new_program_data
+        del weekly_user_data
+        del weekly_new_user_data
+        del signers_by_programID
+        del signers_by_programID_new_users
+        del all_net_df
+        del all_programs_df
+        del all_net_df_new_users
+        del all_programs_new_users_df
+        gc.collect()
+
+    if do_nft:
+        nft_mints_df = utils.combine_flipside_date_data("data/sdk_nft_mints", add_date=False)
+        nft_mints_df["BLOCK_TIMESTAMP"] = pd.to_datetime(nft_mints_df["BLOCK_TIMESTAMP"])
+        # #TODO: eventually do all dates, for now just since right before royalties turned off
+        nft_mints_df = nft_mints_df[nft_mints_df["BLOCK_TIMESTAMP"] >= "2022-10-07"]
+        all_mints = sorted(nft_mints_df.MINT.astype(str).unique())
+
+        checked_for_metadata_file = "data/checked_for_metadata.txt"
+        with open("data/checked_for_metadata.txt", "r+") as f:
+            completed_metadata = [x.strip() for x in f]
+            mints_to_check = np.setdiff1d(all_mints, completed_metadata)
+
+            n_splits = np.ceil(len(mints_to_check) / 100)
+            if n_splits == 0:
+                logging.info("#@# No new mints to  check")
+            else:
+                all_mint_splits = np.array_split(mints_to_check, n_splits)
+                logging.info(
+                    f"#@# Using Helius get metadata for {len(mints_to_check)} of {len(all_mints)} divided into {len(all_mint_splits)} requests..."
+                )
+                all_mints_metadata, mints_no_metadata = get_important_metadata(enumerate(all_mint_splits), f)
+                # #TODO: remove, not necessary:
+                # with open("data/mints_no_metadata.txt", "w") as f:
+                #     f.writelines(f"{x}\n" for x in mints_no_metadata)
+        if len(mints_to_check) != len(all_mints):
+            json_data = []
+            for x in Path("data/nft_metadata").glob("*.json"):
+                with open(x) as f:
+                    data = json.load(f)
+                    json_data.append(data)
+            all_mints_metadata = pd.DataFrame(json_data)
+        all_mints_metadata.to_csv("data/nft_mints_metadata.csv.gz", compression="gzip", index=False)
+
+        nft_mints_df = nft_mints_df.merge(
+            all_mints_metadata.rename(columns={"mint": "MINT"}), on="MINT", how="left"
+        )
+        nft_mints_df.to_csv("data/nft_mints.csv.gz", compression="gzip", index=False)
+    if not do_nft and combine_nft:
+        nft_mints_df = pd.read_csv("data/nft_mints.csv.gz")
+    nft_mints_df = fix_carriage_return_error(nft_mints_df)
+
+    unique_collection_df = utils.combine_flipside_date_data("data/sdk_nft_royalty_tx", add_date=False)
+    unique_collection_df["BLOCK_TIMESTAMP"] = pd.to_datetime(unique_collection_df["BLOCK_TIMESTAMP"])
+
+    nft_mints_df = nft_mints_df.merge(
+        unique_collection_df, on=["BLOCK_TIMESTAMP", "TX_ID", "MINT", "SALES_AMOUNT"], how="left"
+    )
+    nft_mints_df.to_csv("data/nft_sales_with_royalties.csv.gz", compression="gzip", index=False)
+
+    metadata_df = nft_mints_df[~((nft_mints_df.name == "") & (nft_mints_df.symbol == ""))]
+    collection_names = metadata_df.copy().apply(get_collection_name, axis=1)
+    metadata_df["collection_name"] = collection_names
+    metadata_df.to_csv("data/nft_sales_metadata_with_royalties.csv.gz", compression="gzip", index=False)
