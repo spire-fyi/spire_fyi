@@ -245,7 +245,7 @@ def load_nft_data():
                 "TXS": "Transaction Count",
                 "BUYERS": "Buyers",
                 "SELLERS": "Sellers",
-                "NFTS_SOLD": "NFTs Sold",
+                "NFTS_SOLD": "Unique NFTs Sold",
                 "SOL_AMOUNT": "Sale Amount (SOL)",
             }
         )
@@ -257,7 +257,7 @@ def load_nft_data():
             "Date",
             "Marketplace",
             "Transaction Count",
-            "NFTs Sold",
+            "Unique NFTs Sold",
             "Sale Amount (SOL)",
         ]
     )
@@ -267,7 +267,7 @@ def load_nft_data():
             "Buyers",
             "Sellers",
             "Transaction Count",
-            "NFTs Sold",
+            "Unique NFTs Sold",
             "Sale Amount (SOL)",
         ]
     )

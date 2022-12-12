@@ -18,7 +18,7 @@ st.set_page_config(
 c1, c2 = st.columns([1, 3])
 
 c2.header("Spire")
-c2.caption("A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/).")
+c2.caption("A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/).")
 c1.image(
     image,
     width=200,
@@ -48,8 +48,8 @@ chart_type = c3.radio(
     horizontal=True,
     key="program_chart_type",
 )
+exclude_solana = c4.checkbox("Exclude Solana System Programs?", key="program_exclude_solana", value=True)
 new_users_only = c4.checkbox("New Users Only?", key="program_new_users")
-exclude_solana = c4.checkbox("Exclude Solana System Programs?", key="program_exclude_solana")
 log_scale = c4.checkbox("Log Scale?", key="program_log_scale")
 st.write("---")
 df = utils.load_labeled_program_data(new_users_only=new_users_only)
@@ -145,20 +145,20 @@ with st.expander("View and Download Data Table"):
 
 
 # #TODO: days since last user
-weekly_user_last_user = utils.load_weekly_days_since_last_use_data()
-base = alt.Chart(weekly_user_last_user, title="New Programs: Weekly").encode(
-    x=alt.X("yearmonthdate(CREATION_DATE):T", title="Date"),
-    tooltip=[
-        alt.Tooltip("yearmonthdate(CREATION_DATE):T", title="Date (start of week)"),
-        alt.Tooltip("Days since last use", title="Average days since last use", format=".0f"),
-        alt.Tooltip("Days since creation", title="Days since creation", format=".0f"),
-    ],
-)
-bar = base.mark_bar(width=3, color="#4B3D60").encode(
-    y=alt.Y("Days since last use"),
-)
-line = base.mark_line(color="#FFE373").encode(
-    y="Days since creation",
-)
-chart = (bar + line).interactive().properties(height=600, width=800)
-chart
+# weekly_user_last_user = utils.load_weekly_days_since_last_use_data()
+# base = alt.Chart(weekly_user_last_user, title="New Programs: Weekly").encode(
+#     x=alt.X("yearmonthdate(CREATION_DATE):T", title="Date"),
+#     tooltip=[
+#         alt.Tooltip("yearmonthdate(CREATION_DATE):T", title="Date (start of week)"),
+#         alt.Tooltip("Days since last use", title="Average days since last use", format=".0f"),
+#         alt.Tooltip("Days since creation", title="Days since creation", format=".0f"),
+#     ],
+# )
+# bar = base.mark_bar(width=3, color="#4B3D60").encode(
+#     y=alt.Y("Days since last use"),
+# )
+# line = base.mark_line(color="#FFE373").encode(
+#     y="Days since creation",
+# )
+# chart = (bar + line).interactive().properties(height=600, width=800)
+# chart
