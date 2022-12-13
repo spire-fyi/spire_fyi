@@ -344,6 +344,7 @@ def load_weekly_days_active_data():
 
 # #---
 
+
 def get_program_ids(df):
     prog_list = []
     for agg_method in ["mean", "sum", "max"]:

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import datetime
 import gc
-from itertools import combinations
 import json
 import logging
+from itertools import combinations
 from pathlib import Path
 
 import networkx as nx
@@ -478,9 +478,43 @@ if __name__ == "__main__":
     nft_mints_df = nft_mints_df.merge(
         unique_collection_df, on=["BLOCK_TIMESTAMP", "TX_ID", "MINT", "SALES_AMOUNT"], how="left"
     )
+
+    # Add in useful column
+    nft_mints_df["royalty_percentage"] = nft_mints_df.seller_fee_basis_points / 10000
+    nft_mints_df["total_royalty_amount"] = nft_mints_df.ROYALTY_AMOUNT / (nft_mints_df.creator_share / 100)
+
+    nft_mints_df["expected_royalty"] = nft_mints_df.SALES_AMOUNT * nft_mints_df.royalty_percentage
+    nft_mints_df["royalty_diff"] = nft_mints_df.total_royalty_amount - nft_mints_df.expected_royalty
+
+    nft_mints_df["royalty_percent_paid"] = nft_mints_df.total_royalty_amount / nft_mints_df.SALES_AMOUNT
+
+    nft_mints_df["paid_royalty"] = (nft_mints_df.ROYALTY_AMOUNT > 0) | (nft_mints_df.royalty_percentage == 0)
+    nft_mints_df["paid_full_royalty"] = np.isclose(
+        nft_mints_df.expected_royalty, nft_mints_df.total_royalty_amount, atol=0.001
+    )
+    nft_mints_df["paid_half_royalty"] = (
+        np.isclose(nft_mints_df.expected_royalty / 2, nft_mints_df.total_royalty_amount, atol=0.001)
+    ) & (nft_mints_df.royalty_percentage != 0)
+    # save full data
     nft_mints_df.to_csv("data/nft_sales_with_royalties.csv.gz", compression="gzip", index=False)
 
+    # only datasets with metadata:
     metadata_df = nft_mints_df[~((nft_mints_df.name == "") & (nft_mints_df.symbol == ""))]
     collection_names = metadata_df.copy().apply(get_collection_name, axis=1)
     metadata_df["collection_name"] = collection_names
+    metadata_df["unique_collection"] = metadata_df.collection_name + "-" + metadata_df.creator_address
+    # save all metadata datasets
     metadata_df.to_csv("data/nft_sales_metadata_with_royalties.csv.gz", compression="gzip", index=False)
+
+    # get 99th percentile, ~top 75
+    total_sales = (
+        metadata_df[metadata_df.BLOCK_TIMESTAMP > (datetime.datetime.today() - pd.Timedelta("31d"))]
+        .groupby(["unique_collection"])
+        .SALES_AMOUNT.sum()
+        .reset_index()
+    )
+    top_collections = total_sales[
+        total_sales.SALES_AMOUNT > total_sales.SALES_AMOUNT.quantile(0.99)
+    ].sort_values("SALES_AMOUNT", ascending=False)
+    metadata_df = metadata_df[metadata_df.unique_collection.isin(top_collections.unique_collection)]
+    metadata_df.to_csv("data/top_nft_sales_metadata_with_royalties.csv.gz", compression="gzip", index=False)

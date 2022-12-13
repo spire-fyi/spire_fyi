@@ -4,9 +4,9 @@ import ast
 import datetime
 import json
 import logging
+import shutil
 from multiprocessing import Pool
 from pathlib import Path
-import shutil
 from time import sleep
 
 import numpy as np
