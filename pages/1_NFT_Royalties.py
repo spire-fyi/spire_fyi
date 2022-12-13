@@ -162,7 +162,7 @@ with tab1:
 
 with tab2:
     st.header("Creator Royalty Tool")
-    st.write("Royalty information for **sales on Magic Eden** since 1 week before royalties became optional")
+    st.write("Royalty information for **sales on Magic Eden** since October 15, 2022 (when royalty payment became optional)")
     top_nft_info = utils.load_top_nft_info()
     sol_price = utils.load_sol_daily_price()
 
@@ -228,6 +228,7 @@ with tab2:
     expected_royalties_usd = post_royalty_df.expected_royalty_usd.sum()
 
     c2.metric("Total Sales", f"{total_sales_count:,}")
+    c2.metric("Proportion paying royalties", f"{post_royalty_df.paid_royalty.sum()/total_sales_count:.2%}")
     if currency == "USD":
         c2.metric("Total Sales Volume", f"${total_sales_usd:,.2f}")
         c2.metric("Total Royalties Earned", f"${total_royalties_usd:,.2f}")
