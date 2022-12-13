@@ -2,7 +2,10 @@ import datetime
 import logging
 import time
 from pathlib import Path
+from urllib.request import urlopen
+from PIL import Image, ImageDraw
 
+import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
@@ -26,6 +29,10 @@ __all__ = [
     "agg_method_dict",
     "metric_dict",
     "get_program_ids",
+    "load_royalty_data",
+    "load_sol_daily_price",
+    "load_top_nft_info",
+    "get_random_image"
 ]
 
 API_KEY = st.secrets["flipside"]["api_key"]
@@ -186,7 +193,7 @@ def get_program_chart_data(
     return chart_df
 
 
-# @st.experimental_memo(ttl=60 * 10)
+@st.experimental_memo(ttl=3600 * 6)
 def load_labeled_program_data(new_users_only=False):
     if new_users_only:
         return pd.read_csv("data/programs_new_users_labeled.csv.gz")
@@ -194,7 +201,7 @@ def load_labeled_program_data(new_users_only=False):
         return pd.read_csv("data/programs_labeled.csv.gz")
 
 
-# @st.experimental_memo(ttl=60 * 10)
+@st.experimental_memo(ttl=3600 * 6)
 def load_weekly_program_data():
     df = pd.read_csv("data/weekly_program.csv")
     datecols = ["WEEK"]
@@ -202,7 +209,7 @@ def load_weekly_program_data():
     return df
 
 
-# @st.experimental_memo(ttl=60 * 10)
+@st.experimental_memo(ttl=3600 * 6)
 def load_weekly_new_program_data():
     df = pd.read_csv("data/weekly_new_program.csv")
     df = df.sort_values(by="WEEK")
@@ -213,7 +220,7 @@ def load_weekly_new_program_data():
     return df
 
 
-# @st.experimental_memo(ttl=60 * 10)
+@st.experimental_memo(ttl=3600 * 6)
 def load_weekly_user_data():
     df = pd.read_csv("data/weekly_users.csv")
     datecols = ["WEEK"]
@@ -221,7 +228,7 @@ def load_weekly_user_data():
     return df
 
 
-# @st.experimental_memo(ttl=60 * 10)
+@st.experimental_memo(ttl=3600 * 6)
 def load_weekly_new_user_data():
     df = pd.read_csv("data/weekly_new_users.csv")
     datecols = ["WEEK"]
@@ -232,7 +239,7 @@ def load_weekly_new_user_data():
     return df
 
 
-# @st.experimental_memo(ttl=60 * 10)
+@st.experimental_memo(ttl=3600 * 6)
 def load_nft_data():
     main_data = (
         pd.read_json(
@@ -300,7 +307,79 @@ def load_nft_data():
     return buyers_sellers, marketplace_info, mints_by_purchaser, by_chain_data
 
 
-# @st.experimental_memo(ttl=60 * 10)
+@st.experimental_memo(ttl=3600 * 6)
+def load_royalty_data():
+    df = (
+        pd.read_json(
+            # "https://node-api.flipsidecrypto.com/api/v2/queries/ffd713f1-4d05-4f3e-82b8-dc2c87db6691/data/latest" # fork
+            "https://node-api.flipsidecrypto.com/api/v2/queries/7572e1e3-fbfb-4dd4-9d45-dd6cde7f42df/data/latest"  # original
+        )
+        .sort_values(by=["MONTH"])
+        .drop(columns=["N_DAYS", "PCT_SALES_AMOUNT"])
+        .reset_index(drop=True)
+        .rename(
+            columns={
+                "MONTH": "Date",
+                "SALES_AMOUNT": "Sales Amount (SOL)",
+                "M_AMT": "Martketplace Fee Amount (SOL)",
+                "R_AMT": "Royalty Fee Amount (SOL)",
+                "PCT_NO_ROYALTIES": "Percent of Sales with Royalty Payments",
+                "M_PCT": "Martketplace Fee Percentage",
+                "R_PCT": "Royalty Fee Percentage",
+                "AVG_DAILY_ROYALTIES": "Average Daily Royalties (SOL)",
+                "MONTHLY_SALES_AMOUNT": "Monthly Sales Amount (SOL)",
+                "MONTHLY_ROYALTIES": "Monthly Royalties Amount (SOL)",
+                "MONTHLY_ROYALTY_PCT": "Monthly Royalty Percentage",
+                "SALES_AMOUNT_USD": "Sales Amount (USD)",
+                "M_AMT_USD": "Martketplace Fee Amount (USD)",
+                "R_AMT_USD": "Royalty Fee Amount (USD)",
+            }
+        )
+    )
+    return df
+
+
+@st.experimental_memo(ttl=3600 * 6)
+def load_sol_daily_price():
+    df = pd.read_json(
+        "https://node-api.flipsidecrypto.com/api/v2/queries/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest"
+    )
+    df["Date"] = pd.to_datetime(df["Date"])
+    df = df.sort_values(by='Date')
+    return df
+
+
+@st.experimental_memo(ttl=3600 * 6)
+def load_top_nft_info():
+    df = (
+        pd.read_csv("data/top_nft_sales_metadata_with_royalties.csv.gz")
+        .sort_values(by=["BLOCK_TIMESTAMP"])
+        .drop(columns=["uri_y"])
+        .rename(columns={"uri_x": "uri"})
+        .reset_index(drop=True)
+    )
+    df["BLOCK_TIMESTAMP"] = pd.to_datetime(df["BLOCK_TIMESTAMP"])
+    return df
+
+@st.experimental_memo(ttl=3600)
+def get_random_image(df):
+    num = np.random.randint(len(df))
+    rand_row = df.iloc[num]
+    r = requests.get(rand_row.uri)
+    j = r.json()
+    try:
+        img_file = r.json()['properties']['files'][0]['uri']
+    except:
+        img_file = r.json()['image']
+
+    try:
+        image = Image.open(urlopen(img_file))
+    except:
+        image = None
+    return num, image
+
+
+@st.experimental_memo(ttl=3600 * 6)
 def load_defi_data():
     df = (
         pd.read_json(

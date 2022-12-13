@@ -4,10 +4,8 @@
 
 > A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/).
 
-Built by analysts for the community, aiming to make Solana data and insights accessible to all.
-
-Spire is a team of data scientists and analysts working to add value with data.
-Focusing on analyses we think are interesting, we aim to provide a place where users and developers can regularly check for Solana ecosytem information, as well as deeper dives into specific areas.
+Spire is a Solana-focused on-chain data platform that aims to provide in-depth data and insights to add value to the Solana ecosystem. 
+Focusing on analyses we think are interesting, we provide a place where users and developers can regularly check for Solana ecosytem information, as well as deeper dives into specific areas.
 
 **View the dashboard at https://spire.fyi/**
 
