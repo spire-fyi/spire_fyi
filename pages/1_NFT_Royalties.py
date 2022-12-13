@@ -17,14 +17,20 @@ c1, c2 = st.columns([1, 3])
 
 c2.header("Spire")
 c2.caption(
-    "A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/)."
+    """
+    A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/).
+
+    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi)
+    """
 )
 c1.image(
     image,
     width=200,
 )
-tab1, tab2 = st.tabs(["Overview", "NFT Creator Tool"])
+top_nft_info = utils.load_top_nft_info()
+top_nft_info["paid_no_royalty"] = ~top_nft_info["paid_royalty"]
 
+tab1, tab2 = st.tabs(["Overview", "NFT Royalty Tool"])
 with tab1:
     rules = (
         alt.Chart(
@@ -41,6 +47,7 @@ with tab1:
     )
 
     st.header("Overview")
+    st.write("The charts below highlight NFT marketplace activity and royalties trends on Solana")
     _, marketplace_info, _, _ = utils.load_nft_data()
 
     totals = (
@@ -159,11 +166,45 @@ with tab1:
             "text/csv",
             key="download-monthly-nft-royalty",
         )
+    st.write("---")
+    st.header("Leaderboard")
+    st.write(
+        f"""
+        We examined the percentage of users who pay royalties since they have been optional on Magic Eden for each project.
+
+        Below if the leaderboard; check out the `NFT Royalty Tool` using the tab at the top of the page for more information on these projects!
+        """
+    )
+    leader_board_df = top_nft_info.copy()[
+        (top_nft_info.BLOCK_TIMESTAMP >= "2022-10-15") & (top_nft_info.royalty_percentage > 0)
+    ]
+    leader_board_df = (
+        leader_board_df.groupby(["Name", "PURCHASER"])[["paid_royalty", "paid_no_royalty"]]
+        .agg("sum")
+        .reset_index()
+    )
+    leader_board_df["Royalty Payment Rate"] = leader_board_df.paid_royalty / (
+        leader_board_df.paid_royalty + leader_board_df.paid_no_royalty
+    )
+    leader_board_df = leader_board_df.groupby(["Name"])["Royalty Payment Rate"].mean().reset_index()
+    leader_board_df = leader_board_df.sort_values(by="Royalty Payment Rate", ascending=False).reset_index(
+        drop=True
+    )
+    leader_board_df["Royalty Payment Rate"] = leader_board_df["Royalty Payment Rate"].apply(
+        lambda x: f"{x:.2%}"
+    )
+
+    st.write(leader_board_df)
 
 with tab2:
-    st.header("Creator Royalty Tool")
-    st.write("Royalty information for **sales on Magic Eden** since October 15, 2022 (when royalty payment became optional)")
-    top_nft_info = utils.load_top_nft_info()
+    st.header("NFT Royalty Tool")
+    st.write(
+        """ 
+        The purpose of this tool is to provide key royalty and user metrics for a collection. You can also download a list of royalty paying users
+
+        Metrics are for **sales on Magic Eden** since October 15, 2022 (when royalty payment became optional).
+        """
+    )
     sol_price = utils.load_sol_daily_price()
 
     project_names = top_nft_info.groupby("Name").SALES_AMOUNT.sum().sort_values(ascending=False)
@@ -186,7 +227,6 @@ with tab2:
 
     nft_collection = st.selectbox("Choose an NFT Collection:", top_project_names, key="top_project_names")
     nft_collection_df = top_nft_info.copy()[top_nft_info.Name == nft_collection].reset_index()
-    nft_collection_df["paid_no_royalty"] = ~nft_collection_df["paid_royalty"]
 
     nft_collection_df["Date"] = nft_collection_df.BLOCK_TIMESTAMP.dt.normalize()
     nft_collection_df = nft_collection_df.merge(sol_price, on="Date")
@@ -228,7 +268,7 @@ with tab2:
     expected_royalties_usd = post_royalty_df.expected_royalty_usd.sum()
 
     c2.metric("Total Sales", f"{total_sales_count:,}")
-    c2.metric("Proportion paying royalties", f"{post_royalty_df.paid_royalty.sum()/total_sales_count:.2%}")
+    c2.metric("Proportion paying royalties", f"{post_royalty_df.paid_royalty.sum()/len(post_royalty_df):.2%}")
     if currency == "USD":
         c2.metric("Total Sales Volume", f"${total_sales_usd:,.2f}")
         c2.metric("Total Royalties Earned", f"${total_royalties_usd:,.2f}")
@@ -267,7 +307,7 @@ with tab2:
         val = "total_royalty_amount"
     x = nft_collection_df.groupby(["Date"])[val].agg(metric).reset_index()
     base = (
-        alt.Chart(x)
+        alt.Chart(x, title="Daily Royalties Paid")
         .mark_area(
             line={"color": "#4B3D60", "size": 1},
             color=alt.Gradient(
@@ -308,7 +348,7 @@ with tab2:
         .reset_index()
     )
     base = (
-        alt.Chart(x)
+        alt.Chart(x, title="Daily Sales Count for Royalty Amounts")
         .mark_line(width=3)
         .encode(
             x=alt.X("yearmonthdate(Date)", title="Date"),
@@ -400,9 +440,19 @@ with tab2:
         ].reset_index(drop=True)
 
     st.write(royalty_paying_users)
-    st.write("---")
 
+    st.download_button(
+        "Click to Download",
+        royalty_paying_users.to_csv(index=False).encode("utf-8"),
+        f"{nft_collection.replace(' ', '_')}-MagicEden_royalty_payment_info.csv",
+        "text/csv",
+        key="download-nft-royalty",
+    )
+    st.write("---")
     with st.expander("View and Download Full Data Table"):
+        nft_collection_df["solana_fm_url"] = nft_collection_df.TX_ID.apply(
+            lambda x: f"https://solana.fm/tx/{x}"
+        )
         st.write(nft_collection_df)
         st.download_button(
             "Click to Download",
