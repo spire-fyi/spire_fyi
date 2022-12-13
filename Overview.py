@@ -22,22 +22,21 @@ c1, c2 = st.columns([1, 3])
 
 c2.header("Spire")
 c2.caption(
-    "A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/)."
+    """
+    A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/).
+    
+    Spire is a Solana-focused on-chain data platform that aims to provide in-depth data and insights to add value to the Solana ecosystem.
+
+    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi)
+    """
+
 )
 c1.image(
     image,
     width=200,
 )
 st.write("---")
-st.header("Overview")
 
-st.write(
-    f"""
-    Spire is a Solana-focused on-chain data platform that aims to provide in-depth data and insights to add value to the Solana ecosystem.
-
-    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi)
-    """
-)
 
 st.header("NFT Analytics")
 st.write(
@@ -226,7 +225,7 @@ unique_user_chart = charts.alt_weekly_unique_chart(
     weekly_user_data[weekly_user_data.WEEK > "2020-10-01"],
     "Unique Users: Weekly",
     "UNIQUE_USERS",
-    "Number of Unique Users",
+    "Unique Fee Payers",
 )
 c1.altair_chart(unique_user_chart, use_container_width=True)
 new_user_chart = charts.alt_weekly_cumulative_chart(
