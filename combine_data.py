@@ -517,4 +517,10 @@ if __name__ == "__main__":
         total_sales.SALES_AMOUNT > total_sales.SALES_AMOUNT.quantile(0.99)
     ].sort_values("SALES_AMOUNT", ascending=False)
     metadata_df = metadata_df[metadata_df.unique_collection.isin(top_collections.unique_collection)]
+
+    # manual labeled collections from the above dataset
+    labels = pd.read_csv("data/labeled_collections_by_uri.csv")
+    metadata_df = metadata_df.merge(labels, on="unique_collection", how="left")
+    x = metadata_df[metadata_df.Name.isna()]
+    assert len(x) == 0
     metadata_df.to_csv("data/top_nft_sales_metadata_with_royalties.csv.gz", compression="gzip", index=False)

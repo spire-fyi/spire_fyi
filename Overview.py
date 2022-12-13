@@ -33,8 +33,7 @@ st.header("Overview")
 
 st.write(
     f"""
-    Built by analysts for the community, aiming to make Solana data and insights accessible to all.
-
+    Spire is a Solana-focused on-chain data platform that aims to provide in-depth data and insights to add value to the Solana ecosystem.
 
     [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi)
     """
