@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
+
+import ast
 import datetime
 import json
 import logging
+import shutil
 from multiprocessing import Pool
 from pathlib import Path
-import shutil
 from time import sleep
 
 import numpy as np
@@ -68,6 +70,16 @@ past_90d = [
         (datetime.datetime.today() - pd.Timedelta("1d")),
     )
 ]
+past_90d_hours = [
+    # f"{x:%Y-%m-%d %H:%M:%S.%f}"
+    f"{x:%F %T.%f}"[:-3]
+    for x in pd.date_range(
+        (datetime.datetime.today() - pd.Timedelta("91d")),
+        (datetime.datetime.today() - pd.Timedelta("1d")),
+        freq="1H",
+        normalize=True,
+    )
+]
 
 all_weeks = [
     f"{x:%Y-%m-%d}"
@@ -98,12 +110,59 @@ def create_label_query(addresses):
     return query
 
 
+def create_query_by_creator_address_and_mints(query_basename, creator_address, mints):
+    env = Environment(loader=FileSystemLoader("./sql"))
+    template = env.get_template(f"{query_basename}.sql")
+    query = template.render({"mints": mints, "creator_address": f"'{creator_address}'"})
+    return query
+
+
 def get_queries_by_date(date, query_basename, update_cache=False):
     query = create_query_by_date(date, query_basename)
     output_dir = Path(f"data/{query_basename}")
     output_file = Path(output_dir, f"{query_basename}_{date.replace(' ', '_')}.csv")
     if update_cache or not output_file.exists():
         return query, output_file
+
+
+def get_nft_transfer_queries(unique_collection_mints, query_basename, update_cache=False):
+    queries_to_do = []
+    for _, x in unique_collection_mints.iterrows():
+        creator_address = x.creator_address
+        mints = x.mints
+        collection_name = x.collection_name
+        total_mints = x.total_mints
+        if total_mints > 16000:
+            output_dir = Path(f"data/{query_basename}")
+
+            mints_p1 = mints[:15000]
+            mints_p2 = mints[15000:]
+            mints_p2_len = len(mints_p2)
+
+            query_p1 = create_query_by_creator_address_and_mints(query_basename, creator_address, mints_p1)
+            output_file_p1 = Path(
+                output_dir,
+                f"{query_basename}_{collection_name}-{creator_address}--{total_mints}mints_p1_first15000.csv",
+            )
+            if update_cache or not output_file_p1.exists():
+                queries_to_do.append((query_p1, output_file_p1))
+
+            query_p2 = create_query_by_creator_address_and_mints(query_basename, creator_address, mints_p2)
+            output_file_p2 = Path(
+                output_dir,
+                f"{query_basename}_{collection_name}-{creator_address}--{total_mints}mints_p2_last{mints_p2_len}.csv",
+            )
+            if update_cache or not output_file_p2.exists():
+                queries_to_do.append((query_p2, output_file_p2))
+        else:
+            query = create_query_by_creator_address_and_mints(query_basename, creator_address, mints)
+            output_dir = Path(f"data/{query_basename}")
+            output_file = Path(
+                output_dir, f"{query_basename}_{collection_name}-{creator_address}--{total_mints}mints.csv"
+            )
+            if update_cache or not output_file.exists():
+                queries_to_do.append((query, output_file))
+    return queries_to_do
 
 
 def get_queries_by_date_and_programs(date, query_basename, df, update_cache=False):
@@ -213,11 +272,11 @@ def query_flipside_data(enumerated_query_info, save=True):
     with open(query_file, "w") as f:
         f.write(query)
     if i % 1 == 0:
-        sleep(3)
-    if i % 5 == 0:
         sleep(5)
-    if i % 10 == 0:
+    if i % 5 == 0:
         sleep(10)
+    if i % 10 == 0:
+        sleep(15)
     try:
         query_result_set = sdk.query(query, cached=False)
         if save:
@@ -246,51 +305,65 @@ def get_submitted_queries_from_json(submitted_query_file):
 if __name__ == "__main__":
     # #TODO make cli...
     update_cache = False
+    do_main = False
+    do_nft = True
 
     query_info = []
-    # #TODO: change dates/programs
-    for q, dates in [
-        ("sdk_programs_new_users_sol", all_dates_2022),
-        ("sdk_programs_sol", all_dates_2022),
-        ("sdk_new_users_sol", all_dates_2022),
-        ("sdk_transactions_sol", all_dates_2022),
-        ("sdk_weekly_new_program_count_sol", all_weeks),
-        ("sdk_weekly_program_count_sol", all_weeks),
-        ("sdk_weekly_new_users_sol", all_weeks),
-        ("sdk_weekly_users_sol", all_weeks),
-    ]:
-        for date in dates:
-            queries_to_do = get_queries_by_date(date, q)
-            if queries_to_do is not None:
-                query_info.append(queries_to_do)
-
-    for dates, max_date_string in [  # HACK
-        (past_7d, "8d"),
-        (past_14d, "15d"),
-        (past_30d, "31d"),
-        (past_60d, "61d"),
-        (past_90d, "91d"),
-    ]:
-        chart_df = pd.read_csv("data/programs_labeled.csv.gz")
-        chart_df["Date"] = pd.to_datetime(chart_df.Date)
-        chart_df = chart_df[chart_df.LABEL != "solana"]
-        chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))]
-
-        chart_df_new_users = pd.read_csv("data/programs_new_users_labeled.csv.gz")
-        chart_df_new_users["Date"] = pd.to_datetime(chart_df_new_users.Date)
-        chart_df_new_users = chart_df_new_users[chart_df_new_users.LABEL != "solana"]
-        chart_df_new_users = chart_df_new_users[
-            chart_df_new_users.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))
-        ]
-
-        for q, df in [
-            ("sdk_signers_by_programID_new_users_sol", chart_df_new_users),
-            ("sdk_signers_by_programID_sol", chart_df),
-        ]:  # for program_ids
+    if do_main:
+        # #TODO: change dates/programs
+        for q, dates in [
+            ("sdk_programs_new_users_sol", all_dates_2022),
+            ("sdk_programs_sol", all_dates_2022),
+            ("sdk_new_users_sol", all_dates_2022),
+            ("sdk_transactions_sol", all_dates_2022),
+            ("sdk_weekly_new_program_count_sol", all_weeks),
+            ("sdk_weekly_program_count_sol", all_weeks),
+            ("sdk_weekly_new_users_sol", all_weeks),
+            ("sdk_weekly_users_sol", all_weeks),
+            ("sdk_nft_mints", past_90d_hours),
+        ]:
             for date in dates:
-                queries_to_do = get_queries_by_date_and_programs(date, q, df)
-                if queries_to_do != []:
-                    query_info.extend(queries_to_do)
+                queries_to_do = get_queries_by_date(date, q)
+                if queries_to_do is not None:
+                    query_info.append(queries_to_do)
+
+        for dates, max_date_string in [  # HACK
+            (past_7d, "8d"),
+            (past_14d, "15d"),
+            (past_30d, "31d"),
+            (past_60d, "61d"),
+            (past_90d, "91d"),
+        ]:
+            chart_df = pd.read_csv("data/programs_labeled.csv.gz")
+            chart_df["Date"] = pd.to_datetime(chart_df.Date)
+            chart_df = chart_df[chart_df.LABEL != "solana"]
+            chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))]
+
+            chart_df_new_users = pd.read_csv("data/programs_new_users_labeled.csv.gz")
+            chart_df_new_users["Date"] = pd.to_datetime(chart_df_new_users.Date)
+            chart_df_new_users = chart_df_new_users[chart_df_new_users.LABEL != "solana"]
+            chart_df_new_users = chart_df_new_users[
+                chart_df_new_users.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))
+            ]
+
+            for q, df in [
+                ("sdk_signers_by_programID_new_users_sol", chart_df_new_users),
+                ("sdk_signers_by_programID_sol", chart_df),
+            ]:  # for program_ids
+                for date in dates:
+                    queries_to_do = get_queries_by_date_and_programs(date, q, df)
+                    if queries_to_do != []:
+                        query_info.extend(queries_to_do)
+    if do_nft:
+        # NFT processing
+        nft_metadata_file = "data/unique_collection_mints.csv"  # #HACK: created in `create_unique_collection_mints.ipynb`, move elsewhere
+        unique_collection_mints = pd.read_csv(nft_metadata_file)
+        unique_collection_mints["mints"] = unique_collection_mints["mints"].apply(
+            lambda x: ast.literal_eval(x)
+        )
+        queries_to_do = get_nft_transfer_queries(unique_collection_mints, "sdk_nft_royalty_tx")
+        if queries_to_do != []:
+            query_info.extend(queries_to_do)
 
     logging.info(f"Running {len(query_info)} queries...")
     with Pool() as p:
