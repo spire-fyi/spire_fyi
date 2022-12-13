@@ -21,7 +21,9 @@ st.set_page_config(
 c1, c2 = st.columns([1, 3])
 
 c2.header("Spire")
-c2.caption("A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/).")
+c2.caption(
+    "A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/)."
+)
 c1.image(
     image,
     width=200,
@@ -61,7 +63,7 @@ chart = (
             alt.Tooltip("variable", title="User Type"),
             alt.Tooltip("value", title="Unique Addresses", format=","),
             alt.Tooltip("Transaction Count", format=","),
-            alt.Tooltip("NFTs Sold", format=","),
+            alt.Tooltip("Unique NFTs Sold", format=","),
             alt.Tooltip("Sale Amount (SOL)", format=",.2f"),
         ],
     )

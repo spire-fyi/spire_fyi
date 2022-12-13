@@ -15,7 +15,9 @@ st.set_page_config(
 c1, c2 = st.columns([1, 3])
 
 c2.header("Spire")
-c2.caption("A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/).")
+c2.caption(
+    "A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/)."
+)
 c1.image(
     image,
     width=200,
@@ -25,20 +27,32 @@ st.write("---")
 st.header("Marketplace comparison")
 _, marketplace_info, _, _ = utils.load_nft_data()
 
-totals = marketplace_info.groupby("Date").agg(
-    total_transactions=('Transaction Count', 'sum'),
-    total_sales_amount=('Sale Amount (SOL)', 'sum'),
-    total_unique_NFTS=('Unique NFTs Sold', 'sum')
-).reset_index()
-marketplace_info = marketplace_info.merge(totals, on='Date')
+totals = (
+    marketplace_info.groupby("Date")
+    .agg(
+        total_transactions=("Transaction Count", "sum"),
+        total_sales_amount=("Sale Amount (SOL)", "sum"),
+        total_unique_NFTS=("Unique NFTs Sold", "sum"),
+    )
+    .reset_index()
+)
+marketplace_info = marketplace_info.merge(totals, on="Date")
 
-marketplace_info['Transaction Count (%)'] = marketplace_info['Transaction Count']/marketplace_info.total_transactions
-marketplace_info['Sale Amount (SOL) (%)'] = marketplace_info['Sale Amount (SOL)']/marketplace_info.total_sales_amount
-marketplace_info['Unique NFTs Sold (%)'] = marketplace_info['Unique NFTs Sold']/marketplace_info.total_unique_NFTS
+marketplace_info["Transaction Count (%)"] = (
+    marketplace_info["Transaction Count"] / marketplace_info.total_transactions
+)
+marketplace_info["Sale Amount (SOL) (%)"] = (
+    marketplace_info["Sale Amount (SOL)"] / marketplace_info.total_sales_amount
+)
+marketplace_info["Unique NFTs Sold (%)"] = (
+    marketplace_info["Unique NFTs Sold"] / marketplace_info.total_unique_NFTS
+)
 
 metric = st.selectbox(
-    "Choose a metric:", ["Transaction Count", "Unique NFTs Sold", "Sale Amount (SOL)"], key="nft-marketplace-metric",
-    index=2
+    "Choose a metric:",
+    ["Transaction Count", "Unique NFTs Sold", "Sale Amount (SOL)"],
+    key="nft-marketplace-metric",
+    index=2,
 )
 chart = (
     alt.Chart(marketplace_info, title=f"{metric} by Marketplace: Weekly")
@@ -73,7 +87,11 @@ chart = (
 )
 st.altair_chart(chart, use_container_width=True)
 with st.expander("View and Download Data Table"):
-    marketplace_info = marketplace_info.rename(columns={"value": "Marketplace"}).drop(columns="variable").drop(columns=["total_transactions","total_sales_amount","total_unique_NFTS"])
+    marketplace_info = (
+        marketplace_info.rename(columns={"value": "Marketplace"})
+        .drop(columns="variable")
+        .drop(columns=["total_transactions", "total_sales_amount", "total_unique_NFTS"])
+    )
     st.write(marketplace_info)
     st.download_button(
         "Click to Download",
@@ -82,4 +100,3 @@ with st.expander("View and Download Data Table"):
         "text/csv",
         key="download-weekly-nft-marketplace",
     )
-
