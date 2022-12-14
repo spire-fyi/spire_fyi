@@ -1,7 +1,7 @@
 import altair as alt
+import pandas as pd
 import streamlit as st
 from PIL import Image
-import pandas as pd
 
 import spire_fyi.utils as utils
 
@@ -258,7 +258,8 @@ with tab2:
     currency = st.radio("Choose a currency unit", ["Solana", "USD"], key="currency", horizontal=True)
 
     c1, c2 = st.columns(2)
-    c1.image(img, caption=nft_collection_df.iloc[num]["name"], use_column_width=True)
+    if img is not None:
+        c1.image(img, caption=nft_collection_df.iloc[num]["name"], use_column_width=True)
 
     total_sales_count = collection_post_royalty_df.TX_ID.nunique()
 
