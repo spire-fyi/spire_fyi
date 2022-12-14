@@ -359,6 +359,8 @@ def load_top_nft_info():
         .reset_index(drop=True)
     )
     df["BLOCK_TIMESTAMP"] = pd.to_datetime(df["BLOCK_TIMESTAMP"])
+    df["paid_no_royalty"] = ~df["paid_royalty"]
+    df["Date"] = df.BLOCK_TIMESTAMP.dt.normalize()
     return df
 
 @st.experimental_memo(ttl=3600)
