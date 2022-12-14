@@ -23,9 +23,9 @@ Queries used for this can be found [here](sql).
 [Helius](https://helius.xyz/) is used to acquire NFT metadata information, essential for NFT royalty analyses.
 
 ### Projects
-- Program usage analysis: What are the top Solana programs used per day? How is this different for new users vs all users?
-- NFT Royalty analysis: Which users pay royalties when this is optional? What is the potential loss in revenue from royalties?
+- [NFT Royalties analysis](https://spire.fyi/NFT_Royalties): Which users pay royalties when this is optional? What is the potential loss in revenue from royalties?
   - Initial work focuses on Magic Eden sales since royalties became optional (15-Oct-2022), and only on sales of collection in the 99th percentile of volume. In the future, this tool will be expanded to all sales, a larger date range, and more collections
+- [Program usage analysis](https://spire.fyi/Program_Usage): What are the top Solana programs used per day? How is this different for new users vs all users?
 - Coming soon:
   - Network analysis of Program usage
 
