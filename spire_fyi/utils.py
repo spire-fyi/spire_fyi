@@ -1,15 +1,15 @@
 import datetime
 import logging
 import time
+from io import BytesIO
 from pathlib import Path
-from urllib.request import urlopen
-from PIL import Image, ImageDraw
 
 import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
 from jinja2 import Environment, FileSystemLoader
+from PIL import Image
 from shroomdk import ShroomDK
 
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -32,7 +32,7 @@ __all__ = [
     "load_royalty_data",
     "load_sol_daily_price",
     "load_top_nft_info",
-    "get_random_image"
+    "get_random_image",
 ]
 
 API_KEY = st.secrets["flipside"]["api_key"]
@@ -345,7 +345,7 @@ def load_sol_daily_price():
         "https://node-api.flipsidecrypto.com/api/v2/queries/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest"
     )
     df["Date"] = pd.to_datetime(df["Date"])
-    df = df.sort_values(by='Date')
+    df = df.sort_values(by="Date")
     return df
 
 
@@ -363,6 +363,7 @@ def load_top_nft_info():
     df["Date"] = df.BLOCK_TIMESTAMP.dt.normalize()
     return df
 
+
 @st.experimental_memo(ttl=3600)
 def get_random_image(df):
     num = np.random.randint(len(df))
@@ -370,14 +371,18 @@ def get_random_image(df):
     r = requests.get(rand_row.uri)
     j = r.json()
     try:
-        img_file = r.json()['properties']['files'][0]['uri']
+        img_file = j["properties"]["files"][0]["uri"]
+        if img_file.lower().endswith("gif"):
+            img_file = img_file = j["properties"]["files"][1]["uri"]
     except:
-        img_file = r.json()['image']
+        img_file = j["image"]
 
     try:
-        image = Image.open(urlopen(img_file))
+        response = requests.get(img_file)
+        image = Image.open(BytesIO(response.content))
     except:
         image = None
+
     return num, image
 
 

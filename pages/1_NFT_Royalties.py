@@ -1,7 +1,7 @@
 import altair as alt
+import pandas as pd
 import streamlit as st
 from PIL import Image
-import pandas as pd
 
 import spire_fyi.utils as utils
 
@@ -29,7 +29,6 @@ c1.image(
 )
 top_nft_info = utils.load_top_nft_info()
 sol_price = utils.load_sol_daily_price()
-post_royalty_df = top_nft_info.copy()[top_nft_info.BLOCK_TIMESTAMP >= "2022-10-15"]
 
 tab1, tab2 = st.tabs(["Overview", "NFT Royalty Tool"])
 with tab1:
@@ -181,9 +180,9 @@ with tab1:
         Below is the leaderboard; check out the `NFT Royalty Tool` using the tab at the top of the page for more information on these projects!
         """
     )
-    leader_board_df = post_royalty_df[post_royalty_df.royalty_percentage > 0]
     leader_board_df = (
-        leader_board_df.groupby(["Name", "PURCHASER"])[["paid_royalty", "paid_no_royalty"]]
+        top_nft_info[(top_nft_info.BLOCK_TIMESTAMP >= "2022-10-15") & (top_nft_info.royalty_percentage > 0)]
+        .groupby(["Name", "PURCHASER"])[["paid_royalty", "paid_no_royalty"]]
         .agg("sum")
         .reset_index()
     )
@@ -258,7 +257,8 @@ with tab2:
     currency = st.radio("Choose a currency unit", ["Solana", "USD"], key="currency", horizontal=True)
 
     c1, c2 = st.columns(2)
-    c1.image(img, caption=nft_collection_df.iloc[num]["name"], use_column_width=True)
+    if img is not None:
+        c1.image(img, caption=nft_collection_df.iloc[num]["name"], use_column_width=True)
 
     total_sales_count = collection_post_royalty_df.TX_ID.nunique()
 
