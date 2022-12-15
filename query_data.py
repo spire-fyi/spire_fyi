@@ -305,8 +305,8 @@ def get_submitted_queries_from_json(submitted_query_file):
 if __name__ == "__main__":
     # #TODO make cli...
     update_cache = False
-    do_main = False
-    do_nft = True
+    do_main = True
+    do_nft = False
 
     query_info = []
     if do_main:

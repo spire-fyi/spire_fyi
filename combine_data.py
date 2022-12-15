@@ -252,9 +252,10 @@ def get_collection_name(row):
 
 # #TODO: add to cli
 if __name__ == "__main__":
-    do_main = False
+    do_main = True
+    do_network = False
     do_nft = False
-    combine_nft = True
+    combine_nft = False
 
     if do_main:
         program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
@@ -337,7 +338,17 @@ if __name__ == "__main__":
         )
         weekly_new_user_data.to_csv("data/weekly_new_users.csv", index=False)
 
-        # Network stuff
+        # #---
+
+        # #TODO: need to divide the ~500k+ addresses into ~10 queries to add labels, if necessary
+        # utils.get_flipside_labels(last30d_users, "user", "ADDRESS")
+        # utils.get_solana_fm_labels(last30d_users, "user", "ADDRESS")
+
+        # labeled_user_df = utils.add_labels_to_df(last30d_users)
+        # labeled_user_df.to_csv("data/users_labeled.csv.gz", index=False, compression="gzip")
+        # #---
+
+    if do_network:
         signers_by_programID = utils.combine_flipside_date_data(
             "data/sdk_signers_by_programID_sol", add_date=True, with_program=True
         ).rename(columns={"DATE": "Date", "PROGRAM_ID": "Program ID", "SIGNERS": "Address"})
@@ -350,17 +361,6 @@ if __name__ == "__main__":
             "data/signers_by_programID_new_users.csv.gz", compression="gzip", index=False
         )
 
-        # #---
-
-        # #TODO: need to divide the ~500k+ addresses into ~10 queries to add labels, if necessary
-        # utils.get_flipside_labels(last30d_users, "user", "ADDRESS")
-        # utils.get_solana_fm_labels(last30d_users, "user", "ADDRESS")
-
-        # labeled_user_df = utils.add_labels_to_df(last30d_users)
-        # labeled_user_df.to_csv("data/users_labeled.csv.gz", index=False, compression="gzip")
-        # #---
-
-        # Network tables
         labeled_program_df["Date"] = pd.to_datetime(labeled_program_df.Date)
         labeled_program_df["Name"] = labeled_program_df.apply(utils.apply_program_name, axis=1)
 
@@ -410,28 +410,29 @@ if __name__ == "__main__":
         )
         all_programs_new_users_df.to_csv("data/all_programs_new_users.csv", index=False)
 
-        # NFT
-        # Clear memory so this runs on my laptop
-        del program_df
-        del labeled_program_df
-        del program_new_users_df
-        del labeled_program_new_users_df
-        del user_df
-        del last30d_users
-        del grouped
-        del weekly_program_data
-        del weekly_new_program_data
-        del weekly_user_data
-        del weekly_new_user_data
-        del signers_by_programID
-        del signers_by_programID_new_users
-        del all_net_df
-        del all_programs_df
-        del all_net_df_new_users
-        del all_programs_new_users_df
+    if do_nft:
+        if do_main:
+            # Clear memory so this runs on my laptop
+            del program_df
+            del labeled_program_df
+            del program_new_users_df
+            del labeled_program_new_users_df
+            del user_df
+            del last30d_users
+            del grouped
+            del weekly_program_data
+            del weekly_new_program_data
+            del weekly_user_data
+            del weekly_new_user_data
+        if do_network:
+            del signers_by_programID
+            del signers_by_programID_new_users
+            del all_net_df
+            del all_programs_df
+            del all_net_df_new_users
+            del all_programs_new_users_df
         gc.collect()
 
-    if do_nft:
         nft_mints_df = utils.combine_flipside_date_data("data/sdk_nft_mints", add_date=False)
         nft_mints_df["BLOCK_TIMESTAMP"] = pd.to_datetime(nft_mints_df["BLOCK_TIMESTAMP"])
         # #TODO: eventually do all dates, for now just since right before royalties turned off
@@ -468,59 +469,68 @@ if __name__ == "__main__":
             all_mints_metadata.rename(columns={"mint": "MINT"}), on="MINT", how="left"
         )
         nft_mints_df.to_csv("data/nft_mints.csv.gz", compression="gzip", index=False)
-    if not do_nft and combine_nft:
-        nft_mints_df = pd.read_csv("data/nft_mints.csv.gz")
-    nft_mints_df = fix_carriage_return_error(nft_mints_df)
 
-    unique_collection_df = utils.combine_flipside_date_data("data/sdk_nft_royalty_tx", add_date=False)
-    unique_collection_df["BLOCK_TIMESTAMP"] = pd.to_datetime(unique_collection_df["BLOCK_TIMESTAMP"])
+        if not do_nft and combine_nft:
+            nft_mints_df = pd.read_csv("data/nft_mints.csv.gz")
+        nft_mints_df = fix_carriage_return_error(nft_mints_df)
 
-    nft_mints_df = nft_mints_df.merge(
-        unique_collection_df, on=["BLOCK_TIMESTAMP", "TX_ID", "MINT", "SALES_AMOUNT"], how="left"
-    )
+        unique_collection_df = utils.combine_flipside_date_data("data/sdk_nft_royalty_tx", add_date=False)
+        unique_collection_df["BLOCK_TIMESTAMP"] = pd.to_datetime(unique_collection_df["BLOCK_TIMESTAMP"])
 
-    # Add in useful column
-    nft_mints_df["royalty_percentage"] = nft_mints_df.seller_fee_basis_points / 10000
-    nft_mints_df["total_royalty_amount"] = nft_mints_df.ROYALTY_AMOUNT / (nft_mints_df.creator_share / 100)
+        nft_mints_df = nft_mints_df.merge(
+            unique_collection_df, on=["BLOCK_TIMESTAMP", "TX_ID", "MINT", "SALES_AMOUNT"], how="left"
+        )
 
-    nft_mints_df["expected_royalty"] = nft_mints_df.SALES_AMOUNT * nft_mints_df.royalty_percentage
-    nft_mints_df["royalty_diff"] = nft_mints_df.total_royalty_amount - nft_mints_df.expected_royalty
+        # Add in useful column
+        nft_mints_df["royalty_percentage"] = nft_mints_df.seller_fee_basis_points / 10000
+        nft_mints_df["total_royalty_amount"] = nft_mints_df.ROYALTY_AMOUNT / (
+            nft_mints_df.creator_share / 100
+        )
 
-    nft_mints_df["royalty_percent_paid"] = nft_mints_df.total_royalty_amount / nft_mints_df.SALES_AMOUNT
+        nft_mints_df["expected_royalty"] = nft_mints_df.SALES_AMOUNT * nft_mints_df.royalty_percentage
+        nft_mints_df["royalty_diff"] = nft_mints_df.total_royalty_amount - nft_mints_df.expected_royalty
 
-    nft_mints_df["paid_royalty"] = (nft_mints_df.ROYALTY_AMOUNT > 0) | (nft_mints_df.royalty_percentage == 0)
-    nft_mints_df["paid_full_royalty"] = np.isclose(
-        nft_mints_df.expected_royalty, nft_mints_df.total_royalty_amount, atol=0.001
-    )
-    nft_mints_df["paid_half_royalty"] = (
-        np.isclose(nft_mints_df.expected_royalty / 2, nft_mints_df.total_royalty_amount, atol=0.001)
-    ) & (nft_mints_df.royalty_percentage != 0)
-    # save full data
-    nft_mints_df.to_csv("data/nft_sales_with_royalties.csv.gz", compression="gzip", index=False)
+        nft_mints_df["royalty_percent_paid"] = nft_mints_df.total_royalty_amount / nft_mints_df.SALES_AMOUNT
 
-    # only datasets with metadata:
-    metadata_df = nft_mints_df[~((nft_mints_df.name == "") & (nft_mints_df.symbol == ""))]
-    collection_names = metadata_df.copy().apply(get_collection_name, axis=1)
-    metadata_df["collection_name"] = collection_names
-    metadata_df["unique_collection"] = metadata_df.collection_name + "-" + metadata_df.creator_address
-    # save all metadata datasets
-    metadata_df.to_csv("data/nft_sales_metadata_with_royalties.csv.gz", compression="gzip", index=False)
+        nft_mints_df["paid_royalty"] = (nft_mints_df.ROYALTY_AMOUNT > 0) | (
+            nft_mints_df.royalty_percentage == 0
+        )
+        nft_mints_df["paid_full_royalty"] = np.isclose(
+            nft_mints_df.expected_royalty, nft_mints_df.total_royalty_amount, atol=0.001
+        )
+        nft_mints_df["paid_half_royalty"] = (
+            np.isclose(nft_mints_df.expected_royalty / 2, nft_mints_df.total_royalty_amount, atol=0.001)
+        ) & (nft_mints_df.royalty_percentage != 0)
+        # TODO: add this in, remove from utils
+        # df["paid_full_royalty"] = (df["paid_full_royalty"] | (df.total_royalty_amount > df.expected_royalty))
+        # save full data
+        nft_mints_df.to_csv("data/nft_sales_with_royalties.csv.gz", compression="gzip", index=False)
 
-    # get 99th percentile, ~top 75
-    total_sales = (
-        metadata_df[metadata_df.BLOCK_TIMESTAMP > (datetime.datetime.today() - pd.Timedelta("31d"))]
-        .groupby(["unique_collection"])
-        .SALES_AMOUNT.sum()
-        .reset_index()
-    )
-    top_collections = total_sales[
-        total_sales.SALES_AMOUNT > total_sales.SALES_AMOUNT.quantile(0.99)
-    ].sort_values("SALES_AMOUNT", ascending=False)
-    metadata_df = metadata_df[metadata_df.unique_collection.isin(top_collections.unique_collection)]
+        # only datasets with metadata:
+        metadata_df = nft_mints_df[~((nft_mints_df.name == "") & (nft_mints_df.symbol == ""))]
+        collection_names = metadata_df.copy().apply(get_collection_name, axis=1)
+        metadata_df["collection_name"] = collection_names
+        metadata_df["unique_collection"] = metadata_df.collection_name + "-" + metadata_df.creator_address
+        # save all metadata datasets
+        metadata_df.to_csv("data/nft_sales_metadata_with_royalties.csv.gz", compression="gzip", index=False)
 
-    # manual labeled collections from the above dataset
-    labels = pd.read_csv("data/labeled_collections_by_uri.csv")
-    metadata_df = metadata_df.merge(labels, on="unique_collection", how="left")
-    x = metadata_df[metadata_df.Name.isna()]
-    assert len(x) == 0
-    metadata_df.to_csv("data/top_nft_sales_metadata_with_royalties.csv.gz", compression="gzip", index=False)
+        # get 99th percentile, ~top 75
+        total_sales = (
+            metadata_df[metadata_df.BLOCK_TIMESTAMP > (datetime.datetime.today() - pd.Timedelta("31d"))]
+            .groupby(["unique_collection"])
+            .SALES_AMOUNT.sum()
+            .reset_index()
+        )
+        top_collections = total_sales[
+            total_sales.SALES_AMOUNT > total_sales.SALES_AMOUNT.quantile(0.99)
+        ].sort_values("SALES_AMOUNT", ascending=False)
+        metadata_df = metadata_df[metadata_df.unique_collection.isin(top_collections.unique_collection)]
+
+        # manual labeled collections from the above dataset
+        labels = pd.read_csv("data/labeled_collections_by_uri.csv")
+        metadata_df = metadata_df.merge(labels, on="unique_collection", how="left")
+        x = metadata_df[metadata_df.Name.isna()]
+        assert len(x) == 0
+        metadata_df.to_csv(
+            "data/top_nft_sales_metadata_with_royalties.csv.gz", compression="gzip", index=False
+        )

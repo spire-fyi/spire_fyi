@@ -231,7 +231,7 @@ with tab2:
     top_project_names += project_names.index.drop(top_project_names).tolist()
 
     nft_collection = st.selectbox("Choose an NFT Collection:", top_project_names, key="top_project_names")
-    nft_collection_df = top_nft_info.copy()[top_nft_info.Name == nft_collection].reset_index()
+    nft_collection_df = top_nft_info[top_nft_info.Name == nft_collection].reset_index().copy()
 
     nft_collection_df = nft_collection_df.merge(sol_price, on="Date")
     nft_collection_df = nft_collection_df.rename(columns={"Price (USD)": "SOL Price (USD)"}).drop(
@@ -258,7 +258,10 @@ with tab2:
 
     c1, c2 = st.columns(2)
     if img is not None:
-        c1.image(img, caption=nft_collection_df.iloc[num]["name"], use_column_width=True)
+        caption = nft_collection_df.iloc[num]["name"]
+        if pd.isna(caption):
+            caption = ""
+        c1.image(img, caption=caption, use_column_width=True)
 
     total_sales_count = collection_post_royalty_df.TX_ID.nunique()
 
@@ -388,7 +391,17 @@ with tab2:
             .mark_arc()
             .encode(
                 theta=alt.Theta(field="value", type="quantitative"),
-                color=alt.Color(field="Royalty Amount", type="nominal"),
+                color=alt.Color(
+                    field="Royalty Amount",
+                    type="nominal",
+                    scale=alt.Scale(
+                        domain=["Expected", "Earned"],
+                        range=[
+                            "#FD5E53",
+                            "#4B3D60",
+                        ],
+                    ),
+                ),
                 tooltip=["Royalty Amount", alt.Tooltip("value", title=f"Value ({currency})", format=",.2f")],
             )
         ).properties(height=300)
@@ -403,7 +416,11 @@ with tab2:
             .mark_arc()
             .encode(
                 theta=alt.Theta(field="value", type="quantitative"),
-                color=alt.Color(field="Royalties Paid", type="nominal"),
+                color=alt.Color(
+                    field="Royalties Paid",
+                    type="nominal",
+                    scale=alt.Scale(domain=["Full", "Half", "None"], range=["#4B3D60", "#FFE373", "#FD5E53"]),
+                ),
                 tooltip=["Royalties Paid", alt.Tooltip("value", title=f"Sales", format=",.0f")],
             )
         ).properties(height=300)
