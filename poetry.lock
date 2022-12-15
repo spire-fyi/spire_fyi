@@ -686,7 +686,7 @@ arrow = ">=0.15.0"
 
 [[package]]
 name = "isort"
-version = "5.11.1"
+version = "5.11.2"
 description = "A Python utility / library to sort Python imports."
 category = "dev"
 optional = false
@@ -2050,7 +2050,7 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlit"
-version = "1.15.2"
+version = "1.16.0"
 description = "The fastest way to build data apps in Python"
 category = "main"
 optional = false
@@ -2081,6 +2081,9 @@ typing-extensions = ">=3.10.0.0"
 tzlocal = ">=1.1"
 validators = ">=0.2"
 watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
+
+[package.extras]
+snowflake = ["snowflake-snowpark-python"]
 
 [[package]]
 name = "terminado"
@@ -2811,8 +2814,8 @@ isoduration = [
     {file = "isoduration-20.11.0.tar.gz", hash = "sha256:ac2f9015137935279eac671f94f89eb00584f940f5dc49462a0c4ee692ba1bd9"},
 ]
 isort = [
-    {file = "isort-5.11.1-py3-none-any.whl", hash = "sha256:bf02c95f1fe615ebbe13a619cfed1619ddfe8941274c9e3de3143adca406cb02"},
-    {file = "isort-5.11.1.tar.gz", hash = "sha256:7c5bd998504826b6f1e6f2f98b533976b066baba29b8bae83fdeefd0b89c6b70"},
+    {file = "isort-5.11.2-py3-none-any.whl", hash = "sha256:e486966fba83f25b8045f8dd7455b0a0d1e4de481e1d7ce4669902d9fb85e622"},
+    {file = "isort-5.11.2.tar.gz", hash = "sha256:dd8bbc5c0990f2a095d754e50360915f73b4c26fc82733eb5bfc6b48396af4d2"},
 ]
 jedi = [
     {file = "jedi-0.18.2-py2.py3-none-any.whl", hash = "sha256:203c1fd9d969ab8f2119ec0a3342e0b49910045abe6af0a3ae83a5764d54639e"},
@@ -3784,8 +3787,8 @@ stevedore = [
     {file = "stevedore-4.1.1.tar.gz", hash = "sha256:7f8aeb6e3f90f96832c301bff21a7eb5eefbe894c88c506483d355565d88cc1a"},
 ]
 streamlit = [
-    {file = "streamlit-1.15.2-py2.py3-none-any.whl", hash = "sha256:40933b64e7b3a1770d798918cbd2ae52a6671a52266ac069f62e1b66f38e0662"},
-    {file = "streamlit-1.15.2.tar.gz", hash = "sha256:31b2fa33848f8dbcf526e6c93017cf58c81a8479844c4f6ff553382e1bac6152"},
+    {file = "streamlit-1.16.0-py2.py3-none-any.whl", hash = "sha256:4c135621ede6eb8e9d6e738cc5496d90d66bdb78340eab1eb2dbf1978cc7af80"},
+    {file = "streamlit-1.16.0.tar.gz", hash = "sha256:11f98f9c854f61145e78109d2d0694354122136230397a2b8fdc7d6778883c60"},
 ]
 terminado = [
     {file = "terminado-0.17.1-py3-none-any.whl", hash = "sha256:8650d44334eba354dd591129ca3124a6ba42c3d5b70df5051b6921d506fdaeae"},
