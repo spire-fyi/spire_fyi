@@ -90,6 +90,7 @@ exclude = '''
     | dist
     | env
     | venv
+    | data
 )/
 '''
 
@@ -105,6 +106,7 @@ profile = "black"
 multi_line_output = 3
 indent = 4
 color_output = true
+skip_glob = "data"
 
 [tool.mypy]
 # https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file

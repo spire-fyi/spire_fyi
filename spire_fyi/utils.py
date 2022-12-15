@@ -311,8 +311,8 @@ def load_nft_data():
 def load_royalty_data():
     df = (
         pd.read_json(
-            # "https://node-api.flipsidecrypto.com/api/v2/queries/ffd713f1-4d05-4f3e-82b8-dc2c87db6691/data/latest" # fork
-            "https://node-api.flipsidecrypto.com/api/v2/queries/7572e1e3-fbfb-4dd4-9d45-dd6cde7f42df/data/latest"  # original
+            "https://node-api.flipsidecrypto.com/api/v2/queries/ffd713f1-4d05-4f3e-82b8-dc2c87db6691/data/latest"  # fork
+            # "https://node-api.flipsidecrypto.com/api/v2/queries/7572e1e3-fbfb-4dd4-9d45-dd6cde7f42df/data/latest"  # original, see https://twitter.com/BlumbergKellen/status/1601245496789463045
         )
         .sort_values(by=["MONTH"])
         .drop(columns=["N_DAYS", "PCT_SALES_AMOUNT"])
