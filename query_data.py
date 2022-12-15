@@ -84,7 +84,7 @@ past_90d_hours = [
 all_weeks = [
     f"{x:%Y-%m-%d}"
     for x in pd.date_range(
-        datetime.date(2020, 3, 16), (datetime.datetime.today() - pd.Timedelta("1d")), freq="7d"
+        datetime.date(2020, 3, 16), (datetime.datetime.today() - pd.Timedelta("7d")), freq="7d"
     )
 ]
 
@@ -306,12 +306,14 @@ if __name__ == "__main__":
     # #TODO make cli...
     update_cache = False
     do_main = True
-    do_nft = False
+    do_network = False
+    do_nft_mints = False
+    do_nft_metadata = False
 
     query_info = []
     if do_main:
         # #TODO: change dates/programs
-        for q, dates in [
+        main_queries = [
             ("sdk_programs_new_users_sol", all_dates_2022),
             ("sdk_programs_sol", all_dates_2022),
             ("sdk_new_users_sol", all_dates_2022),
@@ -320,41 +322,43 @@ if __name__ == "__main__":
             ("sdk_weekly_program_count_sol", all_weeks),
             ("sdk_weekly_new_users_sol", all_weeks),
             ("sdk_weekly_users_sol", all_weeks),
-            ("sdk_nft_mints", past_90d_hours),
-        ]:
+        ]
+        if do_nft_mints:
+            main_queries.append(("sdk_nft_mints", past_90d_hours))
+        for q, dates in main_queries:
             for date in dates:
                 queries_to_do = get_queries_by_date(date, q)
                 if queries_to_do is not None:
                     query_info.append(queries_to_do)
+        if do_network:
+            for dates, max_date_string in [  # HACK
+                (past_7d, "8d"),
+                (past_14d, "15d"),
+                (past_30d, "31d"),
+                (past_60d, "61d"),
+                (past_90d, "91d"),
+            ]:
+                chart_df = pd.read_csv("data/programs_labeled.csv.gz")
+                chart_df["Date"] = pd.to_datetime(chart_df.Date)
+                chart_df = chart_df[chart_df.LABEL != "solana"]
+                chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))]
 
-        for dates, max_date_string in [  # HACK
-            (past_7d, "8d"),
-            (past_14d, "15d"),
-            (past_30d, "31d"),
-            (past_60d, "61d"),
-            (past_90d, "91d"),
-        ]:
-            chart_df = pd.read_csv("data/programs_labeled.csv.gz")
-            chart_df["Date"] = pd.to_datetime(chart_df.Date)
-            chart_df = chart_df[chart_df.LABEL != "solana"]
-            chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))]
+                chart_df_new_users = pd.read_csv("data/programs_new_users_labeled.csv.gz")
+                chart_df_new_users["Date"] = pd.to_datetime(chart_df_new_users.Date)
+                chart_df_new_users = chart_df_new_users[chart_df_new_users.LABEL != "solana"]
+                chart_df_new_users = chart_df_new_users[
+                    chart_df_new_users.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))
+                ]
 
-            chart_df_new_users = pd.read_csv("data/programs_new_users_labeled.csv.gz")
-            chart_df_new_users["Date"] = pd.to_datetime(chart_df_new_users.Date)
-            chart_df_new_users = chart_df_new_users[chart_df_new_users.LABEL != "solana"]
-            chart_df_new_users = chart_df_new_users[
-                chart_df_new_users.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))
-            ]
-
-            for q, df in [
-                ("sdk_signers_by_programID_new_users_sol", chart_df_new_users),
-                ("sdk_signers_by_programID_sol", chart_df),
-            ]:  # for program_ids
-                for date in dates:
-                    queries_to_do = get_queries_by_date_and_programs(date, q, df)
-                    if queries_to_do != []:
-                        query_info.extend(queries_to_do)
-    if do_nft:
+                for q, df in [
+                    ("sdk_signers_by_programID_new_users_sol", chart_df_new_users),
+                    ("sdk_signers_by_programID_sol", chart_df),
+                ]:  # for program_ids
+                    for date in dates:
+                        queries_to_do = get_queries_by_date_and_programs(date, q, df)
+                        if queries_to_do != []:
+                            query_info.extend(queries_to_do)
+    if do_nft_metadata:
         # NFT processing
         nft_metadata_file = "data/unique_collection_mints.csv"  # #HACK: created in `create_unique_collection_mints.ipynb`, move elsewhere
         unique_collection_mints = pd.read_csv(nft_metadata_file)
