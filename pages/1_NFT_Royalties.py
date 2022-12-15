@@ -391,7 +391,17 @@ with tab2:
             .mark_arc()
             .encode(
                 theta=alt.Theta(field="value", type="quantitative"),
-                color=alt.Color(field="Royalty Amount", type="nominal"),
+                color=alt.Color(
+                    field="Royalty Amount",
+                    type="nominal",
+                    scale=alt.Scale(
+                        domain=["Expected", "Earned"],
+                        range=[
+                            "#FD5E53",
+                            "#4B3D60",
+                        ],
+                    ),
+                ),
                 tooltip=["Royalty Amount", alt.Tooltip("value", title=f"Value ({currency})", format=",.2f")],
             )
         ).properties(height=300)
@@ -406,7 +416,11 @@ with tab2:
             .mark_arc()
             .encode(
                 theta=alt.Theta(field="value", type="quantitative"),
-                color=alt.Color(field="Royalties Paid", type="nominal"),
+                color=alt.Color(
+                    field="Royalties Paid",
+                    type="nominal",
+                    scale=alt.Scale(domain=["Full", "Half", "None"], range=["#4B3D60", "#FFE373", "#FD5E53"]),
+                ),
                 tooltip=["Royalties Paid", alt.Tooltip("value", title=f"Sales", format=",.0f")],
             )
         ).properties(height=300)
