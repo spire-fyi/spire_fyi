@@ -30,6 +30,15 @@ c1.image(
 top_nft_info = utils.load_top_nft_info()
 sol_price = utils.load_sol_daily_price()
 
+top_nft_info = top_nft_info.merge(sol_price, on="Date")
+top_nft_info = top_nft_info.rename(columns={"Price (USD)": "SOL Price (USD)"}).drop(columns="SYMBOL")
+top_nft_info["SALES_AMOUNT_USD"] = top_nft_info["SALES_AMOUNT"] * top_nft_info["SOL Price (USD)"]
+top_nft_info["total_royalty_amount_usd"] = (
+    top_nft_info["total_royalty_amount"] * top_nft_info["SOL Price (USD)"]
+)
+top_nft_info["expected_royalty_usd"] = top_nft_info["expected_royalty"] * top_nft_info["SOL Price (USD)"]
+top_nft_info["royalty_diff_usd"] = top_nft_info["royalty_diff"] * top_nft_info["SOL Price (USD)"]
+
 tab1, tab2 = st.tabs(["Overview", "NFT Royalty Tool"])
 with tab1:
     rules = (
@@ -172,6 +181,166 @@ with tab1:
         )
     st.write("---")
 
+    st.header("Royalty Payment Rates")
+    # #HACK: this is all copy-pasted right now, need to turn to functions
+    total_sales_count = top_nft_info[top_nft_info.Date >= "2022-10-15"].TX_ID.nunique()
+
+    total_sales_sol = top_nft_info[top_nft_info.Date >= "2022-10-15"].SALES_AMOUNT.sum()
+    total_royalties_sol = top_nft_info[top_nft_info.Date >= "2022-10-15"].total_royalty_amount.sum()
+    avg_royalties_sol = top_nft_info[top_nft_info.Date >= "2022-10-15"].total_royalty_amount.mean()
+    expected_royalties_sol = top_nft_info[top_nft_info.Date >= "2022-10-15"].expected_royalty.sum()
+
+    total_sales_usd = top_nft_info[top_nft_info.Date >= "2022-10-15"].SALES_AMOUNT_USD.sum()
+    total_royalties_usd = top_nft_info[top_nft_info.Date >= "2022-10-15"].total_royalty_amount_usd.sum()
+    avg_royalties_usd = top_nft_info[top_nft_info.Date >= "2022-10-15"].total_royalty_amount_usd.mean()
+    expected_royalties_usd = top_nft_info[top_nft_info.Date >= "2022-10-15"].expected_royalty_usd.sum()
+    c1, c2 = st.columns([2, 1])
+    c1.write(
+        "For the top 1% of collections on Magic Eden, the breakdown of royalties paid is shown below. The date range starts 1 week before the start of optional royalties on Magic Eden."
+    )
+    currency = c2.radio(
+        "Choose a currency unit",
+        ["Solana", "USD"],
+        key="overall_currency",
+    )
+    st.write("---")
+    c1, c2 = st.columns(2)
+    metric = c1.radio(
+        "Choose a metric",
+        ["mean", "sum"],
+        format_func=lambda x: "Average" if x == "mean" else "Total",
+        horizontal=True,
+        key="overall_metric",
+        index=1,
+    )
+    if currency == "USD":
+        val = "total_royalty_amount_usd"
+        val2 = "expected_royalty_usd"
+    else:
+        val = "total_royalty_amount"
+        val2 = "expected_royalty"
+    x = top_nft_info.groupby(["Date"])[[val, val2]].agg(metric).reset_index()
+    x = x.rename(
+        columns={f"{val}": f"Earned Royalty ({currency})", f"{val2}": f"Expected Royalty ({currency})"}
+    ).melt(id_vars="Date")
+    base = (
+        alt.Chart(x, title="Daily Royalties Paid")
+        .mark_line()
+        .encode(
+            x=alt.X("yearmonthdate(Date)", title="Date"),
+            y=alt.Y(
+                "value",
+                title=f' {"Average" if metric == "mean" else "Total"} Royalty ({currency})',
+                stack=False,
+            ),
+            color=alt.Color(
+                "variable",
+                scale=alt.Scale(
+                    domain=[f"Expected Royalty ({currency})", f"Earned Royalty ({currency})"],
+                    range=[
+                        "#FD5E53",
+                        "#4B3D60",
+                    ],
+                ),
+                title="Royalty Amount",
+            ),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                alt.Tooltip(
+                    "value",
+                    title=f' {"Average" if metric == "mean" else "Total"} Royalty ({currency})',
+                    format=",.2f",
+                ),
+            ],
+        )
+    )
+    chart = (base + rules).interactive().properties(height=600, width=800)
+    c1.altair_chart(chart, use_container_width=True)
+
+    proportional = c2.radio(
+        "Choose how to view sales",
+        ["Proportion", "Count"],
+        index=1,
+        horizontal=True,
+        key="overall_proportional_sales",
+    )
+    x = (
+        top_nft_info[["Date", "paid_full_royalty", "paid_half_royalty", "paid_no_royalty"]]
+        .rename(columns={"paid_full_royalty": "Full", "paid_half_royalty": "Half", "paid_no_royalty": "None"})
+        .melt(id_vars="Date")
+        .groupby(["Date", "variable"])["value"]
+        .sum()
+        .reset_index()
+    )
+
+    base = (
+        alt.Chart(x, title="Daily Sales Count for Royalty Amounts")
+        .mark_bar(width=3)
+        .encode(
+            x=alt.X("yearmonthdate(Date)", title="Date"),
+            y=alt.Y(
+                "value",
+                title=f"Sales {proportional}",
+                stack="normalize" if proportional == "Proportion" else True,
+            ),
+            color=alt.Color(
+                "variable",
+                title="Royalty Amount",
+                scale=alt.Scale(domain=["Full", "Half", "None"], range=["#4B3D60", "#FFE373", "#FD5E53"]),
+            ),
+        )
+    )
+    chart = (base + rules).interactive().properties(height=600, width=800)
+    c2.altair_chart(chart, use_container_width=True)
+    st.write("---")
+    c1, c2 = st.columns(2)
+    if currency == "USD":
+        vals = [expected_royalties_usd, total_royalties_usd]
+    else:
+        vals = [expected_royalties_sol, total_royalties_sol]
+    chart = (
+        alt.Chart(
+            pd.DataFrame({"Royalty Amount": ["Expected", "Earned"], "value": vals}),
+            title="Overall Royalty Amounts: Earned vs. Expected",
+        )
+        .mark_arc()
+        .encode(
+            theta=alt.Theta(field="value", type="quantitative"),
+            color=alt.Color(
+                field="Royalty Amount",
+                type="nominal",
+                scale=alt.Scale(
+                    domain=["Expected", "Earned"],
+                    range=[
+                        "#FD5E53",
+                        "#4B3D60",
+                    ],
+                ),
+            ),
+            tooltip=["Royalty Amount", alt.Tooltip("value", title=f"Value ({currency})", format=",.2f")],
+        )
+    ).properties(height=300)
+    c1.altair_chart(chart, use_container_width=True)
+
+    vals = top_nft_info[["paid_full_royalty", "paid_half_royalty", "paid_no_royalty"]].sum().values
+    chart = (
+        alt.Chart(
+            pd.DataFrame({"Royalties Paid": ["Full", "Half", "None"], "value": vals}),
+            title="Overall Proportion of Royalty Fees Paid in Sales",
+        )
+        .mark_arc()
+        .encode(
+            theta=alt.Theta(field="value", type="quantitative"),
+            color=alt.Color(
+                field="Royalties Paid",
+                type="nominal",
+                scale=alt.Scale(domain=["Full", "Half", "None"], range=["#4B3D60", "#FFE373", "#FD5E53"]),
+            ),
+            tooltip=["Royalties Paid", alt.Tooltip("value", title=f"Sales", format=",.0f")],
+        )
+    ).properties(height=300)
+    c2.altair_chart(chart, use_container_width=True)
+    # #---
     st.header("Leaderboard")
     st.write(
         f"""
@@ -233,23 +402,6 @@ with tab2:
     nft_collection = st.selectbox("Choose an NFT Collection:", top_project_names, key="top_project_names")
     nft_collection_df = top_nft_info[top_nft_info.Name == nft_collection].reset_index().copy()
 
-    nft_collection_df = nft_collection_df.merge(sol_price, on="Date")
-    nft_collection_df = nft_collection_df.rename(columns={"Price (USD)": "SOL Price (USD)"}).drop(
-        columns="SYMBOL"
-    )
-    nft_collection_df["SALES_AMOUNT_USD"] = (
-        nft_collection_df["SALES_AMOUNT"] * nft_collection_df["SOL Price (USD)"]
-    )
-    nft_collection_df["total_royalty_amount_usd"] = (
-        nft_collection_df["total_royalty_amount"] * nft_collection_df["SOL Price (USD)"]
-    )
-    nft_collection_df["expected_royalty_usd"] = (
-        nft_collection_df["expected_royalty"] * nft_collection_df["SOL Price (USD)"]
-    )
-    nft_collection_df["royalty_diff_usd"] = (
-        nft_collection_df["royalty_diff"] * nft_collection_df["SOL Price (USD)"]
-    )
-
     collection_post_royalty_df = nft_collection_df[nft_collection_df.BLOCK_TIMESTAMP >= "2022-10-15"]
 
     st.subheader(f"Project Name: {nft_collection}")
@@ -306,43 +458,51 @@ with tab2:
     if collection_post_royalty_df.royalty_percentage.mean() == 0:
         st.write("This collection has no royalty fees!")
     else:
-        metric = st.radio(
+        c1, c2 = st.columns(2)
+        metric = c1.radio(
             "Choose a metric",
             ["mean", "sum"],
+            index=1,
             format_func=lambda x: "Average" if x == "mean" else "Total",
             horizontal=True,
             key="metric",
         )
-        c1, c2 = st.columns(2)
+
         if currency == "USD":
             val = "total_royalty_amount_usd"
+            val2 = "expected_royalty_usd"
         else:
             val = "total_royalty_amount"
-        x = nft_collection_df.groupby(["Date"])[val].agg(metric).reset_index()
+            val2 = "expected_royalty"
+        x = nft_collection_df.groupby(["Date"])[[val, val2]].agg(metric).reset_index()
+        x = x.rename(
+            columns={f"{val}": f"Earned Royalty ({currency})", f"{val2}": f"Expected Royalty ({currency})"}
+        ).melt(id_vars="Date")
         base = (
             alt.Chart(x, title="Daily Royalties Paid")
-            .mark_area(
-                line={"color": "#4B3D60", "size": 1},
-                color=alt.Gradient(
-                    gradient="linear",
-                    stops=[
-                        alt.GradientStop(color="#4B3D60", offset=0),
-                        alt.GradientStop(color="#FD5E53", offset=1),
-                    ],
-                    x1=1,
-                    x2=1,
-                    y1=1,
-                    y2=0,
-                ),
-                interpolate="monotone",
-            )
+            .mark_line()
             .encode(
                 x=alt.X("yearmonthdate(Date)", title="Date"),
-                y=alt.Y(val, title=f' {"Average" if metric == "mean" else "Total"} Royalty ({currency})'),
+                y=alt.Y(
+                    "value",
+                    title=f' {"Average" if metric == "mean" else "Total"} Royalty ({currency})',
+                    stack=False,
+                ),
+                color=alt.Color(
+                    "variable",
+                    scale=alt.Scale(
+                        domain=[f"Expected Royalty ({currency})", f"Earned Royalty ({currency})"],
+                        range=[
+                            "#FD5E53",
+                            "#4B3D60",
+                        ],
+                    ),
+                    title="Royalty Amount",
+                ),
                 tooltip=[
                     alt.Tooltip("yearmonthdate(Date)", title="Date"),
                     alt.Tooltip(
-                        val,
+                        "value",
                         title=f' {"Average" if metric == "mean" else "Total"} Royalty ({currency})',
                         format=",.2f",
                     ),
@@ -351,7 +511,13 @@ with tab2:
         )
         chart = (base + rules).interactive().properties(height=600, width=800)
         c1.altair_chart(chart, use_container_width=True)
-
+        proportional = c2.radio(
+            "Choose how to view sales",
+            ["Proportion", "Count"],
+            horizontal=True,
+            key="proportional_sales",
+            index=1,
+        )
         x = (
             nft_collection_df[["Date", "paid_full_royalty", "paid_half_royalty", "paid_no_royalty"]]
             .rename(
@@ -362,12 +528,17 @@ with tab2:
             .sum()
             .reset_index()
         )
+
         base = (
             alt.Chart(x, title="Daily Sales Count for Royalty Amounts")
-            .mark_line(width=3)
+            .mark_bar(width=3)
             .encode(
                 x=alt.X("yearmonthdate(Date)", title="Date"),
-                y=alt.Y("value", title="Sales"),
+                y=alt.Y(
+                    "value",
+                    title=f"Sales {proportional}",
+                    stack="normalize" if proportional == "Proportion" else True,
+                ),
                 color=alt.Color(
                     "variable",
                     title="Royalty Amount",
@@ -386,7 +557,7 @@ with tab2:
         chart = (
             alt.Chart(
                 pd.DataFrame({"Royalty Amount": ["Expected", "Earned"], "value": vals}),
-                title="Royalty Amounts: Earned vs. Expected",
+                title="Overall Royalty Amounts: Earned vs. Expected",
             )
             .mark_arc()
             .encode(
@@ -411,7 +582,7 @@ with tab2:
         chart = (
             alt.Chart(
                 pd.DataFrame({"Royalties Paid": ["Full", "Half", "None"], "value": vals}),
-                title="Proportion of Royalty Fees Paid in Sales",
+                title="Overall Proportion of Royalty Fees Paid in Sales",
             )
             .mark_arc()
             .encode(
