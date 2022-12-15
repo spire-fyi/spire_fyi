@@ -29,7 +29,6 @@ c2.caption(
 
     [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi)
     """
-
 )
 c1.image(
     image,

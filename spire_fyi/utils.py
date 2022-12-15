@@ -193,7 +193,7 @@ def get_program_chart_data(
     return chart_df
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.experimental_memo(ttl=600)
 def load_labeled_program_data(new_users_only=False):
     if new_users_only:
         return pd.read_csv("data/programs_new_users_labeled.csv.gz")
@@ -201,7 +201,7 @@ def load_labeled_program_data(new_users_only=False):
         return pd.read_csv("data/programs_labeled.csv.gz")
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.experimental_memo(ttl=60)
 def load_weekly_program_data():
     df = pd.read_csv("data/weekly_program.csv")
     datecols = ["WEEK"]
@@ -209,7 +209,7 @@ def load_weekly_program_data():
     return df
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.experimental_memo(ttl=60)
 def load_weekly_new_program_data():
     df = pd.read_csv("data/weekly_new_program.csv")
     df = df.sort_values(by="WEEK")
@@ -220,7 +220,7 @@ def load_weekly_new_program_data():
     return df
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.experimental_memo(ttl=60)
 def load_weekly_user_data():
     df = pd.read_csv("data/weekly_users.csv")
     datecols = ["WEEK"]
@@ -228,7 +228,7 @@ def load_weekly_user_data():
     return df
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.experimental_memo(ttl=60)
 def load_weekly_new_user_data():
     df = pd.read_csv("data/weekly_new_users.csv")
     datecols = ["WEEK"]
@@ -239,7 +239,7 @@ def load_weekly_new_user_data():
     return df
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.experimental_memo(ttl=1800)
 def load_nft_data():
     main_data = (
         pd.read_json(
@@ -307,7 +307,7 @@ def load_nft_data():
     return buyers_sellers, marketplace_info, mints_by_purchaser, by_chain_data
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.experimental_memo(ttl=1800)
 def load_royalty_data():
     df = (
         pd.read_json(
@@ -339,7 +339,7 @@ def load_royalty_data():
     return df
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.experimental_memo(ttl=1800)
 def load_sol_daily_price():
     df = pd.read_json(
         "https://node-api.flipsidecrypto.com/api/v2/queries/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest"
@@ -349,7 +349,7 @@ def load_sol_daily_price():
     return df
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.experimental_memo(ttl=1800)
 def load_top_nft_info():
     df = (
         pd.read_csv("data/top_nft_sales_metadata_with_royalties.csv.gz")
@@ -361,10 +361,19 @@ def load_top_nft_info():
     df["BLOCK_TIMESTAMP"] = pd.to_datetime(df["BLOCK_TIMESTAMP"])
     df["paid_no_royalty"] = ~df["paid_royalty"]
     df["Date"] = df.BLOCK_TIMESTAMP.dt.normalize()
+    # #HACK: issue with some rows showing up twice for 2 NFT collections; dropping duplicates
+    df = df.drop_duplicates(subset="TX_ID")
+    # #TODO: handle situations where the seller is the creator
+    df = df[df.SELLER != df.creator_address]
+    # #HACK: removing 'CARD 1000 SOL' since there is very little information on the project
+    # #TODO: remove all collections flagged on ME, or are known to be bad, from top projects
+    df = df[df.Name != "CARD 1000 SOL"]
+    # #HACK: some royalty payments are more than the expected amount
+    df["paid_full_royalty"] = df["paid_full_royalty"] | (df.total_royalty_amount > df.expected_royalty)
     return df
 
 
-@st.experimental_memo(ttl=3600)
+@st.experimental_memo(ttl=600)
 def get_random_image(df):
     num = np.random.randint(len(df))
     rand_row = df.iloc[num]
@@ -386,7 +395,7 @@ def get_random_image(df):
     return num, image
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.experimental_memo(ttl=1800)
 def load_defi_data():
     df = (
         pd.read_json(
