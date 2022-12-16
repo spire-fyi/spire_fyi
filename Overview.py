@@ -27,12 +27,14 @@ c2.caption(
     
     Spire is a Solana-focused on-chain data platform that aims to provide in-depth data and insights to add value to the Solana ecosystem.
 
+    Spire is currently a beta project and is in active development. Reach out on Twitter with questions and comments!
+
     [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi)
     """
 )
 c1.image(
     image,
-    width=200,
+    width=150,
 )
 st.write("---")
 

@@ -49,9 +49,12 @@ metric_dict = {
 }
 
 
-def combine_flipside_date_data(data_dir, add_date=False, with_program=False):
+def combine_flipside_date_data(data_dir, add_date=False, with_program=False, nft_royalty=False):
     d = Path(data_dir)
     data_files = d.glob("*.csv")
+    if nft_royalty:
+        data_files_todo = {}
+        # TODO: get the most recent / highest mints for each nft collection
     dfs = []
     for x in data_files:
         df = pd.read_csv(x)
@@ -361,6 +364,8 @@ def load_top_nft_info():
     df["BLOCK_TIMESTAMP"] = pd.to_datetime(df["BLOCK_TIMESTAMP"])
     df["paid_no_royalty"] = ~df["paid_royalty"]
     df["Date"] = df.BLOCK_TIMESTAMP.dt.normalize()
+    # #HACK: get rid of incomplete date
+    df = df[df.Date < "2022-12-10"]
     # #HACK: issue with some rows showing up twice for 2 NFT collections; dropping duplicates
     df = df.drop_duplicates(subset="TX_ID")
     # #TODO: handle situations where the seller is the creator

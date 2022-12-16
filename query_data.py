@@ -305,10 +305,10 @@ def get_submitted_queries_from_json(submitted_query_file):
 if __name__ == "__main__":
     # #TODO make cli...
     update_cache = False
-    do_main = True
+    do_main = False
     do_network = False
-    do_nft_mints = False
-    do_nft_metadata = False
+    do_nft_mints = True
+    do_nft_metadata = True
 
     query_info = []
     if do_main:
@@ -341,7 +341,9 @@ if __name__ == "__main__":
                 chart_df = pd.read_csv("data/programs_labeled.csv.gz")
                 chart_df["Date"] = pd.to_datetime(chart_df.Date)
                 chart_df = chart_df[chart_df.LABEL != "solana"]
-                chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))]
+                chart_df = chart_df[
+                    chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))
+                ]
 
                 chart_df_new_users = pd.read_csv("data/programs_new_users_labeled.csv.gz")
                 chart_df_new_users["Date"] = pd.to_datetime(chart_df_new_users.Date)
@@ -360,7 +362,7 @@ if __name__ == "__main__":
                             query_info.extend(queries_to_do)
     if do_nft_metadata:
         # NFT processing
-        nft_metadata_file = "data/unique_collection_mints.csv"  # #HACK: created in `create_unique_collection_mints.ipynb`, move elsewhere
+        nft_metadata_file = "data/unique_collection_mints.csv"
         unique_collection_mints = pd.read_csv(nft_metadata_file)
         unique_collection_mints["mints"] = unique_collection_mints["mints"].apply(
             lambda x: ast.literal_eval(x)

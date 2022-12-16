@@ -27,7 +27,7 @@ c2.caption(
 )
 c1.image(
     image,
-    width=200,
+    width=100,
 )
 st.write("---")
 st.header("In Depth")
