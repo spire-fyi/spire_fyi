@@ -475,7 +475,9 @@ if __name__ == "__main__":
         nft_mints_df = fix_carriage_return_error(nft_mints_df)
 
         # #TODO: need to get rid of duplicates
-        unique_collection_df = utils.combine_flipside_date_data("data/sdk_nft_royalty_tx", add_date=False, nft_royalty=True)
+        unique_collection_df = utils.combine_flipside_date_data(
+            "data/sdk_nft_royalty_tx", add_date=False, nft_royalty=True
+        )
         unique_collection_df["BLOCK_TIMESTAMP"] = pd.to_datetime(unique_collection_df["BLOCK_TIMESTAMP"])
 
         nft_mints_df = nft_mints_df.merge(
@@ -518,7 +520,9 @@ if __name__ == "__main__":
         # get unique_collection_mints
         unique_collection_mints = (
             metadata_df.groupby(["collection_name", "creator_address"])
-            .agg(mints=("MINT", "unique"), total_sales=("SALES_AMOUNT", "sum"), total_mints=("MINT", "nunique"))
+            .agg(
+                mints=("MINT", "unique"), total_sales=("SALES_AMOUNT", "sum"), total_mints=("MINT", "nunique")
+            )
             .reset_index()
         )
         unique_collection_mints = unique_collection_mints[
