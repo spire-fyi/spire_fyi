@@ -301,37 +301,41 @@ with tab1:
     totals = [sum(vals)] * 2
     vals_proportion = [vals[i] / totals[i] for i in range(len(vals))]
     chart = (
-        alt.Chart(
-            pd.DataFrame(
-                {
-                    "Royalty Amount": ["Difference from Expected", "Earned"],
-                    "value": vals,
-                    "proportion": vals_proportion,
-                }
-            ),
-            title="Royalties: Earned vs. Difference from Expected",
-        )
-        .mark_arc()
-        .encode(
-            theta=alt.Theta(field="value", type="quantitative"),
-            color=alt.Color(
-                field="Royalty Amount",
-                type="nominal",
-                scale=alt.Scale(
-                    domain=["Earned", "Difference from Expected"],
-                    range=[
-                        "#4B3D60",
-                        "#FD5E53",
-                    ],
+        (
+            alt.Chart(
+                pd.DataFrame(
+                    {
+                        "Royalty Amount": ["Difference from Expected", "Earned"],
+                        "value": vals,
+                        "proportion": vals_proportion,
+                    }
                 ),
-            ),
-            tooltip=[
-                "Royalty Amount",
-                alt.Tooltip("value", title=f"Value ({currency})", format=",.2f"),
-                alt.Tooltip("proportion", title=f"Percentage", format=".1%"),
-            ],
+                title="Royalties: Earned vs. Difference from Expected",
+            )
+            .mark_arc()
+            .encode(
+                theta=alt.Theta(field="value", type="quantitative"),
+                color=alt.Color(
+                    field="Royalty Amount",
+                    type="nominal",
+                    scale=alt.Scale(
+                        domain=["Earned", "Difference from Expected"],
+                        range=[
+                            "#4B3D60",
+                            "#FD5E53",
+                        ],
+                    ),
+                ),
+                tooltip=[
+                    "Royalty Amount",
+                    alt.Tooltip("value", title=f"Value ({currency})", format=",.2f"),
+                    alt.Tooltip("proportion", title=f"Percentage", format=".1%"),
+                ],
+            )
         )
-    ).properties(height=300).configure_title(orient='top', anchor='middle')
+        .properties(height=300)
+        .configure_title(orient="top", anchor="middle")
+    )
     c1.altair_chart(chart, use_container_width=True)
 
     vals = (
@@ -343,27 +347,31 @@ with tab1:
     )
     vals_proportion = vals / len(top_nft_info[top_nft_info.Date >= "2022-10-15"])
     chart = (
-        alt.Chart(
-            pd.DataFrame(
-                {"Royalties Paid": ["Full", "Half", "None"], "value": vals, "proportion": vals_proportion}
-            ),
-            title="Proportion of Royalty Fees Paid in Sales",
+        (
+            alt.Chart(
+                pd.DataFrame(
+                    {"Royalties Paid": ["Full", "Half", "None"], "value": vals, "proportion": vals_proportion}
+                ),
+                title="Proportion of Royalty Fees Paid in Sales",
+            )
+            .mark_arc()
+            .encode(
+                theta=alt.Theta(field="value", type="quantitative"),
+                color=alt.Color(
+                    field="Royalties Paid",
+                    type="nominal",
+                    scale=alt.Scale(domain=["Full", "Half", "None"], range=["#4B3D60", "#FFE373", "#FD5E53"]),
+                ),
+                tooltip=[
+                    "Royalties Paid",
+                    alt.Tooltip("value", title=f"Sales", format=",.0f"),
+                    alt.Tooltip("proportion", title=f"Percentage", format=".1%"),
+                ],
+            )
         )
-        .mark_arc()
-        .encode(
-            theta=alt.Theta(field="value", type="quantitative"),
-            color=alt.Color(
-                field="Royalties Paid",
-                type="nominal",
-                scale=alt.Scale(domain=["Full", "Half", "None"], range=["#4B3D60", "#FFE373", "#FD5E53"]),
-            ),
-            tooltip=[
-                "Royalties Paid",
-                alt.Tooltip("value", title=f"Sales", format=",.0f"),
-                alt.Tooltip("proportion", title=f"Percentage", format=".1%"),
-            ],
-        )
-    ).properties(height=300).configure_title(orient='top', anchor='middle')
+        .properties(height=300)
+        .configure_title(orient="top", anchor="middle")
+    )
     c2.altair_chart(chart, use_container_width=True)
     # #---
     st.header("Leaderboard")
@@ -582,37 +590,41 @@ with tab2:
         totals = [sum(vals)] * 2
         vals_proportion = [vals[i] / totals[i] for i in range(len(vals))]
         chart = (
-            alt.Chart(
-                pd.DataFrame(
-                    {
-                        "Royalty Amount": ["Difference from Expected", "Earned"],
-                        "value": vals,
-                        "proportion": vals_proportion,
-                    }
-                ),
-                title="Royalties: Earned vs. Difference from Expected",
-            )
-            .mark_arc()
-            .encode(
-                theta=alt.Theta(field="value", type="quantitative"),
-                color=alt.Color(
-                    field="Royalty Amount",
-                    type="nominal",
-                    scale=alt.Scale(
-                        domain=["Earned", "Difference from Expected"],
-                        range=[
-                            "#4B3D60",
-                            "#FD5E53",
-                        ],
+            (
+                alt.Chart(
+                    pd.DataFrame(
+                        {
+                            "Royalty Amount": ["Difference from Expected", "Earned"],
+                            "value": vals,
+                            "proportion": vals_proportion,
+                        }
                     ),
-                ),
-                tooltip=[
-                    "Royalty Amount",
-                    alt.Tooltip("value", title=f"Value ({currency})", format=",.2f"),
-                    alt.Tooltip("proportion", title=f"Percentage", format=".1%"),
-                ],
+                    title="Royalties: Earned vs. Difference from Expected",
+                )
+                .mark_arc()
+                .encode(
+                    theta=alt.Theta(field="value", type="quantitative"),
+                    color=alt.Color(
+                        field="Royalty Amount",
+                        type="nominal",
+                        scale=alt.Scale(
+                            domain=["Earned", "Difference from Expected"],
+                            range=[
+                                "#4B3D60",
+                                "#FD5E53",
+                            ],
+                        ),
+                    ),
+                    tooltip=[
+                        "Royalty Amount",
+                        alt.Tooltip("value", title=f"Value ({currency})", format=",.2f"),
+                        alt.Tooltip("proportion", title=f"Percentage", format=".1%"),
+                    ],
+                )
             )
-        ).properties(height=300).configure_title(orient='top', anchor='middle')
+            .properties(height=300)
+            .configure_title(orient="top", anchor="middle")
+        )
         c1.altair_chart(chart, use_container_width=True)
 
         vals = (
@@ -622,27 +634,37 @@ with tab2:
         )
         vals_proportion = vals / len(collection_post_royalty_df)
         chart = (
-            alt.Chart(
-                pd.DataFrame(
-                    {"Royalties Paid": ["Full", "Half", "None"], "value": vals, "proportion": vals_proportion}
-                ),
-                title="Proportion of Royalty Fees Paid in Sales",
+            (
+                alt.Chart(
+                    pd.DataFrame(
+                        {
+                            "Royalties Paid": ["Full", "Half", "None"],
+                            "value": vals,
+                            "proportion": vals_proportion,
+                        }
+                    ),
+                    title="Proportion of Royalty Fees Paid in Sales",
+                )
+                .mark_arc()
+                .encode(
+                    theta=alt.Theta(field="value", type="quantitative"),
+                    color=alt.Color(
+                        field="Royalties Paid",
+                        type="nominal",
+                        scale=alt.Scale(
+                            domain=["Full", "Half", "None"], range=["#4B3D60", "#FFE373", "#FD5E53"]
+                        ),
+                    ),
+                    tooltip=[
+                        "Royalties Paid",
+                        alt.Tooltip("value", title=f"Sales", format=",.0f"),
+                        alt.Tooltip("proportion", title=f"Percentage", format=".1%"),
+                    ],
+                )
             )
-            .mark_arc()
-            .encode(
-                theta=alt.Theta(field="value", type="quantitative"),
-                color=alt.Color(
-                    field="Royalties Paid",
-                    type="nominal",
-                    scale=alt.Scale(domain=["Full", "Half", "None"], range=["#4B3D60", "#FFE373", "#FD5E53"]),
-                ),
-                tooltip=[
-                    "Royalties Paid",
-                    alt.Tooltip("value", title=f"Sales", format=",.0f"),
-                    alt.Tooltip("proportion", title=f"Percentage", format=".1%"),
-                ],
-            )
-        ).properties(height=300).configure_title(orient='top', anchor='middle')
+            .properties(height=300)
+            .configure_title(orient="top", anchor="middle")
+        )
         c2.altair_chart(chart, use_container_width=True)
     st.write("---")
     st.subheader("Royalty paying users (since fees became optional)")
@@ -703,15 +725,16 @@ with tab2:
         key="download-nft-royalty",
     )
     st.write("---")
-    with st.expander("View and Download Full Data Table"):
-        nft_collection_df["solana_fm_url"] = nft_collection_df.TX_ID.apply(
-            lambda x: f"https://solana.fm/tx/{x}"
-        )
-        st.write(nft_collection_df)
-        st.download_button(
-            "Click to Download",
-            nft_collection_df.to_csv(index=False).encode("utf-8"),
-            f"{nft_collection.replace(' ', '_')}-MagicEden_sales_info.csv",
-            "text/csv",
-            key="download-nft-colection",
-        )
+    # #TODO: re-enable when more RAM is available
+    # with st.expander("View and Download Full Data Table"):
+    #     nft_collection_df["solana_fm_url"] = nft_collection_df.TX_ID.apply(
+    #         lambda x: f"https://solana.fm/tx/{x}"
+    #     )
+    #     st.write(nft_collection_df)
+    #     st.download_button(
+    #         "Click to Download",
+    #         nft_collection_df.to_csv(index=False).encode("utf-8"),
+    #         f"{nft_collection.replace(' ', '_')}-MagicEden_sales_info.csv",
+    #         "text/csv",
+    #         key="download-nft-colection",
+    #     )
