@@ -1,6 +1,6 @@
 # spire_fyi
 
-<img alt="Spire" src="assets/images/spire_logo.png" width="200" height="200">
+<img alt="Spire" src="assets/images/spire_logo.png" width="150" height="150">
 
 > A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/).
 
@@ -10,12 +10,13 @@ Focusing on analyses we think are interesting, we provide a place where users an
 **View the dashboard at https://spire.fyi/**
 
 ----
+Spire is currently a beta project and is in active development. Reach out on Twitter with questions and comments, or file an issue here!
 Follow us on Twitter [@spire_fyi](https://twitter.com/spire_fyi)
 
 ## Overview
 Spire is a work in progress and in active development.
 
-We use [`streamlit`](https://streamlit.io/) to build our interactive dashboard.
+Spire uses [`streamlit`](https://streamlit.io/) to build our interactive dashboard.
 
 Historical data is sourced from [Flipside Crypto](https://flipsidecrypto.xyz/) using their [SDK](https://sdk.flipsidecrypto.xyz/shroomdk).
 Queries used for this can be found [here](sql).

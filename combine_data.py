@@ -252,10 +252,10 @@ def get_collection_name(row):
 
 # #TODO: add to cli
 if __name__ == "__main__":
-    do_main = True
+    do_main = False
     do_network = False
-    do_nft = False
-    combine_nft = False
+    do_nft = True
+    combine_nft = True
 
     if do_main:
         program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
@@ -474,7 +474,8 @@ if __name__ == "__main__":
             nft_mints_df = pd.read_csv("data/nft_mints.csv.gz")
         nft_mints_df = fix_carriage_return_error(nft_mints_df)
 
-        unique_collection_df = utils.combine_flipside_date_data("data/sdk_nft_royalty_tx", add_date=False)
+        # #TODO: need to get rid of duplicates
+        unique_collection_df = utils.combine_flipside_date_data("data/sdk_nft_royalty_tx", add_date=False, nft_royalty=True)
         unique_collection_df["BLOCK_TIMESTAMP"] = pd.to_datetime(unique_collection_df["BLOCK_TIMESTAMP"])
 
         nft_mints_df = nft_mints_df.merge(
@@ -514,6 +515,18 @@ if __name__ == "__main__":
         # save all metadata datasets
         metadata_df.to_csv("data/nft_sales_metadata_with_royalties.csv.gz", compression="gzip", index=False)
 
+        # get unique_collection_mints
+        unique_collection_mints = (
+            metadata_df.groupby(["collection_name", "creator_address"])
+            .agg(mints=("MINT", "unique"), total_sales=("SALES_AMOUNT", "sum"), total_mints=("MINT", "nunique"))
+            .reset_index()
+        )
+        unique_collection_mints = unique_collection_mints[
+            unique_collection_mints.total_sales >= unique_collection_mints.total_sales.quantile(0.5)
+        ].sort_values(by="total_mints", ascending=False)
+        unique_collection_mints["mints"] = unique_collection_mints["mints"].apply(lambda x: x.tolist())
+        unique_collection_mints.to_csv("data/unique_collection_mints.csv", index=False)
+
         # get 99th percentile, ~top 75
         total_sales = (
             metadata_df[metadata_df.BLOCK_TIMESTAMP > (datetime.datetime.today() - pd.Timedelta("31d"))]
@@ -527,7 +540,7 @@ if __name__ == "__main__":
         metadata_df = metadata_df[metadata_df.unique_collection.isin(top_collections.unique_collection)]
 
         # manual labeled collections from the above dataset
-        labels = pd.read_csv("data/labeled_collections_by_uri.csv")
+        labels = pd.read_csv("data/labeled_collections_by_uri.csv")  # #TODO: need to manually update this
         metadata_df = metadata_df.merge(labels, on="unique_collection", how="left")
         x = metadata_df[metadata_df.Name.isna()]
         assert len(x) == 0
