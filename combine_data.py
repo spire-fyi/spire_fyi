@@ -252,10 +252,10 @@ def get_collection_name(row):
 
 # #TODO: add to cli
 if __name__ == "__main__":
-    do_main = False
+    do_main = True
     do_network = False
-    do_nft = True
-    combine_nft = True
+    do_nft = False
+    combine_nft = False
 
     if do_main:
         program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)

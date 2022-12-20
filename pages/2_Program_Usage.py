@@ -56,6 +56,7 @@ chart_type = c3.radio(
     key="program_chart_type",
 )
 exclude_solana = c4.checkbox("Exclude Solana System Programs?", key="program_exclude_solana", value=True)
+exclude_oracle = c4.checkbox("Exclude Oracle Programs?", key="program_exclude_oracle", value=True)
 new_users_only = c4.checkbox("New Users Only?", key="program_new_users")
 log_scale = c4.checkbox("Log Scale?", key="program_log_scale")
 st.write("---")
@@ -75,6 +76,7 @@ date_range = c1.radio(
         "7d",
     ],
     horizontal=True,
+    index=2,
     key="program_date_range",
 )
 if chart_type == "Top Programs":
@@ -88,7 +90,9 @@ else:
     if not programs:
         programs = np.random.choice(df.PROGRAM_ID.unique(), 5)
 
-chart_df = utils.get_program_chart_data(df, metric, agg_method, date_range, exclude_solana, programs)
+chart_df = utils.get_program_chart_data(
+    df, metric, agg_method, date_range, exclude_solana, exclude_oracle, programs
+)
 chart_df["Name"] = chart_df.apply(
     utils.apply_program_name,
     axis=1,

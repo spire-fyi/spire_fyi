@@ -2,6 +2,7 @@ import datetime
 import logging
 import time
 from io import BytesIO
+import os
 from pathlib import Path
 
 import numpy as np
@@ -35,8 +36,9 @@ __all__ = [
     "get_random_image",
 ]
 
-API_KEY = st.secrets["flipside"]["api_key"]
-sdk = ShroomDK(API_KEY)
+if os.getenv("SPIRE_LOAD_SDK"):  # #HACK: move secret management elsewhere
+    API_KEY = st.secrets["flipside"]["api_key"]
+    sdk = ShroomDK(API_KEY)
 
 agg_method_dict = {
     "mean": "Average usage within date range",
@@ -165,6 +167,7 @@ def get_program_chart_data(
     agg_method,
     date_range,
     exclude_solana,
+    exclude_oracle,
     programs,
 ):
     if date_range == "All dates":
@@ -177,6 +180,9 @@ def get_program_chart_data(
 
     if exclude_solana:
         chart_df = chart_df[chart_df.LABEL != "solana"]
+    if exclude_oracle:
+        chart_df = chart_df[~chart_df.LABEL.isin(["pyth", "switchboard"])]
+        chart_df =chart_df[~chart_df.FriendlyName.isin(["SwitchBoard V2 Program", "Chainlink Program"])]
     if type(programs) == int:
         program_ids = (
             chart_df.groupby("PROGRAM_ID")
