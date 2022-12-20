@@ -1,0 +1,22 @@
+# from https://medium.com/@dasirra/using-streamlit-nginx-docker-to-build-and-put-in-production-dashboards-in-aws-lightsail-781dab8f2836
+version: '3'
+
+services:
+  app:
+    container_name: spire
+    restart: always
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - "8501:8501"
+    command: streamlit run Overview.py
+
+  nginx:
+    container_name: nginx
+    restart: always
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - app
