@@ -15,6 +15,9 @@ services:
   certbot:
     container_name: certbot
     image: certbot/certbot:latest
+    environment:
+      - DOMAIN=spire.fyi
+      - EMAIL=info@spire.yi
     depends_on:
       - nginx
     command: >- 
