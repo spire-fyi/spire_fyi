@@ -11,3 +11,4 @@ headless = true
 
 [browser]
 gatherUsageStats = false
+serverAddress = "spire.fyi"
