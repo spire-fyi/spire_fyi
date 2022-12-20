@@ -1,8 +1,8 @@
 import datetime
 import logging
+import os
 import time
 from io import BytesIO
-import os
 from pathlib import Path
 
 import numpy as np
@@ -182,7 +182,7 @@ def get_program_chart_data(
         chart_df = chart_df[chart_df.LABEL != "solana"]
     if exclude_oracle:
         chart_df = chart_df[~chart_df.LABEL.isin(["pyth", "switchboard"])]
-        chart_df =chart_df[~chart_df.FriendlyName.isin(["SwitchBoard V2 Program", "Chainlink Program"])]
+        chart_df = chart_df[~chart_df.FriendlyName.isin(["SwitchBoard V2 Program", "Chainlink Program"])]
     if type(programs) == int:
         program_ids = (
             chart_df.groupby("PROGRAM_ID")
