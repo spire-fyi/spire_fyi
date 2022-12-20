@@ -1,7 +1,5 @@
 FROM python:3.10-slim-buster
 
-EXPOSE 8501
-
 ENV LANG=C.UTF-8 \
   LC_ALL=C.UTF-8 \
   PATH="${PATH}:/root/.poetry/bin"
