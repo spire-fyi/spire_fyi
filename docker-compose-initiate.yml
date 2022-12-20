@@ -1,0 +1,26 @@
+version: "3"
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    environment:
+      - DOMAIN=spire.fyi
+      - EMAIL=info@spire.yi
+    ports:
+      - 80:80
+    volumes:
+      - ./etc/nginx/templates-initiate:/etc/nginx/templates
+      - ./etc/letsencrypt:/etc/letsencrypt
+      - ./certbot/data:/var/www/certbot
+  certbot:
+    container_name: certbot
+    image: certbot/certbot:latest
+    depends_on:
+      - nginx
+    command: >- 
+             certonly --reinstall --webroot --webroot-path=/var/www/certbot
+             --email ${EMAIL} --agree-tos --no-eff-email
+             -d ${DOMAIN}
+    volumes:
+      - ./etc/letsencrypt:/etc/letsencrypt
+      - ./certbot/data:/var/www/certbot
