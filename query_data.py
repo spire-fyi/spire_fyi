@@ -306,7 +306,7 @@ if __name__ == "__main__":
     # #TODO make cli...
     update_cache = False
     do_main = True
-    do_network = True
+    do_network = False
     do_nft_mints = False
     do_nft_metadata = False
 
