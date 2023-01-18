@@ -30,3 +30,4 @@ untracked
 notebooks
 
 .git
+./etc/letsencrypt

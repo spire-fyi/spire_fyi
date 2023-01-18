@@ -8,7 +8,6 @@ font="sans serif"
 [server]
 port = 8501
 headless = true
-enableCORS = false
 
 [browser]
 gatherUsageStats = false
