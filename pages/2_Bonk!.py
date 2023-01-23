@@ -76,8 +76,6 @@ st.download_button(
 )
 c2.subheader("‎")
 c2.metric(f"Total BONK Burned", f"{burn_data.iloc[-1]['Total Bonk Burned']:,.0f}", "🔥🔥🔥")
-# bonk_img = Image.open("assets/images/bonk.jpg")
-# c2.image(bonk_img, width=180, caption="https://twitter.com/bonk_inu")
 st.write("---")
 
 st.write("`Ctrl-Click` a point to view the address on SolanaFM:")
