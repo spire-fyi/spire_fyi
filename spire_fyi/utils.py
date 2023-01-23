@@ -1,10 +1,11 @@
+from typing import Union
+
 import datetime
 import logging
 import os
 import time
 from io import BytesIO
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -38,7 +39,7 @@ __all__ = [
     "reformat_columns",
     "load_overview_data",
     "run_query_and_cache",
-    "get_short_address"
+    "get_short_address",
 ]
 
 API_KEY = st.secrets["flipside"]["api_key"]
@@ -472,12 +473,13 @@ def get_program_ids(df):
 
 # sandstorm
 @st.experimental_memo(ttl=7200)
-def reformat_columns(df:pd.DataFrame, datecols: Union[list, None]) -> pd.DataFrame:
+def reformat_columns(df: pd.DataFrame, datecols: Union[list, None]) -> pd.DataFrame:
     if datecols is not None:
         df[datecols] = df[datecols].apply(pd.to_datetime)
         df = df.sort_values(by=datecols).reset_index(drop=True)
     df = df.rename(columns={x: x.replace("_", " ").title() for x in df.columns})
     return df
+
 
 @st.experimental_memo(ttl=7200)
 def load_overview_data(url: str, datecols: Union[list, None]) -> pd.DataFrame:
@@ -504,5 +506,6 @@ def run_query_and_cache(name, sql, param):
         )
         return df
 
-def get_short_address(address:str)-> str:
+
+def get_short_address(address: str) -> str:
     return address[:6] + "..." + address[-6:]

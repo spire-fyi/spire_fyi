@@ -38,7 +38,12 @@ c1.image(
 )
 st.write("---")
 
-st.write("Click a tab below for an overview of a different aspect of the Solana ecosystem:")
+st.write(
+    """
+- Click a tab below for an overview of a different aspect of the Solana ecosystem.
+- Go to a page on the Sidebar for more in depth analyses.
+"""
+)
 ecosystem, nft, programs, defi = st.tabs(["Ecosystem", "NFT", "Programs", "DeFi"])
 
 query_base = "https://next.flipsidecrypto.xyz/edit/queries"
