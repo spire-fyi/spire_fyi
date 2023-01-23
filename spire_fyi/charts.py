@@ -54,7 +54,7 @@ def alt_line_chart(
             scale=alt.Scale(scheme="turbo"),
             sort=alt.EncodingSortField(metric, op="count", order="descending"),
         ),
-        opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.15)),
+        opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
     )
     points = lines.mark_point(size=50).transform_filter(selection)
     rule = (
@@ -160,6 +160,30 @@ def alt_weekly_cumulative_chart(df, title, bar_y, line_y):
         ],
     )
     bar = base.mark_bar(width=3, color="#4B3D60").encode(
+        y=alt.Y(bar_y),
+    )
+    line = base.mark_line(color="#FFE373").encode(y=alt.Y(line_y))
+    chart = (
+        (bar + line)
+        .interactive()
+        .properties(height=600)
+        .resolve_scale(y="independent")
+        .properties(height=600)
+    )
+
+    return chart
+
+def alt_daily_cumulative_chart(df, title, bar_y, line_y, width=3):
+
+    base = alt.Chart(df, title=title).encode(
+        x=alt.X("yearmonthdate(Date):T", title="Date"),
+        tooltip=[
+            alt.Tooltip("yearmonthdate(Date):T"),
+            alt.Tooltip(bar_y, format=","),
+            alt.Tooltip(line_y, format=","),
+        ],
+    )
+    bar = base.mark_bar(width=width, color="#4B3D60").encode(
         y=alt.Y(bar_y),
     )
     line = base.mark_line(color="#FFE373").encode(y=alt.Y(line_y))

@@ -148,6 +148,8 @@ data/unique_collection_mints.csv
 data/nft_sales_with_royalties.csv.gz
 data/nft_sales_metadata_with_royalties.csv.gz
 
+data/cache
+
 *.bak
 *.bak/*
 **/queries
