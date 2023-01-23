@@ -253,7 +253,7 @@ def get_collection_name(row):
 # #TODO: add to cli
 if __name__ == "__main__":
     do_main = True
-    do_network = True
+    do_network = False
     do_nft = False
     combine_nft = False
 

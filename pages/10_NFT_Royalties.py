@@ -27,6 +27,14 @@ c1.image(
     image,
     width=100,
 )
+st.write("---")
+st.write(
+    """
+**NOTE:** This section is currently in progress, and some data has not been refreshed since December 2022. Keep an eye updates 🔜!
+
+Work here was awarded second place in the [Magic Eden Creator Monetization Hackathon (Royalty Tracking API Track)](https://twitter.com/spire_fyi/status/1605388398906052609)
+"""
+)
 top_nft_info = utils.load_top_nft_info()
 sol_price = utils.load_sol_daily_price()
 

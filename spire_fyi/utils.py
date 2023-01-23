@@ -4,6 +4,7 @@ import os
 import time
 from io import BytesIO
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -34,11 +35,14 @@ __all__ = [
     "load_sol_daily_price",
     "load_top_nft_info",
     "get_random_image",
+    "reformat_columns",
+    "load_overview_data",
+    "run_query_and_cache",
+    "get_short_address"
 ]
 
-if os.getenv("SPIRE_LOAD_SDK"):  # #HACK: move secret management elsewhere
-    API_KEY = st.secrets["flipside"]["api_key"]
-    sdk = ShroomDK(API_KEY)
+API_KEY = st.secrets["flipside"]["api_key"]
+sdk = ShroomDK(API_KEY)
 
 agg_method_dict = {
     "mean": "Average usage within date range",
@@ -464,3 +468,41 @@ def get_program_ids(df):
             )
             prog_list.extend(program_ids.to_list())
     return pd.unique(prog_list)
+
+
+# sandstorm
+@st.experimental_memo(ttl=7200)
+def reformat_columns(df:pd.DataFrame, datecols: Union[list, None]) -> pd.DataFrame:
+    if datecols is not None:
+        df[datecols] = df[datecols].apply(pd.to_datetime)
+        df = df.sort_values(by=datecols).reset_index(drop=True)
+    df = df.rename(columns={x: x.replace("_", " ").title() for x in df.columns})
+    return df
+
+@st.experimental_memo(ttl=7200)
+def load_overview_data(url: str, datecols: Union[list, None]) -> pd.DataFrame:
+    df = pd.read_json(url)
+    df = reformat_columns(df, datecols)
+    return df
+
+
+@st.experimental_memo(ttl=3600 * 6)
+def run_query_and_cache(name, sql, param):
+    today = datetime.date.today()
+    cache_dir = Path("data/cache")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    file_path = cache_dir / f"{today}_{name}_{param}.csv"
+    if file_path.exists():
+        return pd.read_csv(file_path)
+    else:
+        query = sql.format(param=param)
+        query_result_set = sdk.query(query, cached=False)
+        df = pd.DataFrame(query_result_set.rows, columns=query_result_set.columns)
+        df.to_csv(
+            file_path,
+            index=False,
+        )
+        return df
+
+def get_short_address(address:str)-> str:
+    return address[:6] + "..." + address[-6:]
