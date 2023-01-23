@@ -203,7 +203,7 @@ new_wallets AS (
     FROM
         first_tx 
     WHERE
-        first_tx_date between CURRENT_DATE() - 60 and current_date()-1
+        first_tx_date between CURRENT_DATE() - 61 and current_date() - 1
     GROUP BY
     1 
 )
@@ -224,7 +224,10 @@ new_wallet_data = utils.reformat_columns(new_wallet_data, datecols=["FIRST_TX_DA
 c1, c2 = st.columns(2)
 # Daily Active Users
 chart = (
-    alt.Chart(program_usage_data, title=f"Daily Active Wallets for {utils.get_short_address(program_id)}: Daily, Past 60d")
+    alt.Chart(
+        program_usage_data,
+        title=f"Daily Active Wallets for {utils.get_short_address(program_id)}: Daily, Past 60d",
+    )
     .mark_area(
         line={"color": "#4B3D60", "size": 1},
         color=alt.Gradient(
@@ -242,12 +245,12 @@ chart = (
     )
     .encode(
         x=alt.X("yearmonthdate(Date)", title="Date"),
-        y=alt.Y("Active Wallets", title="Wallets", scale=alt.Scale(nice=False) ),
+        y=alt.Y("Active Wallets", title="Wallets", scale=alt.Scale(nice=False)),
         tooltip=[
             alt.Tooltip("yearmonthdate(Date)", title="Date"),
             alt.Tooltip("Active Wallets", title="Wallets", format=","),
-            alt.Tooltip("Txs", title="Transactions" ,format=","),
-            alt.Tooltip("Txs Per User", title="Transactions per User" ,format=",.2f"),
+            alt.Tooltip("Txs", title="Transactions", format=","),
+            alt.Tooltip("Txs Per User", title="Transactions per User", format=",.2f"),
         ],
     )
     .properties(height=600, width=600)
@@ -256,7 +259,10 @@ chart = (
 c1.altair_chart(chart, use_container_width=True)
 # New Wallets
 chart = (
-    alt.Chart(new_wallet_data, title=f"New Wallets Interacting with {utils.get_short_address(program_id)}: Daily, Past 60d")
+    alt.Chart(
+        new_wallet_data,
+        title=f"New Wallets Interacting with {utils.get_short_address(program_id)}: Daily, Past 60d",
+    )
     .mark_area(
         line={"color": "#4B3D60", "size": 1},
         color=alt.Gradient(
@@ -285,18 +291,21 @@ chart = (
 )
 # Transaction Count
 c2.altair_chart(chart, use_container_width=True)
-st.write('---')
+st.write("---")
 chart = (
-    alt.Chart(program_usage_data, title=f"Transaction Count for {utils.get_short_address(program_id)}: Daily, Past 60d")
+    alt.Chart(
+        program_usage_data,
+        title=f"Transaction Count for {utils.get_short_address(program_id)}: Daily, Past 60d",
+    )
     .mark_bar(width=5, color="#FD5E53")
     .encode(
         x=alt.X("yearmonthdate(Date)", title="Date"),
-        y=alt.Y("Txs", title="Transaction Count" ),
+        y=alt.Y("Txs", title="Transaction Count"),
         tooltip=[
             alt.Tooltip("yearmonthdate(Date)", title="Date"),
             alt.Tooltip("Active Wallets", title="Wallets", format=","),
-            alt.Tooltip("Txs", title="Transactions" ,format=","),
-            alt.Tooltip("Txs Per User", title="Transactions per User" ,format=",.2f"),
+            alt.Tooltip("Txs", title="Transactions", format=","),
+            alt.Tooltip("Txs Per User", title="Transactions per User", format=",.2f"),
         ],
     )
     .properties(height=600, width=600)
@@ -305,16 +314,19 @@ chart = (
 c1.altair_chart(chart, use_container_width=True)
 # Tx to User Ratio
 chart = (
-    alt.Chart(program_usage_data, title=f"Transaction to User Ratio for {utils.get_short_address(program_id)}: Daily, Past 60d")
+    alt.Chart(
+        program_usage_data,
+        title=f"Transaction to User Ratio for {utils.get_short_address(program_id)}: Daily, Past 60d",
+    )
     .mark_line(width=5, color="#FFE373")
     .encode(
         x=alt.X("yearmonthdate(Date)", title="Date"),
-        y=alt.Y("Txs Per User", title="Transactions per User" ),
+        y=alt.Y("Txs Per User", title="Transactions per User"),
         tooltip=[
             alt.Tooltip("yearmonthdate(Date)", title="Date"),
             alt.Tooltip("Active Wallets", title="Wallets", format=","),
-            alt.Tooltip("Txs", title="Transactions" ,format=","),
-            alt.Tooltip("Txs Per User", title="Transactions per User" ,format=",.2f"),
+            alt.Tooltip("Txs", title="Transactions", format=","),
+            alt.Tooltip("Txs Per User", title="Transactions per User", format=",.2f"),
         ],
     )
     .properties(height=600, width=600)

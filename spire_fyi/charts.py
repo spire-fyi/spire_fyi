@@ -173,6 +173,7 @@ def alt_weekly_cumulative_chart(df, title, bar_y, line_y):
 
     return chart
 
+
 def alt_daily_cumulative_chart(df, title, bar_y, line_y, width=3):
 
     base = alt.Chart(df, title=title).encode(

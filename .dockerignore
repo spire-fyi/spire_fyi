@@ -1,7 +1,5 @@
 .vscode/
 
-.streamlit/secrets.toml
-
 # raw files
 data/sdk_*
 data/nft_metadata/
