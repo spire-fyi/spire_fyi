@@ -29,7 +29,7 @@ c2.caption(
 
     Spire is currently a beta project and is in active development. Reach out on Twitter with questions and comments!
 
-    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi)
+    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5
     """
 )
 c1.image(
@@ -38,12 +38,13 @@ c1.image(
 )
 st.write("---")
 
-st.write(
+with st.expander("Instructions"):
+    st.write(
+        """
+    - Click a tab below for an overview of a different aspect of the Solana ecosystem.
+    - Go to a page on the Sidebar for more in depth analyses.
     """
-- Click a tab below for an overview of a different aspect of the Solana ecosystem.
-- Go to a page on the Sidebar for more in depth analyses.
-"""
-)
+    )
 ecosystem, nft, programs, defi = st.tabs(["Ecosystem", "NFT", "Programs", "DeFi"])
 
 query_base = "https://next.flipsidecrypto.xyz/edit/queries"
@@ -85,7 +86,7 @@ overview_query_dict = {
 }
 overview_data_dict = {}
 for k, v in overview_query_dict.items():
-    overview_data_dict[k] = utils.load_overview_data(v["api"], v["datecols"])
+    overview_data_dict[k] = utils.load_flipside_api_data(v["api"], v["datecols"])
 
 with ecosystem:
     st.header("Ecosystem Overview")

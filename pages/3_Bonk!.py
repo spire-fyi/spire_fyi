@@ -51,17 +51,25 @@ bonk_query_dict = {
         "api": f"{api_base}/ac7933e1-8e70-4858-a243-8e8e494a40b1/data/latest",
         "datecols": ["DATE"],
     },
+    "Total Bonk Burned": {
+        "query": f"{query_base}/a1388731-93fb-431c-a9c0-a34c1533fa2d",
+        "api": f"{api_base}/a1388731-93fb-431c-a9c0-a34c1533fa2d/data/latest",
+        "datecols": ["DATE"],
+    },
 }
 bonk_data_dict = {}
 for k, v in bonk_query_dict.items():
-    bonk_data_dict[k] = utils.load_overview_data(v["api"], v["datecols"])
+    bonk_data_dict[k] = utils.load_flipside_api_data(v["api"], v["datecols"])
 burn_data = bonk_data_dict["Daily Bonk Burned"].copy()
+total_burn_df = bonk_data_dict["Total Bonk Burned"].copy()
 leaderboard = bonk_data_dict["Bonk Leaderboard"].copy()
 leaderboard["Explorer URL"] = leaderboard.Wallet.apply(lambda x: f"https://solana.fm/address/{x}")
 
 
 st.header("BONK!")
-st.write("Examining Solana's community dog coin.")
+st.write(
+    "Examining Solana's community dog coin. **NOTE**: Except for `Total BONK Burned`, accounts associated with the Bonk team are not included in this analysis ([here](https://solana.fm/address/GYqXgEqjcthrFGJZaB4v9D6p4F7a1PKKJZeASfZWb2GH) and [here](https://solana.fm/address/3dWvUFYyDHNgFPrDno2mrMw6zjNWfoHoTAX6o96KX35b))"
+)
 st.write("---")
 
 c1, c2 = st.columns([2, 1])
@@ -76,7 +84,10 @@ st.download_button(
     key=f"download-{slug}",
 )
 c2.subheader("‎")
-c2.metric(f"Total BONK Burned", f"{burn_data.iloc[-1]['Total Bonk Burned']:,.0f}", "🔥🔥🔥")
+total_burn = total_burn_df.iloc[-1]["Total Bonk Burned"]
+c2.metric(f"Total BONK Burned", f"{total_burn:,.0f}", "🔥" * int(total_burn / 10**12))
+c2.write("---")
+st.write(total_burn)
 st.write("---")
 
 st.write("`Ctrl-Click` a point to view the address on SolanaFM:")
@@ -128,7 +139,9 @@ c1, c2 = st.columns(2)
 # Bought and sold
 chart = (
     alt.Chart(bonk_data_dict["Buyers vs Sellers"], title=f"BONK Bought and Sold: Daily")
-    .mark_line()
+    .mark_line(
+        interpolate="monotone",
+    )
     .encode(
         x=alt.X("yearmonthdate(Date)", title="Date"),
         y=alt.Y("Bonk Amount", title="BONK Amount"),
@@ -152,7 +165,9 @@ c1.altair_chart(chart, use_container_width=True)
 # Unique Purchasers
 chart = (
     alt.Chart(bonk_data_dict["Buyers vs Sellers"], title=f"BONK Bought and Sold: Daily")
-    .mark_line()
+    .mark_line(
+        interpolate="monotone",
+    )
     .encode(
         x=alt.X("yearmonthdate(Date)", title="Date"),
         y=alt.Y("Unique Wallets"),
@@ -183,6 +198,38 @@ with st.expander("View and Download Data Table"):
         "text/csv",
         key=f"download-{slug}",
     )
+
+st.header("Go BONKers")
+st.write("Does an address BONK?")
+wallet_address = st.text_input("Enter a wallet address:")
+bonk = utils.get_bonk_balance(wallet_address)
+if bonk == "":
+    pass
+elif bonk is None:
+    source = "https://commons.wikimedia.org/wiki/File:Shiba_Inu_(Red_Sesame).JPG"
+    st.write(
+        f"""
+    Sorry this address does not hodl BONK!
+
+    View [BONK's price chart](https://birdeye.so/token/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263) and consider purchasing some here.
+    """
+    )
+    image = Image.open("assets/images/sad_bonk.jpeg")
+    st.image(image, caption=source)
+else:
+    st.balloons()
+    source = "https://commons.wikimedia.org/wiki/File:A_Shiba_Inu_dog_wearing_a_beret_and_black_turtleneck_DALLE2.jpg"
+    st.write(
+        f"""
+    Congrats, this address has **{bonk['amount']/10**bonk['decimals']:,.0f}** BONK!
+
+    If you want to join the Burn leaderboard, consider [burning some BONK](https://sol-incinerator.com/).
+    """
+    )
+    image = Image.open("assets/images/happy_bonk.jpg")
+    st.image(image, caption=source)
+
+
 st.write("---")
 with st.expander("Do you like BONK?!?!"):
     c1, c2 = st.columns(2)
@@ -197,8 +244,3 @@ with st.expander("Do you like BONK?!?!"):
     c2.markdown("![BONK!](https://i.kym-cdn.com/photos/images/newsfeed/002/051/063/92e.gif)")
     c2.caption("[Source](https://i.kym-cdn.com/photos/images/newsfeed/002/051/063/92e.gif)")
     st.write("---")
-    c1, c2 = st.columns(2)
-    c1.markdown("![BONK!](https://pbs.twimg.com/profile_images/1600956334635098141/ZSzYTrHf_400x400.jpg)")
-    c1.caption("[Source](https://pbs.twimg.com/profile_images/1600956334635098141/ZSzYTrHf_400x400.jpg)")
-    c2.markdown("![BONK!](https://pbs.twimg.com/media/Fm83aILXoAEw7ah?format=jpg&name=small)")
-    c2.caption("[Source](https://pbs.twimg.com/media/Fm83aILXoAEw7ah?format=jpg&name=small)")

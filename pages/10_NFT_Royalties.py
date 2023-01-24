@@ -20,7 +20,7 @@ c2.caption(
     """
     A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/).
 
-    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi)
+    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5
     """
 )
 c1.image(
@@ -677,7 +677,7 @@ with tab2:
     st.write("---")
     st.subheader("Royalty paying users (since fees became optional)")
     user_type = st.radio(
-        "Which type of user?",
+        "Which type of user",
         ["All", "Paid any royalty", "Paid Full Royalty", "Paid Half Royalty", "Paid No Royalty"],
         horizontal=True,
         key="user_type",

@@ -22,7 +22,7 @@ c2.caption(
     """
     A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/).
 
-    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi)
+    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5
     """
 )
 c1.image(
@@ -31,19 +31,20 @@ c1.image(
 )
 st.write("---")
 st.header("Program Analysis")
-st.write(
+st.write("Explore Program usage across various dimensions!")
+with st.expander("Instructions"):
+    st.write(
+        """
+    - Select a date range, and use the slider to choose the number of programs.
+    - View the Number of signers for a Program address, or the Transaction Count for each Program.
+    - Select the method for determining top Programs: average, total (sum), or max within the date range.
+    - Choose `Selected Programs` to pick specific Program addresses from a list if you have one in mind.
+    - By default, Solana System Programs and Oracles are exclude. Uncheck these if you want to see their metrics.
+    - Interested in what programs new users interact with? Check the `New Users Only` box to view the metrics only for wallet addresses which signed their first transaction on that day.
+    - `Shift-Click` on Program Name(s) in the legend to focus on selected programs only.
+    ---
     """
-Explore Program usage across various dimensions!
-- Select a date range, and use the slider to choose the number of programs.
-- View the Number of signers for a Program address, or the Transaction Count for each Program.
-- Select the method for determining top Programs: average, total (sum), or max within the date range.
-- Choose `Selected Programs` to pick specific Program addresses from a list if you have one in mind.
-- By default, Solana System Programs and Oracles are exclude. Uncheck these if you want to see their metrics.
-- Interested in what programs new users interact with? Check the `New Users Only` box to view the metrics only for wallet addresses which signed their first transaction on that day.
-- `Shift-Click` on Program Name(s) in the legend to focus on selected programs only.
----
-"""
-)
+    )
 
 c1, c2, c3, c4 = st.columns(4)
 metric = c1.radio(
@@ -67,10 +68,10 @@ chart_type = c3.radio(
     horizontal=True,
     key="program_chart_type",
 )
-exclude_solana = c4.checkbox("Exclude Solana System Programs?", key="program_exclude_solana", value=True)
-exclude_oracle = c4.checkbox("Exclude Oracle Programs?", key="program_exclude_oracle", value=True)
-new_users_only = c4.checkbox("New Users Only?", key="program_new_users")
-log_scale = c4.checkbox("Log Scale?", key="program_log_scale")
+exclude_solana = c4.checkbox("Exclude Solana System Programs", key="program_exclude_solana", value=True)
+exclude_oracle = c4.checkbox("Exclude Oracle Programs", key="program_exclude_oracle", value=True)
+new_users_only = c4.checkbox("New Users Only", key="program_new_users")
+log_scale = c4.checkbox("Log Scale", key="program_log_scale")
 st.write("---")
 df = utils.load_labeled_program_data(new_users_only=new_users_only)
 df["Date"] = pd.to_datetime(df["Date"])
@@ -297,7 +298,7 @@ chart = (
         program_usage_data,
         title=f"Transaction Count for {utils.get_short_address(program_id)}: Daily, Past 60d",
     )
-    .mark_bar(width=5, color="#FD5E53")
+    .mark_line(width=5, color="#FD5E53")
     .encode(
         x=alt.X("yearmonthdate(Date)", title="Date"),
         y=alt.Y("Txs", title="Transaction Count"),
