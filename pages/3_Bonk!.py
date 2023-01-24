@@ -68,7 +68,7 @@ leaderboard["Explorer URL"] = leaderboard.Wallet.apply(lambda x: f"https://solan
 
 st.header("BONK!")
 st.write(
-    "Examining Solana's community dog coin. **NOTE**: Except for `Total BONK Burned`, accounts associated with the Bonk team are not included in this analysis ([here](https://solana.fm/address/GYqXgEqjcthrFGJZaB4v9D6p4F7a1PKKJZeASfZWb2GH) and [here](https://solana.fm/address/3dWvUFYyDHNgFPrDno2mrMw6zjNWfoHoTAX6o96KX35b))"
+    "Examining Solana's community dog coin. **NOTE**: Except for `Total BONK Burned`, accounts associated with the Bonk team are not included in this analysis ([here](https://solana.fm/address/GYqXgEqjcthrFGJZaB4v9D6p4F7a1PKKJZeASfZWb2GH) and [here](https://solana.fm/address/3dWvUFYyDHNgFPrDno2mrMw6zjNWfoHoTAX6o96KX35b))."
 )
 st.write("---")
 
@@ -86,11 +86,8 @@ st.download_button(
 c2.subheader("‎")
 total_burn = total_burn_df.iloc[-1]["Total Bonk Burned"]
 c2.metric(f"Total BONK Burned", f"{total_burn:,.0f}", "🔥" * int(total_burn / 10**12))
-c2.write("---")
-st.write(total_burn)
 st.write("---")
 
-st.write("`Ctrl-Click` a point to view the address on SolanaFM:")
 leaderboard["url"] = "https://pbs.twimg.com/profile_images/1600956334635098141/ZSzYTrHf_400x400.jpg"
 leaderboard["wallet_short"] = leaderboard["Wallet"].apply(utils.get_short_address)
 chart = (
@@ -199,7 +196,7 @@ with st.expander("View and Download Data Table"):
         key=f"download-{slug}",
     )
 
-st.header("Go BONKers")
+st.header("Go BONKers!")
 st.write("Does an address BONK?")
 wallet_address = st.text_input("Enter a wallet address:")
 bonk = utils.get_bonk_balance(wallet_address)
