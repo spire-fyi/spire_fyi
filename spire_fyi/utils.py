@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
+from helius import NFTAPI, BalancesAPI
 from jinja2 import Environment, FileSystemLoader
 from PIL import Image
 from shroomdk import ShroomDK
@@ -37,13 +38,18 @@ __all__ = [
     "load_top_nft_info",
     "get_random_image",
     "reformat_columns",
-    "load_overview_data",
+    "load_flipside_api_data",
     "run_query_and_cache",
     "get_short_address",
+    "get_nft_mint_data",
+    "get_bonk_balance",
 ]
 
 API_KEY = st.secrets["flipside"]["api_key"]
 sdk = ShroomDK(API_KEY)
+
+
+helius_key = st.secrets["helius"]["api_key"]
 
 agg_method_dict = {
     "mean": "Average usage within date range",
@@ -481,8 +487,8 @@ def reformat_columns(df: pd.DataFrame, datecols: Union[list, None]) -> pd.DataFr
     return df
 
 
-@st.experimental_memo(ttl=7200)
-def load_overview_data(url: str, datecols: Union[list, None]) -> pd.DataFrame:
+@st.experimental_memo(ttl=3600)
+def load_flipside_api_data(url: str, datecols: Union[list, None]) -> pd.DataFrame:
     df = pd.read_json(url)
     df = reformat_columns(df, datecols)
     return df
@@ -509,3 +515,31 @@ def run_query_and_cache(name, sql, param):
 
 def get_short_address(address: str) -> str:
     return address[:6] + "..." + address[-6:]
+
+
+@st.experimental_memo(ttl=3600)
+def get_nft_mint_data(splits):
+    nft_api = NFTAPI(helius_key)
+    mint_data = []
+    for x in splits:
+        mints = nft_api.get_nft_metadata(list(x))
+        mint_data.extend(mints)
+    # HACK: just using names for now to get collection id
+    names = [x["onChainData"]["data"]["name"] for x in mint_data]
+    collections = [x.split("-")[0].split("#")[0].strip() for x in names]
+    collection_df = pd.DataFrame({"Mint": [x["mint"] for x in mint_data], "NFT Name": collections})
+    return collection_df
+
+
+@st.experimental_memo(ttl=3600)
+def get_bonk_balance(address):
+    if address == "":
+        return ""
+    try:
+        balances_api = BalancesAPI(helius_key)
+        bal = balances_api.get_balances(address)
+        for x in bal["tokens"]:
+            if x["mint"] == "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263":
+                return x
+    except:
+        return

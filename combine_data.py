@@ -10,10 +10,11 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import requests
+import streamlit as st
 
 import spire_fyi.utils as utils
 
-helius_key = "440a0b83-5ec8-4a8a-95ff-ba6f69499e98"
+helius_key = st.secrets["helius"]["api_key"]
 
 
 def get_labeled_program_df(df, programs):
