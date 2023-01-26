@@ -409,6 +409,7 @@ with programs:
 
 with defi:
     st.header("DeFi")
+
     def combine_swap_program_names(val):
         if val.lower().startswith("raydium"):
             return "Raydium"
