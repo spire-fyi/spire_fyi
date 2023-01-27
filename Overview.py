@@ -67,8 +67,8 @@ overview_query_dict = {
         "datecols": ["SOLANA_FIRST_TX"],
     },
     "Fees": {
-        "query": f"{query_base}/d27a2672-b2bb-4f55-abb0-6ce1ee982fd7",
-        "api": f"{api_base}/d27a2672-b2bb-4f55-abb0-6ce1ee982fd7/data/latest",
+        "query": f"{query_base}/e70e50fb-3a78-40b9-adc4-debb1888967f",
+        "api": f"{api_base}/e70e50fb-3a78-40b9-adc4-debb1888967f/data/latest",
         "datecols": ["DATE"],
     },
     # NFT
@@ -87,6 +87,17 @@ overview_query_dict = {
 overview_data_dict = {}
 for k, v in overview_query_dict.items():
     overview_data_dict[k] = utils.load_flipside_api_data(v["api"], v["datecols"])
+overview_data_dict["Fees"] = (
+    overview_data_dict["Fees"]
+    .copy()
+    .rename(
+        columns={
+            "99Th Percentile": "99th Percentile",
+            "95Th Percentile": "95th Percentile",
+            "Average": "Mean",
+        }
+    )
+)
 
 with ecosystem:
     st.header("Ecosystem Overview")
@@ -135,26 +146,6 @@ with ecosystem:
         .interactive()
     )
     c1.altair_chart(chart, use_container_width=True)
-
-    # Transaction Volume
-    base = alt.Chart(
-        overview_data_dict["Transaction Volume"],
-        title=f"Transaction Volume: Daily, Past 60d (7d Moving Average)",
-    ).encode(
-        x=alt.X("yearmonthdate(Date):T", title="Date"),
-        tooltip=[
-            alt.Tooltip("yearmonthdate(Date):T", title="Date"),
-            alt.Tooltip("Transactions", format=","),
-            alt.Tooltip("Moving Average", format=",.0f"),
-        ],
-    )
-    bar = base.mark_bar(width=5, color="#FD5E53").encode(
-        y=alt.Y("Transactions"),
-    )
-    line = base.mark_line(color="#FFE373").encode(y=alt.Y("Moving Average"))
-    chart = (bar + line).interactive().properties(height=600).properties(width=600)
-    c2.altair_chart(chart, use_container_width=True)
-
     # New Solana Wallets
     chart = (
         alt.Chart(overview_data_dict["New Wallets"], title=f"New Solana Wallets: Daily, Past 60d")
@@ -184,29 +175,96 @@ with ecosystem:
         .properties(height=600, width=600)
         .interactive()
     )
+    c2.altair_chart(chart, use_container_width=True)
+    st.write("---")
+    c1, c2 = st.columns(2)
+    # Transaction Volume
+    base = alt.Chart(
+        overview_data_dict["Transaction Volume"],
+        title=f"Transaction Volume: Daily, Past 60d (7d Moving Average)",
+    ).encode(
+        x=alt.X("yearmonthdate(Date):T", title="Date"),
+        tooltip=[
+            alt.Tooltip("yearmonthdate(Date):T", title="Date"),
+            alt.Tooltip("Transactions", format=","),
+            alt.Tooltip("Moving Average", format=",.0f"),
+        ],
+    )
+    bar = base.mark_bar(width=5, color="#FD5E53").encode(
+        y=alt.Y("Transactions"),
+    )
+    line = base.mark_line(color="#FFE373").encode(y=alt.Y("Moving Average"))
+    chart = (bar + line).interactive().properties(height=600).properties(width=600)
     c1.altair_chart(chart, use_container_width=True)
 
     # Daily Fee per Tx
-    chart = (
-        alt.Chart(overview_data_dict["Fees"], title=f"Average Fees per Transaction: Daily, Past 60d")
-        .mark_bar(width=5, color="#FD5E53")
-        .encode(
-            x=alt.X(
-                "yearmonthdate(Date)",
-                title="Date",
+    scale = c2.checkbox(
+        "Log Scale",
+        key="fee-per-tx-scale",
+    )
+    scale_type = "log" if scale else "linear"
+    melted_fees = overview_data_dict["Fees"].melt(id_vars=["Date", "Txs", "Total Fees Paid"])
+    columns = sorted(melted_fees["variable"].unique())
+    base = alt.Chart(melted_fees, title=f"Fees per Transaction: Daily, Past 60d").encode(
+        x=alt.X("yearmonthdate(Date):T", title=None)
+    )
+    selection = alt.selection_single(
+        fields=["Date"],
+        nearest=True,
+        on="mouseover",
+        empty="none",
+        clear="mouseout",
+    )
+    legend_selection = alt.selection_multi(fields=["variable"], bind="legend")
+    lines = base.mark_line().encode(
+        y=alt.Y(
+            f"value",
+            title="Fee per Transaction",
+            scale=alt.Scale(type=scale_type),
+        ),
+        color=alt.Color(
+            "variable:N",
+            title="Metric",
+            scale=alt.Scale(
+                domain=columns,
+                range=[
+                    "#FC9C54",
+                    "#FD5E53",
+                    "#FFE373",
+                    "#4B3D60",
+                ],
             ),
-            y=alt.Y("Fee Per Tx"),
-            tooltip=[
-                alt.Tooltip("yearmonthdate(Date)", title="Date"),
-                alt.Tooltip("Fee Per Tx"),
-                alt.Tooltip("Total Fees Paid", format=",.2f"),
+            # sort=alt.EncodingSortField("value", op="count", order="descending"),
+        ),
+        opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
+    )
+    points = lines.mark_point(size=1).transform_filter(selection)
+    rule = (
+        base.transform_pivot("variable", value="value", groupby=["Date"])
+        .mark_rule(color="#983832")
+        .encode(
+            opacity=alt.condition(selection, alt.value(0.3), alt.value(0)),
+            tooltip=[alt.Tooltip("yearmonthdate(Date)", title="Date")]
+            + [
+                alt.Tooltip(
+                    c,
+                    type="quantitative",
+                    format=".6f",
+                )
+                for c in columns
             ],
         )
-        .properties(height=600, width=600)
+        .add_selection(selection)
+    )
+    chart = (
+        (lines + points + rule)
+        .add_selection(legend_selection)
         .interactive()
+        .properties(height=550, width=600)
     )
     c2.altair_chart(chart, use_container_width=True)
-
+    st.write("---")
+    c1, c2 = st.columns(2)
     weekly_user_data = utils.load_weekly_user_data()
     weekly_new_user_data = utils.load_weekly_new_user_data()
 
