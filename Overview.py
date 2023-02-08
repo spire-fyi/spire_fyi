@@ -323,34 +323,33 @@ with nft:
         f"""See the [NFT Royalties](NFT_Royalties) page for more in depth analysis.
         """
     )
-    # #TODO: restore when Flipside data is updated
-    # # Sales and Mints
-    # currency = st.radio("Choose a Currency:", ["SOL", "USD"], key="nft-currency", horizontal=True)
-    # chart = (
-    #     alt.Chart(overview_data_dict["NFT Transactions"], title="NFT Sales and Mints Volume: Daily, Past 60d")
-    #     .mark_bar(width=10)
-    #     .encode(
-    #         x=alt.X("yearmonthdate(Date)", title="Date"),
-    #         y=alt.Y(f"Nft Volume {currency.title()}", title=f"NFT Volume ({currency})"),
-    #         color=alt.Color(
-    #             "Type",
-    #             title="Purchase Type",
-    #             scale=alt.Scale(domain=["NFT Mints", "NFT Sales"], range=["#4B3D60", "#FD5E53"]),
-    #         ),
-    #         tooltip=[
-    #             alt.Tooltip("yearmonthdate(Date)", title="Date"),
-    #             alt.Tooltip("Type", title="Purchase Type"),
-    #             alt.Tooltip("Nft Volume Sol", title=f"NFT Volume (SOL)", format=",.2f"),
-    #             alt.Tooltip("Nft Volume Usd", title=f"NFT Volume (USD)", format=",.2f"),
-    #             alt.Tooltip("Nft Txs", title="Transaction Count", format=","),
-    #             alt.Tooltip("Nft Buyers", title="NFT Buyers", format=","),
-    #         ],
-    #     )
-    #     .properties(height=600, width=600)
-    #     .interactive()
-    # )
-    # st.altair_chart(chart, use_container_width=True)
-    # st.write("---")
+    # Sales and Mints
+    currency = st.radio("Choose a Currency:", ["SOL", "USD"], key="nft-currency", horizontal=True)
+    chart = (
+        alt.Chart(overview_data_dict["NFT Transactions"], title="NFT Sales and Mints Volume: Daily, Past 60d")
+        .mark_bar(width=10)
+        .encode(
+            x=alt.X("yearmonthdate(Date)", title="Date"),
+            y=alt.Y(f"Nft Volume {currency.title()}", title=f"NFT Volume ({currency})"),
+            color=alt.Color(
+                "Type",
+                title="Purchase Type",
+                scale=alt.Scale(domain=["NFT Mints", "NFT Sales"], range=["#4B3D60", "#FD5E53"]),
+            ),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                alt.Tooltip("Type", title="Purchase Type"),
+                alt.Tooltip("Nft Volume Sol", title=f"NFT Volume (SOL)", format=",.2f"),
+                alt.Tooltip("Nft Volume Usd", title=f"NFT Volume (USD)", format=",.2f"),
+                alt.Tooltip("Nft Txs", title="Transaction Count", format=","),
+                alt.Tooltip("Nft Buyers", title="NFT Buyers", format=","),
+            ],
+        )
+        .properties(height=600, width=600)
+        .interactive()
+    )
+    st.altair_chart(chart, use_container_width=True)
+    st.write("---")
     c1, c2 = st.columns(2)
     # Unique Purchasers
     chart = (
