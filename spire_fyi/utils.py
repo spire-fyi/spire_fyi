@@ -517,7 +517,7 @@ def get_short_address(address: str) -> str:
     return address[:6] + "..." + address[-6:]
 
 
-@st.experimental_memo(ttl=3600)
+# @st.experimental_memo(ttl=3600)
 def get_nft_mint_data(splits):
     nft_api = NFTAPI(helius_key)
     mint_data = []
@@ -525,9 +525,17 @@ def get_nft_mint_data(splits):
         mints = nft_api.get_nft_metadata(list(x))
         mint_data.extend(mints)
     # HACK: just using names for now to get collection id
-    names = [x["onChainData"]["data"]["name"] for x in mint_data]
+    names = []
+    for x in mint_data:
+        try:
+            names.append(x["onChainData"]["data"]["name"])
+        # #HACK: some bad data mint address data
+        except TypeError:
+            names.append('Invalid Name')
+            st.write(x)
     collections = [x.split("-")[0].split("#")[0].strip() for x in names]
     collection_df = pd.DataFrame({"Mint": [x["mint"] for x in mint_data], "NFT Name": collections})
+    collection_df = collection_df[collection_df["NFT Name"] != 'Invalid Name']
     return collection_df
 
 
