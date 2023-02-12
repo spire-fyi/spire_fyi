@@ -145,7 +145,9 @@ def get_solana_fm_labels(df, output_prefix, col):
 def load_program_label_df():
     fs_labs = pd.read_csv("data/program_flipside_labels.csv")
     solfm_labs = pd.read_csv("data/program_solana_fm_labels.csv")
-    merged = fs_labs.merge(solfm_labs, on="ADDRESS", how="outer")
+    manual_labs = pd.read_csv("data/program_manual_labels.csv")
+    labs = pd.concat([fs_labs, manual_labs])
+    merged = labs.merge(solfm_labs, on="ADDRESS", how="outer")
     return merged
 
 
@@ -169,7 +171,10 @@ def apply_program_name(row):
         else:
             return friendly_name
     else:
-        return f"{label.title()}: {address_name.title()}"
+        try:
+            return f"{label.title()}: {address_name.title()}"
+        except AttributeError:
+            return address_name
 
 
 def get_program_chart_data(
