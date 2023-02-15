@@ -2,7 +2,7 @@
 
 <img alt="Spire" src="assets/images/spire_logo.png" width="150" height="150">
 
-> A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/) and [Helius](https://helius.xyz/).
+> A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/), [Helius](https://helius.xyz/) and [SolanaFM APIs](https://docs.solana.fm/).
 
 Spire is a Solana-focused on-chain data platform that aims to provide in-depth data and insights to add value to the Solana ecosystem. 
 Focusing on analyses we think are interesting, we provide a place where users and developers can regularly check for Solana ecosytem information, as well as deeper dives into specific areas.
