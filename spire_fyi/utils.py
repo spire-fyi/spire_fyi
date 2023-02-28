@@ -574,4 +574,6 @@ def load_fees(dates):
 
 @st.cache_data(ttl=3600 * 12)
 def load_fee_data():
-    return pd.read_csv("data/fees.csv")
+    df = pd.read_csv("data/fees.csv")
+    df["Date"] = pd.to_datetime(df.Date)
+    return df

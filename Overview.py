@@ -316,12 +316,19 @@ with ecosystem:
         horizontal=True,
         index=1,
     )
-
+    price = utils.load_sol_daily_price()
+    most_recent_price = price.iloc[-1]["Price (USD)"]
     fees_in_range = fees[-1 * fee_date_range :].copy()
-    c2.metric(f"Total Fees in Past {fee_date_range} days", f"{fees_in_range.Fees.sum():,.0f} SOL")
-    c2.metric(f"Fees Burned in Past {fee_date_range} days 🔥🔥🔥", f"{fees_in_range.Burn.sum():,.0f} SOL")
+    c2.metric(
+        f"Total Fees in Past {fee_date_range} days",
+        f"{fees_in_range.Fees.sum():,.0f} SOL (${fees_in_range.Fees.sum() * most_recent_price:,.0f})",
+    )
+    c2.metric(
+        f"Fees Burned in Past {fee_date_range} days 🔥🔥🔥",
+        f"{fees_in_range.Burn.sum():,.0f} SOL (${fees_in_range.Burn.sum() * most_recent_price:,.0f})",
+    )
     c2.caption(
-        "Currently, 50% of each transaction fee is burned, while the rest goes to validators. See [here](https://docs.solana.com/transaction_fees) for more details."
+        "Fees shown here are from both vote and non-vote transactions. Currently, 50% of each transaction fee is burned, while the rest goes to validators. See [here](https://docs.solana.com/transaction_fees) for more details."
     )
     st.write("---")
 
@@ -348,17 +355,50 @@ with ecosystem:
         for k, v in overview_data_dict.items():
             if k.startswith("NFT") or k.startswith("DeFi"):
                 continue
-            st.subheader(k)
-            st.write(v)
-            slug = f"ecosystem_overview_{k.replace(' ', '_')}"
-            st.download_button(
-                "Click to Download",
-                v.to_csv(index=False).encode("utf-8"),
-                f"{slug}.csv",
-                "text/csv",
-                key=f"download-{slug}",
-            )
-            st.write("---")
+            elif k.startswith("Fees"):
+                st.subheader(k)
+                fee_df = v.copy().merge(fees, on="Date")
+                fee_df = fee_df.rename(
+                    columns={
+                        "Total Fees Paid": "Fees from Transactions",
+                        "Fees": "Total Fees",
+                        "Burn": "Fees Burned",
+                    }
+                )
+                fee_df = fee_df[
+                    [
+                        "Date",
+                        "Txs",
+                        "Fees from Transactions",
+                        "Total Fees",
+                        "Fees Burned",
+                        "Mean",
+                        "99th Percentile",
+                        "95th Percentile",
+                        "Median",
+                    ]
+                ]
+                st.write(fee_df)
+                slug = f"ecosystem_overview_{k.replace(' ', '_')}"
+                st.download_button(
+                    "Click to Download",
+                    fee_df.to_csv(index=False).encode("utf-8"),
+                    f"{slug}.csv",
+                    "text/csv",
+                    key=f"download-{slug}",
+                )
+            else:
+                st.subheader(k)
+                st.write(v)
+                slug = f"ecosystem_overview_{k.replace(' ', '_')}"
+                st.download_button(
+                    "Click to Download",
+                    v.to_csv(index=False).encode("utf-8"),
+                    f"{slug}.csv",
+                    "text/csv",
+                    key=f"download-{slug}",
+                )
+                st.write("---")
         st.subheader("Users")
         combined_user_df = weekly_new_user_data.merge(weekly_user_data, on="WEEK")
         combined_user_df = (
