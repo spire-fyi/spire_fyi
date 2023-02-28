@@ -259,7 +259,7 @@ if __name__ == "__main__":
     combine_nft = False
 
     if do_main:
-        dates = pd.date_range(end=datetime.date.today()-pd.Timedelta('1d'), periods=60, freq='1d')
+        dates = pd.date_range(end=datetime.date.today() - pd.Timedelta("1d"), periods=60, freq="1d")
         fee_df = utils.load_fees(dates)
         fee_df.to_csv("data/fees.csv", index=False)
 
