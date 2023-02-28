@@ -264,6 +264,67 @@ with ecosystem:
     )
     c2.altair_chart(chart, use_container_width=True)
     st.write("---")
+
+    fees = utils.load_fee_data()
+    c1, c2 = st.columns(2)
+    # Total Fee and Burns
+    chart = (
+        alt.Chart(
+            fees.melt(id_vars="Date"),
+            title=f"Total Fees and Fees Burned, Past 60d",
+        )
+        .mark_area(
+            line={"color": "#4B3D60"},
+            color=alt.Gradient(
+                gradient="linear",
+                stops=[
+                    alt.GradientStop(color="#4B3D60", offset=0),
+                    alt.GradientStop(color="#FD5E53", offset=1),
+                ],
+                x1=1,
+                x2=1,
+                y1=1,
+                y2=0,
+            ),
+            interpolate="monotone",
+        )
+        .encode(
+            x=alt.X("yearmonthdate(Date)", title="Date"),
+            y=alt.Y("value", stack=False, title="Transaction Fees (SOL)"),
+            color=alt.Color(
+                "variable",
+                scale=alt.Scale(domain=["Fees", "Burn"], range=["#4B3D60", "#FD5E53"]),
+                sort="-y",
+                title="Type",
+            ),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                alt.Tooltip("variable", title="Type"),
+                alt.Tooltip("value", format=",.2f"),
+            ],
+        )
+        .properties(height=600, width=600)
+        .interactive()
+    )
+    c1.altair_chart(chart, use_container_width=True)
+
+    fee_date_range = c2.radio(
+        "Date range:",
+        [60, 30, 14, 7, 1],
+        format_func=lambda x: f"{x}d",
+        key="fees_burned",
+        horizontal=True,
+        index=1,
+    )
+
+    fees_in_range = fees[-1 * fee_date_range :].copy()
+    c2.metric(f"Total Fees in Past {fee_date_range} days", f"{fees_in_range.Fees.sum():,.0f} SOL")
+    c2.metric(f"Fees Burned in Past {fee_date_range} days 🔥🔥🔥", f"{fees_in_range.Burn.sum():,.0f} SOL")
+    c2.caption(
+        "Currently, 50% of each transaction fee is burned, while the rest goes to validators. See [here](https://docs.solana.com/transaction_fees) for more details."
+    )
+    st.write("---")
+
     c1, c2 = st.columns(2)
     weekly_user_data = utils.load_weekly_user_data()
     weekly_new_user_data = utils.load_weekly_new_user_data()

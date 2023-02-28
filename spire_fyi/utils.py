@@ -43,6 +43,8 @@ __all__ = [
     "get_short_address",
     "get_nft_mint_data",
     "get_bonk_balance",
+    "load_fees",
+    "load_fee_data",
 ]
 
 API_KEY = st.secrets["flipside"]["api_key"]
@@ -218,7 +220,7 @@ def get_program_chart_data(
     return chart_df
 
 
-@st.experimental_memo(ttl=600)
+@st.cache_data(ttl=600)
 def load_labeled_program_data(new_users_only=False):
     if new_users_only:
         return pd.read_csv("data/programs_new_users_labeled.csv.gz")
@@ -226,7 +228,7 @@ def load_labeled_program_data(new_users_only=False):
         return pd.read_csv("data/programs_labeled.csv.gz")
 
 
-@st.experimental_memo(ttl=60)
+@st.cache_data(ttl=60)
 def load_weekly_program_data():
     df = pd.read_csv("data/weekly_program.csv")
     datecols = ["WEEK"]
@@ -234,7 +236,7 @@ def load_weekly_program_data():
     return df
 
 
-@st.experimental_memo(ttl=60)
+@st.cache_data(ttl=60)
 def load_weekly_new_program_data():
     df = pd.read_csv("data/weekly_new_program.csv")
     df = df.sort_values(by="WEEK")
@@ -245,7 +247,7 @@ def load_weekly_new_program_data():
     return df
 
 
-@st.experimental_memo(ttl=60)
+@st.cache_data(ttl=60)
 def load_weekly_user_data():
     df = pd.read_csv("data/weekly_users.csv")
     datecols = ["WEEK"]
@@ -253,7 +255,7 @@ def load_weekly_user_data():
     return df
 
 
-@st.experimental_memo(ttl=60)
+@st.cache_data(ttl=60)
 def load_weekly_new_user_data():
     df = pd.read_csv("data/weekly_new_users.csv")
     datecols = ["WEEK"]
@@ -264,7 +266,7 @@ def load_weekly_new_user_data():
     return df
 
 
-@st.experimental_memo(ttl=1800)
+@st.cache_data(ttl=1800)
 def load_nft_data():
     main_data = (
         pd.read_json(
@@ -332,7 +334,7 @@ def load_nft_data():
     return buyers_sellers, marketplace_info, mints_by_purchaser, by_chain_data
 
 
-@st.experimental_memo(ttl=1800)
+@st.cache_data(ttl=1800)
 def load_royalty_data():
     df = (
         pd.read_json(
@@ -364,7 +366,7 @@ def load_royalty_data():
     return df
 
 
-@st.experimental_memo(ttl=1800)
+@st.cache_data(ttl=1800)
 def load_sol_daily_price():
     df = pd.read_json(
         "https://node-api.flipsidecrypto.com/api/v2/queries/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest"
@@ -374,7 +376,7 @@ def load_sol_daily_price():
     return df
 
 
-@st.experimental_memo(ttl=1800)
+@st.cache_data(ttl=1800)
 def load_top_nft_info():
     df = (
         pd.read_csv("data/top_nft_sales_metadata_with_royalties.csv.gz")
@@ -400,7 +402,7 @@ def load_top_nft_info():
     return df
 
 
-@st.experimental_memo(ttl=600)
+@st.cache_data(ttl=600)
 def get_random_image(df):
     num = np.random.randint(len(df))
     rand_row = df.iloc[num]
@@ -422,7 +424,7 @@ def get_random_image(df):
     return num, image
 
 
-@st.experimental_memo(ttl=1800)
+@st.cache_data(ttl=1800)
 def load_defi_data():
     df = (
         pd.read_json(
@@ -483,7 +485,7 @@ def get_program_ids(df):
 
 
 # sandstorm
-@st.experimental_memo(ttl=7200)
+@st.cache_data(ttl=7200)
 def reformat_columns(df: pd.DataFrame, datecols: Union[list, None]) -> pd.DataFrame:
     if datecols is not None:
         df[datecols] = df[datecols].apply(pd.to_datetime)
@@ -492,14 +494,14 @@ def reformat_columns(df: pd.DataFrame, datecols: Union[list, None]) -> pd.DataFr
     return df
 
 
-@st.experimental_memo(ttl=3600)
+@st.cache_data(ttl=3600)
 def load_flipside_api_data(url: str, datecols: Union[list, None]) -> pd.DataFrame:
     df = pd.read_json(url)
     df = reformat_columns(df, datecols)
     return df
 
 
-@st.experimental_memo(ttl=3600 * 6)
+@st.cache_data(ttl=3600 * 6)
 def run_query_and_cache(name, sql, param):
     today = datetime.date.today()
     cache_dir = Path("data/cache")
@@ -522,7 +524,7 @@ def get_short_address(address: str) -> str:
     return address[:6] + "..." + address[-6:]
 
 
-@st.experimental_memo(ttl=3600)
+@st.cache_data(ttl=3600)
 def get_nft_mint_data(splits):
     nft_api = NFTAPI(helius_key)
     mint_data = []
@@ -536,13 +538,13 @@ def get_nft_mint_data(splits):
             names.append(x["onChainData"]["data"]["name"])
         # #HACK: some bad data mint address data
         except TypeError:
-            names.append('Unknown')
+            names.append("Unknown")
     collections = [x.split("-")[0].split("#")[0].strip() for x in names]
     collection_df = pd.DataFrame({"Mint": [x["mint"] for x in mint_data], "NFT Name": collections})
     return collection_df
 
 
-@st.experimental_memo(ttl=3600)
+@st.cache_data(ttl=3600)
 def get_bonk_balance(address):
     if address == "":
         return ""
@@ -554,3 +556,22 @@ def get_bonk_balance(address):
                 return x
     except:
         return
+
+
+def load_fees(dates):
+    data = []
+    for d in dates:
+        r = requests.get(f"https://hyper.solana.fm/v3/tx-fees?date={d.strftime('%d-%m-%Y')}")
+        data.append(r.json())
+
+    fees = pd.DataFrame(data)
+    fees["Date"] = pd.to_datetime(fees.date, dayfirst=True)
+    fees["Fees"] = fees.total_tx_fees / 10**9
+    fees["Burn"] = fees["Fees"] / 2
+    fees = fees[["Date", "Fees", "Burn"]]
+    return fees
+
+
+@st.cache_data(ttl=3600 * 12)
+def load_fee_data():
+    return pd.read_csv("data/fees.csv")

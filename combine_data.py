@@ -259,6 +259,10 @@ if __name__ == "__main__":
     combine_nft = False
 
     if do_main:
+        dates = pd.date_range(end=datetime.date.today()-pd.Timedelta('1d'), periods=60, freq='1d')
+        fee_df = utils.load_fees(dates)
+        fee_df.to_csv("data/fees.csv", index=False)
+
         program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
         program_df.to_csv("data/programs.csv.gz", index=False, compression="gzip")
         utils.get_flipside_labels(program_df, "program", "PROGRAM_ID")
