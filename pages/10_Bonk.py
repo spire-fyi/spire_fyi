@@ -32,8 +32,8 @@ c1.image(
     width=100,
 )
 st.write("---")
-query_base = "https://next.flipsidecrypto.xyz/edit/queries"
-api_base = "https://api.flipsidecrypto.com/api/v2/queries"
+query_base = utils.query_base
+api_base = utils.api_base
 bonk_query_dict = {
     # Ecosystem
     "Daily Bonk Burned": {

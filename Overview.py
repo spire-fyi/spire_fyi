@@ -47,8 +47,8 @@ with st.expander("Instructions"):
     )
 ecosystem, nft, programs, defi = st.tabs(["Ecosystem", "NFT", "Programs", "DeFi"])
 
-query_base = "https://next.flipsidecrypto.xyz/edit/queries"
-api_base = "https://api.flipsidecrypto.com/api/v2/queries"
+query_base = utils.query_base
+api_base = utils.api_base
 overview_query_dict = {
     # Ecosystem
     "Signers and Fee Payers": {

@@ -18,6 +18,8 @@ from shroomdk import ShroomDK
 
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 __all__ = [
+    "query_base",
+    "api_base",
     "add_program_labels",
     "apply_program_name",
     "combine_flipside_date_data",
@@ -50,6 +52,8 @@ __all__ = [
 API_KEY = st.secrets["flipside"]["api_key"]
 sdk = ShroomDK(API_KEY)
 
+query_base = "https://next.flipsidecrypto.xyz/edit/queries"
+api_base = "https://api.flipsidecrypto.com/api/v2/queries"
 
 helius_key = st.secrets["helius"]["api_key"]
 
