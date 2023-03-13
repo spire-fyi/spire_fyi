@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import typing
-from solders.pubkey import Pubkey
-from solders.instruction import Instruction, AccountMeta
+
 import borsh_construct as borsh
+from solders.instruction import AccountMeta, Instruction
+from solders.pubkey import Pubkey
+
 from .. import types
 from ..program_id import PROGRAM_ID
 
@@ -31,19 +34,11 @@ def update_xnft(
 ) -> Instruction:
     keys: list[AccountMeta] = [
         AccountMeta(pubkey=accounts["xnft"], is_signer=False, is_writable=True),
-        AccountMeta(
-            pubkey=accounts["master_token"], is_signer=False, is_writable=False
-        ),
-        AccountMeta(
-            pubkey=accounts["master_metadata"], is_signer=False, is_writable=True
-        ),
-        AccountMeta(
-            pubkey=accounts["curation_authority"], is_signer=False, is_writable=False
-        ),
+        AccountMeta(pubkey=accounts["master_token"], is_signer=False, is_writable=False),
+        AccountMeta(pubkey=accounts["master_metadata"], is_signer=False, is_writable=True),
+        AccountMeta(pubkey=accounts["curation_authority"], is_signer=False, is_writable=False),
         AccountMeta(pubkey=accounts["updater"], is_signer=True, is_writable=False),
-        AccountMeta(
-            pubkey=accounts["metadata_program"], is_signer=False, is_writable=False
-        ),
+        AccountMeta(pubkey=accounts["metadata_program"], is_signer=False, is_writable=False),
     ]
     if remaining_accounts is not None:
         keys += remaining_accounts

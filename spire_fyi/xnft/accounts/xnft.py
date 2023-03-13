@@ -1,15 +1,18 @@
 import typing
+
 from dataclasses import dataclass
-from solders.pubkey import Pubkey
-from solana.rpc.async_api import AsyncClient
-from solana.rpc.commitment import Commitment
+
 import borsh_construct as borsh
+from anchorpy.borsh_extension import BorshPubkey
 from anchorpy.coder.accounts import ACCOUNT_DISCRIMINATOR_SIZE
 from anchorpy.error import AccountInvalidDiscriminator
 from anchorpy.utils.rpc import get_multiple_accounts
-from anchorpy.borsh_extension import BorshPubkey
-from ..program_id import PROGRAM_ID
+from solana.rpc.async_api import AsyncClient
+from solana.rpc.commitment import Commitment
+from solders.pubkey import Pubkey
+
 from .. import types
+from ..program_id import PROGRAM_ID
 
 
 class XnftJSON(typing.TypedDict):
@@ -126,9 +129,7 @@ class Xnft:
     @classmethod
     def decode(cls, data: bytes) -> "Xnft":
         if data[:ACCOUNT_DISCRIMINATOR_SIZE] != cls.discriminator:
-            raise AccountInvalidDiscriminator(
-                "The discriminator for this account is invalid"
-            )
+            raise AccountInvalidDiscriminator("The discriminator for this account is invalid")
         dec = Xnft.layout.parse(data[ACCOUNT_DISCRIMINATOR_SIZE:])
         return cls(
             publisher=dec.publisher,
@@ -137,9 +138,7 @@ class Xnft:
             master_mint=dec.master_mint,
             install_authority=dec.install_authority,
             curator=(
-                None
-                if dec.curator is None
-                else types.curator_status.CuratorStatus.from_decoded(dec.curator)
+                None if dec.curator is None else types.curator_status.CuratorStatus.from_decoded(dec.curator)
             ),
             uri=dec.uri,
             mint_seed_name=dec.mint_seed_name,
@@ -165,9 +164,7 @@ class Xnft:
             "install_vault": str(self.install_vault),
             "master_metadata": str(self.master_metadata),
             "master_mint": str(self.master_mint),
-            "install_authority": (
-                None if self.install_authority is None else str(self.install_authority)
-            ),
+            "install_authority": (None if self.install_authority is None else str(self.install_authority)),
             "curator": (None if self.curator is None else self.curator.to_json()),
             "uri": self.uri,
             "mint_seed_name": self.mint_seed_name,
@@ -195,9 +192,7 @@ class Xnft:
             master_metadata=Pubkey.from_string(obj["master_metadata"]),
             master_mint=Pubkey.from_string(obj["master_mint"]),
             install_authority=(
-                None
-                if obj["install_authority"] is None
-                else Pubkey.from_string(obj["install_authority"])
+                None if obj["install_authority"] is None else Pubkey.from_string(obj["install_authority"])
             ),
             curator=(
                 None

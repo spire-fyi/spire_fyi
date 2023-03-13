@@ -1,4 +1,5 @@
 import typing
+
 from anchorpy.error import ProgramError
 
 
@@ -34,9 +35,7 @@ class CuratorAuthorityMismatch(ProgramError):
 
 class CuratorMismatch(ProgramError):
     def __init__(self) -> None:
-        super().__init__(
-            6003, "The provided curator account did not match the one assigned"
-        )
+        super().__init__(6003, "The provided curator account did not match the one assigned")
 
     code = 6003
     name = "CuratorMismatch"
@@ -102,9 +101,7 @@ class RatingOutOfBounds(ProgramError):
 
 class ReviewInstallMismatch(ProgramError):
     def __init__(self) -> None:
-        super().__init__(
-            6010, "The installation provided for the review does not match the xNFT"
-        )
+        super().__init__(6010, "The installation provided for the review does not match the xNFT")
 
     code = 6010
     name = "ReviewInstallMismatch"
@@ -113,9 +110,7 @@ class ReviewInstallMismatch(ProgramError):
 
 class SupplyReduction(ProgramError):
     def __init__(self) -> None:
-        super().__init__(
-            6011, "Updated supply is less than the original supply set on creation"
-        )
+        super().__init__(6011, "Updated supply is less than the original supply set on creation")
 
     code = 6011
     name = "SupplyReduction"
@@ -133,9 +128,7 @@ class SuspendedInstallation(ProgramError):
 
 class UnauthorizedInstall(ProgramError):
     def __init__(self) -> None:
-        super().__init__(
-            6013, "The access account provided is not associated with the wallet"
-        )
+        super().__init__(6013, "The access account provided is not associated with the wallet")
 
     code = 6013
     name = "UnauthorizedInstall"

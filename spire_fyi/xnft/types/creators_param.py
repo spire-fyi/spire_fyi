@@ -1,10 +1,13 @@
 from __future__ import annotations
+
 import typing
+
 from dataclasses import dataclass
+
+import borsh_construct as borsh
+from anchorpy.borsh_extension import BorshPubkey
 from construct import Container
 from solders.pubkey import Pubkey
-from anchorpy.borsh_extension import BorshPubkey
-import borsh_construct as borsh
 
 
 class CreatorsParamJSON(typing.TypedDict):

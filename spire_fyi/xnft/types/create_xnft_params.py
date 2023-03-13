@@ -1,11 +1,15 @@
 from __future__ import annotations
-from . import creators_param, tag
+
 import typing
+
 from dataclasses import dataclass
-from construct import Container, Construct
-from solders.pubkey import Pubkey
-from anchorpy.borsh_extension import BorshPubkey
+
 import borsh_construct as borsh
+from anchorpy.borsh_extension import BorshPubkey
+from construct import Construct, Container
+from solders.pubkey import Pubkey
+
+from . import creators_param, tag
 
 
 class CreateXnftParamsJSON(typing.TypedDict):
@@ -24,8 +28,7 @@ class CreateXnftParamsJSON(typing.TypedDict):
 @dataclass
 class CreateXnftParams:
     layout: typing.ClassVar = borsh.CStruct(
-        "creators"
-        / borsh.Vec(typing.cast(Construct, creators_param.CreatorsParam.layout)),
+        "creators" / borsh.Vec(typing.cast(Construct, creators_param.CreatorsParam.layout)),
         "curator" / borsh.Option(BorshPubkey),
         "install_authority" / borsh.Option(BorshPubkey),
         "install_price" / borsh.U64,
@@ -85,9 +88,7 @@ class CreateXnftParams:
         return {
             "creators": list(map(lambda item: item.to_json(), self.creators)),
             "curator": (None if self.curator is None else str(self.curator)),
-            "install_authority": (
-                None if self.install_authority is None else str(self.install_authority)
-            ),
+            "install_authority": (None if self.install_authority is None else str(self.install_authority)),
             "install_price": self.install_price,
             "install_vault": str(self.install_vault),
             "seller_fee_basis_points": self.seller_fee_basis_points,
@@ -106,13 +107,9 @@ class CreateXnftParams:
                     obj["creators"],
                 )
             ),
-            curator=(
-                None if obj["curator"] is None else Pubkey.from_string(obj["curator"])
-            ),
+            curator=(None if obj["curator"] is None else Pubkey.from_string(obj["curator"])),
             install_authority=(
-                None
-                if obj["install_authority"] is None
-                else Pubkey.from_string(obj["install_authority"])
+                None if obj["install_authority"] is None else Pubkey.from_string(obj["install_authority"])
             ),
             install_price=obj["install_price"],
             install_vault=Pubkey.from_string(obj["install_vault"]),

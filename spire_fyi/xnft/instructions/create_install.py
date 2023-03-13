@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import typing
+
+from solders.instruction import AccountMeta, Instruction
 from solders.pubkey import Pubkey
 from solders.system_program import ID as SYS_PROGRAM_ID
-from solders.instruction import Instruction, AccountMeta
+
 from ..program_id import PROGRAM_ID
 
 
@@ -21,9 +24,7 @@ def create_install(
 ) -> Instruction:
     keys: list[AccountMeta] = [
         AccountMeta(pubkey=accounts["xnft"], is_signer=False, is_writable=True),
-        AccountMeta(
-            pubkey=accounts["install_vault"], is_signer=False, is_writable=True
-        ),
+        AccountMeta(pubkey=accounts["install_vault"], is_signer=False, is_writable=True),
         AccountMeta(pubkey=accounts["install"], is_signer=False, is_writable=True),
         AccountMeta(pubkey=accounts["authority"], is_signer=True, is_writable=True),
         AccountMeta(pubkey=accounts["target"], is_signer=True, is_writable=False),

@@ -1,11 +1,15 @@
 from __future__ import annotations
-from . import tag
+
 import typing
+
 from dataclasses import dataclass
+
+import borsh_construct as borsh
+from anchorpy.borsh_extension import BorshPubkey
 from construct import Container
 from solders.pubkey import Pubkey
-from anchorpy.borsh_extension import BorshPubkey
-import borsh_construct as borsh
+
+from . import tag
 
 
 class UpdateParamsJSON(typing.TypedDict):
@@ -62,9 +66,7 @@ class UpdateParams:
 
     def to_json(self) -> UpdateParamsJSON:
         return {
-            "install_authority": (
-                None if self.install_authority is None else str(self.install_authority)
-            ),
+            "install_authority": (None if self.install_authority is None else str(self.install_authority)),
             "install_price": self.install_price,
             "install_vault": str(self.install_vault),
             "name": self.name,
@@ -77,9 +79,7 @@ class UpdateParams:
     def from_json(cls, obj: UpdateParamsJSON) -> "UpdateParams":
         return cls(
             install_authority=(
-                None
-                if obj["install_authority"] is None
-                else Pubkey.from_string(obj["install_authority"])
+                None if obj["install_authority"] is None else Pubkey.from_string(obj["install_authority"])
             ),
             install_price=obj["install_price"],
             install_vault=Pubkey.from_string(obj["install_vault"]),

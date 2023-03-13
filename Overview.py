@@ -267,10 +267,19 @@ with ecosystem:
 
     fees = utils.load_fee_data()
     c1, c2 = st.columns(2)
+    fee_date_range = c2.radio(
+        "Date range:",
+        [60, 30, 14, 7, 1],
+        format_func=lambda x: f"{x}d",
+        key="fees_burned",
+        horizontal=True,
+        index=1,
+    )
     # Total Fee and Burns
+    st.write(fees.iloc[-1 * fee_date_range :])
     chart = (
         alt.Chart(
-            fees.melt(id_vars="Date"),
+            fees.iloc[-1 * fee_date_range :].melt(id_vars="Date"),
             title=f"Total Fees and Fees Burned, Past 60d",
         )
         .mark_area(
@@ -308,14 +317,6 @@ with ecosystem:
     )
     c1.altair_chart(chart, use_container_width=True)
 
-    fee_date_range = c2.radio(
-        "Date range:",
-        [60, 30, 14, 7, 1],
-        format_func=lambda x: f"{x}d",
-        key="fees_burned",
-        horizontal=True,
-        index=1,
-    )
     price = utils.load_sol_daily_price()
     most_recent_price = price.iloc[-1]["Price (USD)"]
     fees_in_range = fees[-1 * fee_date_range :].copy()

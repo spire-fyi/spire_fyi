@@ -257,12 +257,10 @@ if __name__ == "__main__":
     do_network = False
     do_nft = False
     combine_nft = False
+    do_xnft = True
+    do_fees = True
 
     if do_main:
-        dates = pd.date_range(end=datetime.date.today() - pd.Timedelta("1d"), periods=60, freq="1d")
-        fee_df = utils.load_fees(dates)
-        fee_df.to_csv("data/fees.csv", index=False)
-
         program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
         program_df.to_csv("data/programs.csv.gz", index=False, compression="gzip")
         utils.get_flipside_labels(program_df, "program", "PROGRAM_ID")
@@ -556,3 +554,37 @@ if __name__ == "__main__":
         metadata_df.to_csv(
             "data/top_nft_sales_metadata_with_royalties.csv.gz", compression="gzip", index=False
         )
+
+    if do_xnft:
+        xnft_df = pd.read_csv("data/sdk_xnft/sdk_xnft_2022-12-01.csv")
+        createInstall = xnft_df[xnft_df["INSTRUCTION_TYPE"] == "createInstall"].reset_index(drop=True)
+
+        xnfts = createInstall.XNFT.unique()
+        xnft_info = utils.get_xnft_info(xnfts)
+        xnft_info_df = utils.create_xnft_info_df(xnft_info)
+        xnft_info_df = xnft_info_df[
+            xnft_info_df.columns.drop(["bump", "reserved0", "reserved1", "reserved2"])
+        ]
+        xnft_info_df = utils.add_uri_info(xnft_info_df)
+
+        merged_xnft = createInstall.merge(xnft_info_df, on="XNFT")
+
+        # TODO: get all xNFT users.
+        # users = merged_xnft.FEE_PAYER.unique()
+        # username_dict = {"FEE_PAYER":[], "Username":[]}
+        # for i, x in enumerate(users):
+        #     if i % 100 == 0:
+        #         logging.info(f"Working on {i} of {len(users)}: {x}")
+        #     username_dict['Username'].append(utils.get_backpack_username(x))
+        #     username_dict["FEE_PAYER"].append(x)
+        # logging.info(len(users), len(username_dict['FEE_PAYER']), len(username_dict["Username"]))
+
+        # username_df = pd.DateFrame(username_dict)
+        # merged_xnft = merged_xnft.merge(username_df, on='FEE_PAYER')
+
+        merged_xnft.to_csv("data/xnft_create_install_all_info.csv", index=False)
+
+    if do_fees:
+        dates = pd.date_range(end=datetime.date.today() - pd.Timedelta("1d"), periods=60, freq="1d")
+        fee_df = utils.load_fees(dates)
+        fee_df.to_csv("data/fees.csv", index=False)

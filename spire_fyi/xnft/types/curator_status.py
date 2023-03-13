@@ -1,10 +1,13 @@
 from __future__ import annotations
+
 import typing
+
 from dataclasses import dataclass
+
+import borsh_construct as borsh
+from anchorpy.borsh_extension import BorshPubkey
 from construct import Container
 from solders.pubkey import Pubkey
-from anchorpy.borsh_extension import BorshPubkey
-import borsh_construct as borsh
 
 
 class CuratorStatusJSON(typing.TypedDict):
@@ -14,9 +17,7 @@ class CuratorStatusJSON(typing.TypedDict):
 
 @dataclass
 class CuratorStatus:
-    layout: typing.ClassVar = borsh.CStruct(
-        "pubkey" / BorshPubkey, "verified" / borsh.Bool
-    )
+    layout: typing.ClassVar = borsh.CStruct("pubkey" / BorshPubkey, "verified" / borsh.Bool)
     pubkey: Pubkey
     verified: bool
 
