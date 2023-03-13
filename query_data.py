@@ -309,6 +309,7 @@ if __name__ == "__main__":
     do_network = False
     do_nft_mints = False
     do_nft_metadata = False
+    do_xnft = True
 
     query_info = []
     if do_main:
@@ -370,6 +371,8 @@ if __name__ == "__main__":
         queries_to_do = get_nft_transfer_queries(unique_collection_mints, "sdk_nft_royalty_tx")
         if queries_to_do != []:
             query_info.extend(queries_to_do)
+    if do_xnft:
+        query_info.append(get_queries_by_date("2022-12-01", "sdk_xnft", update_cache=True))
 
     logging.info(f"Running {len(query_info)} queries...")
     with Pool() as p:

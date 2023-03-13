@@ -33,8 +33,8 @@ c1.image(
 )
 st.write("---")
 
-query_base = "https://next.flipsidecrypto.xyz/edit/queries"
-api_base = "https://api.flipsidecrypto.com/api/v2/queries"
+query_base = utils.query_base
+api_base = utils.api_base
 whale_query_dict = {
     "nft": {
         "query": f"{query_base}/bf44cae5-dcf6-41eb-a481-8ec257569533",

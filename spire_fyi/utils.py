@@ -1,23 +1,33 @@
-from typing import Union
+from typing import Dict, Iterable, Union
 
+import ast
+import asyncio
 import datetime
 import logging
 import os
 import time
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import urlparse
 
 import numpy as np
 import pandas as pd
 import requests
+import solders
 import streamlit as st
 from helius import NFTAPI, BalancesAPI
 from jinja2 import Environment, FileSystemLoader
 from PIL import Image
 from shroomdk import ShroomDK
+from solana.rpc.async_api import AsyncClient
+
+from .xnft.accounts import Xnft
 
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 __all__ = [
+    "LAMPORTS_PER_SOL",
+    "query_base",
+    "api_base",
     "add_program_labels",
     "apply_program_name",
     "combine_flipside_date_data",
@@ -45,11 +55,19 @@ __all__ = [
     "get_bonk_balance",
     "load_fees",
     "load_fee_data",
+    "get_native_balances",
+    "load_xnft_data",
 ]
 
 API_KEY = st.secrets["flipside"]["api_key"]
 sdk = ShroomDK(API_KEY)
+rpc_url = "https://rpc.helius.xyz/?api-key=f09ecb19-af19-427c-b4e6-31580b74c837"
 
+LAMPORTS_PER_SOL = 1_000_000_000
+IPFS_RESOLVER_URL = "https://ipfs.io/ipfs/"
+
+query_base = "https://next.flipsidecrypto.xyz/edit/queries"
+api_base = "https://api.flipsidecrypto.com/api/v2/queries"
 
 helius_key = st.secrets["helius"]["api_key"]
 
@@ -125,22 +143,22 @@ def get_solana_fm_labels(df, output_prefix, col):
     ids = df[col].unique()
     split_ids = [ids[i : i + 100] for i in range(0, len(ids), 100)]
 
-    labels_url = "https://hyper.solana.fm/v2/address/"
+    label_url = "https://api.solana.fm/v0/accounts"
     label_results = []
     for i, id_set in enumerate(split_ids):
         if i % 4 == 0:
             time.sleep(1)
-        r = requests.get(f"{labels_url}{','.join(id_set)}")
-        label_results.append(r.json())
-    combined_labels = {}
-    for x in label_results:
-        combined_labels = {**combined_labels, **x}
-    df = (
-        pd.DataFrame.from_dict(combined_labels)
-        .T.dropna(subset="FriendlyName")
-        .reset_index(drop=True)
-        .rename(columns={"Address": "ADDRESS"})
-    )
+        r = requests.post(label_url, json={"accountHashes": list(id_set), "fields": ["*"]})
+        res = r.json()["result"]
+        for x in res:
+            try:
+                data = x["data"]
+                data["ADDRESS"] = x["accountHash"]
+                label_results.append(data)
+            except KeyError:
+                pass
+    df = pd.DataFrame(label_results).sort_values(by="ADDRESS").reset_index(drop=True)
+    df = df.rename(columns={x: (x[0].upper() + x[1:]).replace("_", " ") for x in df.columns})
     df.to_csv(f"data/{output_prefix}_solana_fm_labels.csv", index=False)
 
 
@@ -485,10 +503,13 @@ def get_program_ids(df):
 
 
 # sandstorm
-@st.cache_data(ttl=7200)
+@st.cache_data(ttl=300)
 def reformat_columns(df: pd.DataFrame, datecols: Union[list, None]) -> pd.DataFrame:
     if datecols is not None:
         df[datecols] = df[datecols].apply(pd.to_datetime)
+        # TODO: eventually use timezones. currently impossible to properly handle with altair and streamlit
+        # for x in datecols:
+        #     df[x] = pd.to_datetime(df[x], utc=True)
         df = df.sort_values(by=datecols).reset_index(drop=True)
     df = df.rename(columns={x: x.replace("_", " ").title() for x in df.columns})
     return df
@@ -502,16 +523,16 @@ def load_flipside_api_data(url: str, datecols: Union[list, None]) -> pd.DataFram
 
 
 @st.cache_data(ttl=3600 * 6)
-def run_query_and_cache(name, sql, param):
+def run_query_and_cache(name, sql, param, force_update=False):
     today = datetime.date.today()
     cache_dir = Path("data/cache")
     cache_dir.mkdir(parents=True, exist_ok=True)
     file_path = cache_dir / f"{today}_{name}_{param}.csv"
-    if file_path.exists():
+    if file_path.exists() and not force_update:
         return pd.read_csv(file_path)
     else:
         query = sql.format(param=param)
-        query_result_set = sdk.query(query, cached=False)
+        query_result_set = sdk.query(query)
         df = pd.DataFrame(query_result_set.rows, columns=query_result_set.columns)
         df.to_csv(
             file_path,
@@ -561,19 +582,177 @@ def get_bonk_balance(address):
 def load_fees(dates):
     data = []
     for d in dates:
-        r = requests.get(f"https://hyper.solana.fm/v3/tx-fees?date={d.strftime('%d-%m-%Y')}")
-        data.append(r.json())
+        r = requests.get(f"https://api.solana.fm/v0/stats/tx-fees?date={d.strftime('%d-%m-%Y')}")
+        data.append(r.json()["result"])
 
     fees = pd.DataFrame(data)
     fees["Date"] = pd.to_datetime(fees.date, dayfirst=True)
-    fees["Fees"] = fees.total_tx_fees / 10**9
+    fees["Fees"] = fees.totalTxFees / 10**9
     fees["Burn"] = fees["Fees"] / 2
     fees = fees[["Date", "Fees", "Burn"]]
     return fees
 
 
-@st.cache_data(ttl=3600 * 12)
+@st.cache_data(ttl=3600)
 def load_fee_data():
     df = pd.read_csv("data/fees.csv")
     df["Date"] = pd.to_datetime(df.Date)
     return df
+
+
+@st.cache_data(ttl=3600)
+def get_native_balances(address):
+    if address == "":
+        return ""
+    balances_api = BalancesAPI(helius_key)
+    bal = balances_api.get_balances(address)
+    return bal["nativeBalance"] / LAMPORTS_PER_SOL
+
+
+async def lookup_xnft(xnft: str) -> Xnft:
+    conn = AsyncClient(rpc_url)
+    xnft_id = solders.pubkey.Pubkey.from_string(xnft)
+    return await Xnft.fetch(conn, xnft_id)
+
+
+def get_xnft_info(xnfts: Iterable[str]) -> dict:
+    data = {}
+    for x in xnfts:
+        data[x] = asyncio.run(lookup_xnft(x)).to_json()
+    return data
+
+
+def create_xnft_info_df(xnft_info: Dict[str, dict]) -> pd.DataFrame:
+    xnft_info_df = pd.DataFrame(xnft_info).T
+    xnft_info_df["XNFT"] = xnft_info_df.index
+    xnft_info_df = xnft_info_df.reset_index(drop=True)
+    xnft_info_df["kind"] = xnft_info_df["kind"].apply(lambda x: x["kind"])
+    xnft_info_df["tag"] = xnft_info_df["tag"].apply(lambda x: x["kind"])
+    xnft_info_df["created_datetime"] = xnft_info_df["created_ts"].apply(
+        lambda x: datetime.datetime.fromtimestamp(x).isoformat(sep=" ")
+    )
+    xnft_info_df["updated_datetime"] = xnft_info_df["updated_ts"].apply(
+        lambda x: datetime.datetime.fromtimestamp(x).isoformat(sep=" ")
+    )
+    return xnft_info_df
+
+
+def resolve_ipfs_uri(uri):
+    parsed = urlparse(uri)
+    if parsed.scheme == "ipfs":
+        url = f"{IPFS_RESOLVER_URL}/{parsed.netloc}"
+    else:
+        url = uri
+    return url
+
+
+def get_xnft_contacts(contact: dict) -> dict:
+    d = {}
+    for k, v in contact.items():
+        d[f"contact_{k}"] = v
+    return d
+
+
+def get_uri_info(uri: str) -> dict:
+    url = resolve_ipfs_uri(uri)
+    if "ipfs" in url:
+        time.sleep(1)
+    data = requests.get(url).json()
+    info = {"uri": uri}
+    info["description"] = data["description"]
+    info["image"] = resolve_ipfs_uri(data["image"])
+    try:
+        info["programIds"] = data["xnft"]["programIds"]
+    except KeyError:
+        pass
+    try:
+        info = {**info, **get_xnft_contacts(data["xnft"]["contact"])}
+    except KeyError:
+        pass
+    return info
+
+
+def add_uri_info(xnft_info: pd.DataFrame) -> pd.DataFrame:
+    data = []
+    for x in xnft_info.uri.unique():
+        data.append(get_uri_info(x))
+    uri_info = pd.DataFrame(data)
+    df = xnft_info.copy().merge(uri_info, on="uri")
+    return df
+
+
+@st.cache_data(ttl=60)
+def load_xnft_data():
+    df = pd.read_csv("data/xnft_create_install_all_info.csv")
+    datecols = ["BLOCK_TIMESTAMP", "created_datetime", "updated_datetime"]
+    df = reformat_columns(df, datecols)
+    return df
+
+
+# def grouping_with_other(x):
+#     if
+@st.cache_data(ttl=1800)
+def aggregate_xnft_data(df, n=15):
+    total_counts = (
+        df.groupby(["Xnft", "Mint Seed Name"])["Tx Id"]
+        .count()
+        .reset_index()
+        .rename(columns={"Tx Id": "Count"})
+        .sort_values(by="Count", ascending=False)
+        .reset_index(drop=True)
+    )
+    total_counts["Rank"] = total_counts.index + 1
+
+    df["Rank"] = df.Xnft.apply(lambda x: total_counts[total_counts.Xnft == x].Rank.values[0])
+    df["Display Name"] = df.apply(lambda x: x["Mint Seed Name"] if x.Rank <= n else "Other", axis=1)
+    df["xNFT"] = df.apply(lambda x: x["Xnft"] if x.Rank <= n else "Other", axis=1)
+    daily_counts = (
+        df.groupby([pd.Grouper(key="Block Timestamp", axis=0, freq="D"), "Display Name", "xNFT"])
+        .agg(Count=("Tx Id", "count"))
+        .reset_index()
+    )
+    daily_counts["url"] = daily_counts["xNFT"].apply(
+        lambda x: f"https://www.xnft.gg/app/{x}" if x != "Other" else "https://www.xnft.gg"
+    )
+    daily_counts["Block Timestamp"] = daily_counts["Block Timestamp"].dt.date
+
+    total_counts["url"] = total_counts["Xnft"].apply(
+        lambda x: f"https://www.xnft.gg/app/{x}" if x != "Other" else "https://www.xnft.gg"
+    )
+
+    total_reviews = (
+        df.groupby(["Xnft", "Mint Seed Name"])[["Total Rating", "Num Ratings"]].max().reset_index()
+    )
+    total_reviews["Rating"] = total_reviews["Total Rating"] / total_reviews["Num Ratings"]
+
+    totals = total_counts.merge(total_reviews, on=["Xnft", "Mint Seed Name"])
+    # total_reviews = total_reviews.sort_values(by="Rating", ascending=False)
+    totals = totals.rename(columns={"Xnft": "xNFT"})
+    return daily_counts, totals
+
+
+@st.cache_data(ttl=3600)
+def get_backpack_username(x):
+    if x == "":
+        return ""
+    try:
+        url = "https://xnft-api-server.xnfts.dev/v1/users/fromPubkey"
+        r = requests.get(url, params={"publicKey": x, "blockchain": "solana"})
+        j = r.json()
+        username = j["user"]["username"]
+    except KeyError:
+        return None
+    return username
+
+
+def get_backpack_addresses(username):
+    if username == "":
+        return ""
+    try:
+        url = "https://xnft-api-server.xnfts.dev/v1/users/fromUsername"
+        r = requests.get(url, params={"username": username})
+        j = r.json()
+        addresses = j["user"]["public_keys"]
+    except KeyError:
+        return None
+    return addresses

@@ -111,3 +111,7 @@ build-remove:
 
 .PHONY: cleanup
 cleanup: pycache-remove dsstore-remove mypycache-remove ipynbcheckpoints-remove pytestcache-remove
+
+.PHONY: xnft
+xnft:
+	poetry run anchorpy client-gen --program-id xnft5aaToUM4UFETUQfj7NUDUBdvYHTVhNFThEYTm55 data/idl/xnft.json ./spire_fyi/xnft
