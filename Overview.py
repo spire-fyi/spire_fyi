@@ -276,7 +276,6 @@ with ecosystem:
         index=1,
     )
     # Total Fee and Burns
-    st.write(fees.iloc[-1 * fee_date_range :])
     chart = (
         alt.Chart(
             fees.iloc[-1 * fee_date_range :].melt(id_vars="Date"),
