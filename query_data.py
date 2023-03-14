@@ -125,6 +125,15 @@ def get_queries_by_date(date, query_basename, update_cache=False):
         return query, output_file
 
 
+def get_queries_by_mint_list(mintlist, query_basename, update_cache=False):
+    query = create_query_by_creator_address_and_mints(query_basename, "", mintlist)
+    output_dir = Path(f"data/{query_basename}")
+    date = datetime.date.today()
+    output_file = Path(output_dir, f"{query_basename}_2022-12-01.csv")
+    if update_cache or not output_file.exists():
+        return query, output_file
+
+
 def get_nft_transfer_queries(unique_collection_mints, query_basename, update_cache=False):
     queries_to_do = []
     for _, x in unique_collection_mints.iterrows():
@@ -372,7 +381,18 @@ if __name__ == "__main__":
         if queries_to_do != []:
             query_info.extend(queries_to_do)
     if do_xnft:
-        query_info.append(get_queries_by_date("2022-12-01", "sdk_xnft", update_cache=True))
+        # Madlads
+        mintlist = utils.get_mad_lad_mints()
+        mad_lad_df = utils.get_mad_lad_df(mintlist)
+        mad_lad_df.to_csv("data/mad_lad.csv", index=False)
+        mintlist = list(mad_lad_df.mint)
+        query_info.extend(
+            [
+                get_queries_by_date("2022-12-01", "sdk_xnft", update_cache=True),
+                get_queries_by_date("2022-12-01", "sdk_xnft_new_users", update_cache=True),
+                get_queries_by_mint_list(mintlist, "sdk_madlist", update_cache=True),
+            ]
+        )
 
     logging.info(f"Running {len(query_info)} queries...")
     with Pool() as p:

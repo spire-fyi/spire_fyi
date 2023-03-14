@@ -569,6 +569,15 @@ if __name__ == "__main__":
 
         merged_xnft = createInstall.merge(xnft_info_df, on="XNFT")
 
+        mad_lad_df = pd.read_csv("data/mad_lad.csv").rename(columns={"mint": "MINT"})
+        mint_df = pd.read_csv("data/sdk_madlist/sdk_madlist_2022-12-01.csv")
+        merged_mad_lad = mad_lad_df.merge(mint_df, on="MINT", how="left")
+        merged_mad_lad.to_csv("data/mad_lad_all.csv", index=False)
+
+        xnft_new_users = pd.read_csv("data/sdk_xnft_new_users/sdk_xnft_new_users_2022-12-01.csv")
+        # TODO: any aggregation?
+        xnft_new_users.to_csv("data/xnft_new_users.csv", index=False)
+
         # TODO: get all xNFT users.
         # users = merged_xnft.FEE_PAYER.unique()
         # username_dict = {"FEE_PAYER":[], "Username":[]}

@@ -1,10 +1,8 @@
 from typing import Dict, Iterable, Union
 
-import ast
 import asyncio
 import datetime
 import logging
-import os
 import time
 from io import BytesIO
 from pathlib import Path
@@ -64,7 +62,7 @@ sdk = ShroomDK(API_KEY)
 rpc_url = "https://rpc.helius.xyz/?api-key=f09ecb19-af19-427c-b4e6-31580b74c837"
 
 LAMPORTS_PER_SOL = 1_000_000_000
-IPFS_RESOLVER_URL = "https://ipfs.io/ipfs/"
+IPFS_RESOLVER_URL = "https://cloudflare-ipfs.com/ipfs/"
 
 query_base = "https://next.flipsidecrypto.xyz/edit/queries"
 api_base = "https://api.flipsidecrypto.com/api/v2/queries"
@@ -657,7 +655,12 @@ def get_uri_info(uri: str) -> dict:
     url = resolve_ipfs_uri(uri)
     if "ipfs" in url:
         time.sleep(1)
-    data = requests.get(url).json()
+    try:
+        data = requests.get(url).json()
+    except:
+        data = requests.get(url)
+        print(data.text)
+        raise
     info = {"uri": uri}
     info["description"] = data["description"]
     info["image"] = resolve_ipfs_uri(data["image"])
@@ -673,6 +676,7 @@ def get_uri_info(uri: str) -> dict:
 
 
 def add_uri_info(xnft_info: pd.DataFrame) -> pd.DataFrame:
+    # TODO: better caching
     data = []
     for x in xnft_info.uri.unique():
         data.append(get_uri_info(x))
@@ -745,6 +749,7 @@ def get_backpack_username(x):
     return username
 
 
+@st.cache_data(ttl=3600)
 def get_backpack_addresses(username):
     if username == "":
         return ""
@@ -753,6 +758,41 @@ def get_backpack_addresses(username):
         r = requests.get(url, params={"username": username})
         j = r.json()
         addresses = j["user"]["public_keys"]
+        for x in addresses:
+            if x["blockchain"] == "solana":
+                return x["public_key"]
     except KeyError:
         return None
-    return addresses
+
+
+def get_mad_lad_mints():
+    nft = NFTAPI(helius_key)
+    # TODO: shouldn't have to deal with pagination due to collection size, but may need to eventually?
+    mintlist = nft.get_mintlists(
+        verified_collection_addresses=["FCk24cq1pYhQo5MQYKHf5N9VnY8tdrToF7u6gvvsnGrn"],
+        first_verified_creators=[],
+        limit=10000,
+    )
+    return mintlist
+
+
+def get_mad_lad_df(mad_lad_mintlist):
+    df = pd.DataFrame(mad_lad_mintlist["result"])
+    df["username"] = df.name.str.split("@").str[1]
+    return df
+
+
+@st.cache_data(ttl=3600)
+def load_mad_lad_data():
+    df = pd.read_csv("data/mad_lad_all.csv")
+    datecols = ["BLOCK_TIMESTAMP"]
+    df = reformat_columns(df, datecols)
+    return df
+
+
+@st.cache_data(ttl=3600)
+def load_xnft_new_users():
+    df = pd.read_csv("data/xnft_new_users.csv")
+    datecols = ["FIRST_TX_DATE"]
+    df = reformat_columns(df, datecols)
+    return df
