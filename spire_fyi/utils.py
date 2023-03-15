@@ -59,15 +59,15 @@ __all__ = [
 
 API_KEY = st.secrets["flipside"]["api_key"]
 sdk = ShroomDK(API_KEY)
-rpc_url = "https://rpc.helius.xyz/?api-key=f09ecb19-af19-427c-b4e6-31580b74c837"
+
+helius_key = st.secrets["helius"]["api_key"]
+rpc_url = f"https://rpc.helius.xyz/?api-key={helius_key}"
 
 LAMPORTS_PER_SOL = 1_000_000_000
 IPFS_RESOLVER_URL = "https://cloudflare-ipfs.com/ipfs/"
 
 query_base = "https://next.flipsidecrypto.xyz/edit/queries"
 api_base = "https://api.flipsidecrypto.com/api/v2/queries"
-
-helius_key = st.secrets["helius"]["api_key"]
 
 agg_method_dict = {
     "mean": "Average usage within date range",
@@ -77,6 +77,73 @@ agg_method_dict = {
 metric_dict = {
     "TX_COUNT": "Transaction Count",
     "SIGNERS": "Number of signers",
+}
+
+dex_programs = {
+    "Mango Markets": [
+        "mv3ekLzLbnVPNxjSKvqBpU3ZeZXPQdEC3bp5MDEBG68",
+        "5fNfvyp5czQVX77yoACa3JJVEhdRaWjPuazuWgjhTqEH",
+        "JD3bq9hGdy38PuWQ4h2YJpELmHVGPPfFSuFkpzAd9zfu",
+    ],
+    "Serum": [
+        "J2NhFnBxcwbxovE7avBQCXWPgfVtxi5sJfz68AH6R2Mg",
+        "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
+        "22Y43yTVxuUkoRKdm9thyRhQ3SdgQS7c7kB6UNCiaczD",
+        "EUqojwWA2rd19FZrzeBncJsm38Jm1hEhE3zsmX3bRc2o",
+        "BJ3jrUzddfuSrZHXSCxMUUQsjKEyLmuuyZebkcaFp2fg",
+        "4ckmDgGdxQoPDLUkDT3vHgSAkzA3QRdNq5ywwY4sUSJn",
+    ],
+    "Openbook": [
+        "srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX",
+    ],
+    "Aldrin": [
+        "AMM55ShdkoGRB5jVYPjWziwk8m5MpwyDgsMWHaMSQWH6",
+        "CURVGoZn8zycx6FXwwevgBTB2gVvdbGTEpvMJDbgs2t4",
+    ],
+    "Jupiter Aggregator": [
+        "JUP6i4ozu5ydDCnLiMogSckDPpbtr7BJ4FtzYWkb5Rk",
+        "JUP2jxvXaqu7NQY1GmNF4m1vodw12LVXYxbFL2uJvfo",
+        "JUP3c2Uh3WA4Ng34tw6kPd2G4C5BB21Xo36Je1s32Ph",
+        "JUP4Fb2cqiRUcaTHdrPC8h2gNsA2ETXiPDD33WcGuJB",
+    ],
+    "Raydium": [
+        "RVKd61ztZW9GUwhRbbLoYVRE5Xf1B2tVscKqwZqXgEr",
+        "27haf8L6oxUeXrHrgEgsexjSY5hbVUWEmvv9Nyxg8vQv",
+        "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+    ],
+    "Saber": [
+        "SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ",
+    ],
+    "Mercurial": [
+        "MERLuDFBMmsHnsBPZw2sDQZHvXFMwp8EdjudcU2HKky",
+    ],
+    "Orca": [
+        "DjVE6JNiYqPL2QXyCUUh8rNjHrbz9hXHNYt99MQ59qw1",
+        "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+        "9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP",
+    ],
+    "Step Finance": [
+        "SSwpMgqNDsyV7mAgN9ady4bDVu5ySjmmXejXvy2vLt1",
+    ],
+    "Cykura": [
+        "cysPXAjehMpVKUapzbMCCnpFxUFFryEWEaLgnb9NrR8",
+    ],
+    "Crema": [
+        "6MLxLqiXaaSUpkgMnWDTuejNZEz3kE7k2woyHGVFw319",
+    ],
+    "Lifinity": [
+        "EewxydAPCCVuNEyrVN68PuSYdQ7wKn27V9Gjeoi8dy3S",
+    ],
+    "Stepn": [
+        "Dooar9JkhdZ7J3LHN3A7YCuoGRUggXhQaG4kijfLGU2j",
+    ],
+    "Invariant": [
+        "HyaB3W9q6XdA5xwpU4XnSZV94htfmbmqJXZcEbRaJutt",
+    ],
+    "GooseFX": [
+        "7WduLbRfYhTJktjLw5FDEyrqoEv61aTTCuGAetgLjzN5",
+    ],
 }
 
 
@@ -695,7 +762,7 @@ def load_xnft_data():
 
 # def grouping_with_other(x):
 #     if
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=3600)
 def aggregate_xnft_data(df, n=15):
     total_counts = (
         df.groupby(["Xnft", "Mint Seed Name"])["Tx Id"]
@@ -796,3 +863,79 @@ def load_xnft_new_users():
     datecols = ["FIRST_TX_DATE"]
     df = reformat_columns(df, datecols)
     return df
+
+
+@st.cache_data(ttl=3600)
+def load_defi_data():
+    dex_info = pd.read_csv("data/dex_info.csv")
+    datecols = ["DATE"]
+    dex_info = reformat_columns(dex_info, datecols)
+
+    dex_new_user = pd.read_csv("data/dex_new_users.csv")
+    datecols = ["FIRST_TX_DATE"]
+    dex_new_user = reformat_columns(dex_new_user, datecols)
+
+    dex_signers_fee_payers = pd.read_csv("data/dex_signers_fee_payers.csv")
+    datecols = ["DATE"]
+    dex_signers_fee_payers = reformat_columns(dex_signers_fee_payers, datecols)
+
+    return dex_info, dex_new_user, dex_signers_fee_payers
+
+
+@st.cache_data(ttl=3600)
+def agg_defi_data(df, date_range):
+    chart_df = df.copy()[
+        df["Date"] >= (pd.to_datetime(datetime.datetime.today()) - pd.Timedelta(f"{int(date_range[:-1])}d"))
+    ]
+
+    top_dex_tx = chart_df.groupby(["Dex"]).Txs.sum().sort_values(ascending=False).reset_index()
+    top_dex_tx["Rank"] = top_dex_tx.index + 1
+
+    top_dex_user = chart_df.groupby(["Dex"])["Fee Payers"].sum().sort_values(ascending=False).reset_index()
+    top_dex_user["Rank"] = top_dex_user.index + 1
+
+    chart_df["Dex Grouped by Tx"] = chart_df.Dex.apply(
+        lambda x: x if top_dex_tx[top_dex_tx.Dex == x].Rank.values[0] < 7 else "Other"
+    )
+    chart_df["Dex Grouped by Fee Payer"] = chart_df.Dex.apply(
+        lambda x: x if top_dex_user[top_dex_user.Dex == x].Rank.values[0] < 7 else "Other"
+    )
+
+    tx_data = chart_df.groupby(["Date", "Dex Grouped by Tx"])[["Txs", "Fee Payers"]].sum().reset_index()
+    tx_data["Rank"] = tx_data["Dex Grouped by Tx"].apply(
+        lambda x: top_dex_tx[top_dex_tx.Dex == x].Rank.values[0] if x != "Other" else 10
+    )
+    tx_data["Normalized"] = tx_data["Txs"] / tx_data.groupby(["Date"])["Txs"].transform("sum")
+    user_data = (
+        chart_df.groupby(["Date", "Dex Grouped by Fee Payer"])[["Txs", "Fee Payers"]].sum().reset_index()
+    )
+    user_data["Rank"] = user_data["Dex Grouped by Fee Payer"].apply(
+        lambda x: top_dex_user[top_dex_user.Dex == x].Rank.values[0] if x != "Other" else 10
+    )
+    user_data["Normalized"] = user_data["Fee Payers"] / user_data.groupby(["Date"])["Fee Payers"].transform(
+        "sum"
+    )
+    return tx_data, user_data
+
+
+@st.cache_data(ttl=3600)
+def agg_defi_signers_data(df, date_range, protocol):
+    chart_df = df.copy()[
+        (df["Date"] >= (pd.to_datetime(datetime.datetime.today()) - pd.Timedelta(f"{int(date_range[:-1])}d")))
+        & (df.Dex == protocol)
+    ].reset_index(drop=True)
+    chart_df["Normalized"] = chart_df["Wallets"] / chart_df.groupby(["Date"])["Wallets"].transform("sum")
+    return chart_df
+
+
+@st.cache_data(ttl=3600)
+def agg_new_defi_users_data(df, date_range, protocol):
+    chart_df = df.copy()[
+        (
+            df["First Tx Date"]
+            >= (pd.to_datetime(datetime.datetime.today()) - pd.Timedelta(f"{int(date_range[:-1])}d"))
+        )
+        & (df.Dex == protocol)
+    ].reset_index(drop=True)
+    chart_df["url"] = chart_df["Program Id"].apply(lambda x: f"https://solana.fm/address/{x}")
+    return chart_df

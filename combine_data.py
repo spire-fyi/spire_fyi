@@ -341,8 +341,16 @@ if __name__ == "__main__":
         )
         weekly_new_user_data.to_csv("data/weekly_new_users.csv", index=False)
 
-        # #---
+        dex_new_users = utils.combine_flipside_date_data("data/sdk_dex_new_users", add_date=False)
+        dex_new_users.to_csv("data/dex_new_users.csv", index=False)
 
+        dex = utils.combine_flipside_date_data("data/sdk_dex", add_date=False)
+        dex.to_csv("data/dex_info.csv", index=False)
+
+        signers_fee_payers = utils.combine_flipside_date_data("data/sdk_openbook_users", add_date=False)
+        signers_fee_payers.to_csv("data/dex_signers_fee_payers.csv", index=False)
+
+        # #---
         # #TODO: need to divide the ~500k+ addresses into ~10 queries to add labels, if necessary
         # utils.get_flipside_labels(last30d_users, "user", "ADDRESS")
         # utils.get_solana_fm_labels(last30d_users, "user", "ADDRESS")

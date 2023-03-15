@@ -21,7 +21,7 @@ c1, c2 = st.columns([1, 3])
 c2.header("Spire")
 c2.caption(
     """
-    A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/), [Helius](https://helius.xyz/) and [SolanaFM APIs](https://docs.solana.fm/).
+    A viewpoint above Solana data. Insights and on-chain data analytics, inspired by the community and accessible to all. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/), [Helius](https://helius.xyz/) and [SolanaFM APIs](https://docs.solana.fm/).
 
     [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5
     """
@@ -31,10 +31,17 @@ c1.image(
     width=100,
 )
 st.write("---")
-st.header("xNFT Backpack Analysis")
-
-
+c1, c2 = st.columns([1, 8])
+image = Image.open("assets/images/Backpack_Logo.png")
+c1.image(image, width=60)
+c2.header("xNFT Backpack Analysis")
+c2.write("Exploring on-chain activity of [Backpack](https://twitter.com/xNFT_Backpack) wallet users")
+c2.caption(
+    "(Backpack and Mad Lads images sourced from the community image assets page [here](https://www.figma.com/community/file/1205194661079253210))"
+)
+st.write("---")
 st.subheader("xNFT Installs")
+st.caption("Highlighting the installation of xNFTs")
 xnft_df = utils.load_xnft_data()
 createInstall = xnft_df[xnft_df["Instruction Type"] == "createInstall"]
 
@@ -63,7 +70,7 @@ date_range = c1.radio(
     key="installs_date_range",
 )
 xnfts = c2.slider("Top xNFTs to view", 1, createInstall.Xnft.nunique(), 10, key="installs_slider")
-st.write("---")
+
 chart_df = createInstall.copy()[
     createInstall["Block Timestamp"]
     >= (pd.to_datetime(datetime.datetime.today()) - pd.Timedelta(f"{int(date_range[:-1])}d"))
@@ -171,7 +178,7 @@ chart = (
 c2.altair_chart(chart, use_container_width=True)
 
 
-st.subheader("xNFT Backpack User Information")
+st.subheader("Backpack User Information")
 date_range = st.radio(
     "Choose a date range:",
     [
@@ -219,6 +226,7 @@ chart = (
     )
 ).properties(height=300, width=600)
 st.altair_chart(chart, use_container_width=True)
+st.caption("New users based on the date where an address first installed an xNFT")
 
 st.write("---")
 c1, c2 = st.columns(2)
@@ -265,8 +273,16 @@ chart = (
 )
 c2.altair_chart(chart, use_container_width=True)
 
+st.write("---")
+c1, c2 = st.columns([1, 8])
+image = Image.open("assets/images/MadLads_Logo.png")
+c1.image(image, width=100)
+c2.header("Mad Lads: Madlist")
+c2.write(
+    "The [Mad Lads](https://twitter.com/MadLadsNFT) NFT collection from the xNFT Backpack team, is mintable only by users with a Madlist spot"
+)
+st.write("---")
 
-st.subheader("Mad Lads: Madlist")
 mad_lad_df = utils.load_mad_lad_data()
 madlist_count = (
     mad_lad_df.groupby("Username")
@@ -337,28 +353,27 @@ chart = (
 ).properties(height=600, width=600)
 c2.altair_chart(chart, use_container_width=True)
 
-st.write("---")
+st.subheader("Mad List Tracker")
 c1, c2 = st.columns(2)
 
 inner_radius = 150
 outer_radius = 250
+arc_df = pd.DataFrame(
+    {
+        "Category": [
+            "Claimed by users with > 1 spot",
+            "Claimed by users with 1 spot",
+            "Unclaimed",
+        ],
+        "Spots": [
+            madlist_count[madlist_count.Count > 1].Count.sum(),
+            madlist_count[madlist_count.Count == 1].Count.sum(),
+            10_000 - len(mad_lad_df),
+        ],
+    }
+)
 chart = (
-    alt.Chart(
-        pd.DataFrame(
-            {
-                "Category": [
-                    "Claimed by users with > 1 spot",
-                    "Claimed by users with 1 spot",
-                    "Unclaimed",
-                ],
-                "Spots": [
-                    madlist_count[madlist_count.Count > 1].Count.sum(),
-                    madlist_count[madlist_count.Count == 1].Count.sum(),
-                    10_000 - len(mad_lad_df),
-                ],
-            }
-        )
-    )
+    alt.Chart(arc_df)
     .mark_arc(
         innerRadius=inner_radius,
         outerRadius=outer_radius,
@@ -409,10 +424,12 @@ c2.metric(
     f"{len(madlist_count[madlist_count.Count > 1]) / len(madlist_count):.1%}",
 )
 
-
-st.subheader("Backpack Username Lookup")
+st.write('---')
+st.header("Backpack Username Lookup")
 address = st.text_input(
-    "Enter a Solana address or Backpack username for a summary of the address:", key="backpackt-text-input"
+    "Enter a Solana address or Backpack username for a summary of activity:",
+    value="anatoly",
+    key="backpackt-text-input",
 )
 if len(address) < 32 and address != "":
     _address = utils.get_backpack_addresses(address)
@@ -505,9 +522,9 @@ else:
             num_programs = f"{len(pd.unique(ast.literal_eval(tx_data.PROGRAMS_USED.values[0])))}"
         except ValueError:
             num_programs = f"{len(pd.unique(tx_data.PROGRAMS_USED.values[0]))}"
-        first_tx_date = f"{pd.to_datetime(tx_data.FIRST_TX_DATE.values[0]):%d %b %Y}"
+        first_tx_date = f"{pd.to_datetime(tx_data.FIRST_TX_DATE.values[0]):%Y-%m-%d}"
         num_tx = f"{tx_data.NUM_TXS.values[0]:,}"
-        total_fees = f"{tx_data.TOTAL_FEES.values[0]/utils.LAMPORTS_PER_SOL:,.5f} SOL"
+        total_fees = f"{tx_data.TOTAL_FEES.values[0]/utils.LAMPORTS_PER_SOL:,.5f}"
     else:
         num_programs = None
         first_tx_date = None
@@ -518,7 +535,7 @@ else:
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("First Transaction Date", first_tx_date)
     c2.metric("Number of Transactions", num_tx)
-    c3.metric("Total Fees Paid", total_fees)
+    c3.metric("Total Fees Paid (SOL)", total_fees)
     c4.metric("Number of Programs Used", num_programs)
     c5.metric("Number of DEX swaps", num_swaps)
     if backpack:
@@ -544,3 +561,147 @@ else:
 
     num_mints = mints_data.TX_ID.nunique()
     c5.metric("Number of NFT mints", num_mints)
+
+
+with st.expander("View and Download Data Table"):
+    st.subheader("xNFT Data")
+    st.write("**All xNFT Install Transactions**")
+    st.write(createInstall)
+    slug = f"xnft_installs_tx"
+    st.download_button(
+        "Click to Download",
+        createInstall.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**xNFT Installs by Username**")
+    st.write(xnft_counts_by_user)
+    slug = f"xnft_installs_by_user"
+    st.download_button(
+        "Click to Download",
+        xnft_counts_by_user.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**Daily xNFT Installation Counts**")
+    st.write(chart_df)
+    slug = f"xnft_installs_count_daily"
+    st.download_button(
+        "Click to Download",
+        chart_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**Total xNFT Installation Counts**")
+    st.write(totals)
+    slug = f"xnft_installs_count_total"
+    st.download_button(
+        "Click to Download",
+        totals.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**New xNFT Users**")
+    st.write(new_xnft_users)
+    slug = f"xnft_new_isers"
+    st.download_button(
+        "Click to Download",
+        new_xnft_users.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.subheader("Mad Lad Data")
+    st.write("**All Madlist Token holders**")
+    st.write(mad_lad_df)
+    slug = f"mad_lad_all"
+    st.download_button(
+        "Click to Download",
+        mad_lad_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**All Madlist Token Counts by User**")
+    st.write(madlist_count)
+    slug = f"mad_lad_user"
+    st.download_button(
+        "Click to Download",
+        madlist_count.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**Mad List Tracker**")
+    st.write(arc_df)
+    slug = f"mad_list_tracker"
+    st.download_button(
+        "Click to Download",
+        arc_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+
+    try:
+        st.subheader("User Lookup Data")
+        st.write("**User Overview**")
+        st.write(tx_data)
+        slug = f"user_overview"
+        st.download_button(
+            "Click to Download",
+            tx_data.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+
+        st.write("**User NFT sales Data**")
+        st.write(sales_data)
+        slug = f"user_sales"
+        st.download_button(
+            "Click to Download",
+            sales_data.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+
+        st.write("**User NFT purchases Data**")
+        st.write(purchases_data)
+        slug = f"user_purchases"
+        st.download_button(
+            "Click to Download",
+            purchases_data.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+
+        st.write("**User NFT Mints data**")
+        st.write(mints_data)
+        slug = f"user_mints"
+        st.download_button(
+            "Click to Download",
+            mints_data.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+
+        st.write("**User Swaps Data**")
+        st.write(swaps_data)
+        slug = f"user_swaps"
+        st.download_button(
+            "Click to Download",
+            swaps_data.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+    except NameError:
+        pass
