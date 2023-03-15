@@ -59,6 +59,40 @@ Data used for analysis is available for download as a CSV!
 - [Bonk](https://spire.fyi/Bonk): View the Bonk Burn Leaderboard, and other data about Solana's community dog coin.
 - [Overview Updates](https://spire.fyi): A referesh of the main overview page. Click a tab (`Ecosystem`, `NFT`, `Programs` or `DeFi`) to view highlights of a particular topic.
 
+## Usage Instructions
+While Spire is meant to be viewed from its [web page](https://spire.fyi/), it can be ran locally using either Python or within a Docker container.
+
+Since there are API keys required to access some data, it is necessary to get these first.
+Get a [Flipside ShrookDK API Key](https://sdk.flipsidecrypto.xyz/shroomdk) and a [Helius API Key](https://helius.xyz/), and save them to a `.streamlit/secrets.toml` file:
+```toml
+[flipside]
+api_key = "FLIPSIDE_KEY_HERE"
+
+[helius]
+api_key = "HELIUS_KEY_HERE"
+```
+
+Then follow one of the sets of instructions below.
+
+### Docker 
+With [Docker and Docker Compose](https://docs.docker.com/engine/install/) installed, run the following command:
+```
+docker compose up app
+```
+Go to `localhost:8501` in a web browser to view the app.
+
+### Python
+With [Poetry](https://python-poetry.org/) installed, run the following command to install spire and its dependencies:
+```
+poetry install
+```
+Next, run this command to start the streamlit server:
+```
+poetry run streamlit run Overview.py
+```
+Finally, go to `localhost:8501` in a web browser to view the app.
+
+
 ## Team:
 - LTirrell: [@ltirrell_](https://twitter.com/ltirrell_)
 - Anduril: [@AndurilData](https://twitter.com/AndurilData)
