@@ -23,7 +23,7 @@ c1, c2 = st.columns([1, 3])
 c2.header("Spire")
 c2.caption(
     """
-    A viewpoint above Solana data. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/), [Helius](https://helius.xyz/) and [SolanaFM APIs](https://docs.solana.fm/).
+    A viewpoint above Solana data. Insights and on-chain data analytics, inspired by the community and accessible to all. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/), [Helius](https://helius.xyz/) and [SolanaFM APIs](https://docs.solana.fm/).
     
     Spire is a Solana-focused on-chain data platform that aims to provide in-depth data and insights to add value to the Solana ecosystem.
 
@@ -78,11 +78,12 @@ overview_query_dict = {
         "datecols": ["DATE"],
     },
     # Defi
-    "DeFi Swaps": {
-        "query": f"{query_base}/76d039b3-edd1-4c5e-b2b6-014658b98b85",
-        "api": f"{api_base}/76d039b3-edd1-4c5e-b2b6-014658b98b85/data/latest",
-        "datecols": ["DATE"],
-    },
+    # NOTE: using self-maintained queries
+    # "DeFi Swaps": {
+    #     "query": f"{query_base}/76d039b3-edd1-4c5e-b2b6-014658b98b85",
+    #     "api": f"{api_base}/76d039b3-edd1-4c5e-b2b6-014658b98b85/data/latest",
+    #     "datecols": ["DATE"],
+    # },
 }
 overview_data_dict = {}
 for k, v in overview_query_dict.items():
@@ -269,17 +270,19 @@ with ecosystem:
     c1, c2 = st.columns(2)
     fee_date_range = c2.radio(
         "Date range:",
-        [60, 30, 14, 7, 1],
-        format_func=lambda x: f"{x}d",
+        ["60d", "30d", "14d", "7d", "1d"],
         key="fees_burned",
         horizontal=True,
         index=1,
     )
+
     # Total Fee and Burns
     chart = (
         alt.Chart(
-            fees.iloc[-1 * fee_date_range :].melt(id_vars="Date"),
-            title=f"Total Fees and Fees Burned, Past 60d",
+            fees[
+                fees.Date >= (pd.to_datetime(fees.Date.max()) - pd.Timedelta(fee_date_range))
+            ].melt(id_vars="Date"),
+            title=f"Total Fees and Fees Burned, Past {fee_date_range}d",
         )
         .mark_area(
             line={"color": "#4B3D60"},
@@ -318,13 +321,15 @@ with ecosystem:
 
     price = utils.load_sol_daily_price()
     most_recent_price = price.iloc[-1]["Price (USD)"]
-    fees_in_range = fees[-1 * fee_date_range :].copy()
+    fees_in_range = fees[
+                fees.Date >= (pd.to_datetime(fees.Date.max()) - pd.Timedelta(fee_date_range))
+            ].copy()
     c2.metric(
-        f"Total Fees in Past {fee_date_range} days",
+        f"Total Fees in Past {fee_date_range[:-1]} days",
         f"{fees_in_range.Fees.sum():,.0f} SOL (${fees_in_range.Fees.sum() * most_recent_price:,.0f})",
     )
     c2.metric(
-        f"Fees Burned in Past {fee_date_range} days 🔥🔥🔥",
+        f"Fees Burned in Past {fee_date_range[:-1]} days 🔥🔥🔥",
         f"{fees_in_range.Burn.sum():,.0f} SOL (${fees_in_range.Burn.sum() * most_recent_price:,.0f})",
     )
     c2.caption(
@@ -568,79 +573,224 @@ with programs:
 
 with defi:
     st.header("DeFi")
-
-    def combine_swap_program_names(val):
-        if val.lower().startswith("raydium"):
-            return "Raydium"
-        elif val.lower().startswith("orca"):
-            if "whirlpool" in val.lower():
-                return "Orca Whirlpool"
-            else:
-                return "Orca"
-        elif val.lower().startswith("jupiter"):
-            return "Jupiter"
-        elif val.lower().startswith("saber"):
-            return "Saber"
-        else:
-            return val.title()
-
-    defi_data = overview_data_dict["DeFi Swaps"].copy()
-    defi_data["Swap Program Normalized"] = defi_data["Swap Program"].apply(combine_swap_program_names)
-    defi_data_grouped = (
-        defi_data.groupby(["Date", "Swap Program Normalized"])[["Daily Txs", "Swapper"]].sum().reset_index()
+    dex_info, dex_new_user, dex_signers_fee_payers = utils.load_defi_data()
+    with st.expander("Expand to see DeFi protocols and their Program IDs"):
+        for k, v in utils.dex_programs.items():
+            progs = ""
+            for x in v:
+                progs += f"- [{x}](https://solana.fm/address/{x})\n"
+            st.write(f"**{k}**\n{progs}")
+    st.subheader("Transaction and User Overview")
+    date_range = st.radio(
+        "Choose a date range:",
+        [
+            "180d",
+            "90d",
+            "60d",
+            "30d",
+            "14d",
+            "7d",
+        ],
+        horizontal=True,
+        index=2,
+        key="defi_date_range",
     )
-
+    tx_data, user_data = utils.agg_defi_data(dex_info, date_range)
     c1, c2 = st.columns(2)
-    # Swap Tx
     chart = (
-        alt.Chart(defi_data_grouped, title=f"DeFi Swap Transactions by Program: Daily, Past 60d")
-        .mark_bar(width=4)
+        alt.Chart(tx_data, title=f"DeFi Transactions by Protocol: Daily, Past {date_range}")
+        .mark_area(
+            interpolate="monotone",
+        )
         .encode(
             x=alt.X(
                 "yearmonthdate(Date)",
                 title="Date",
             ),
-            y=alt.Y("Daily Txs", title="Transaction Count"),
-            order=alt.Order("Daily Txs", sort="descending"),
+            y=alt.Y("Txs", title="Transaction Count"),
+            order=alt.Order("Rank", sort="descending"),
             color=alt.Color(
-                "Swap Program Normalized",
-                title="Swap Program",
-                scale=alt.Scale(scheme="sinebow"),
-                sort=alt.EncodingSortField(field="Daily Txs", op="max", order="ascending"),
+                "Dex Grouped by Tx",
+                title="DeFi Protocol",
+                scale=alt.Scale(scheme="turbo"),
+                sort=alt.EncodingSortField(field="Txs", op="mean", order="descending"),
             ),
             tooltip=[
                 alt.Tooltip("yearmonthdate(Date)", title="Date"),
-                alt.Tooltip("Swap Program Normalized", title="Swap Program"),
-                alt.Tooltip("Daily Txs", title="Transaction Count", format=","),
-                alt.Tooltip("Swapper", title="Unique Users", format=","),
+                alt.Tooltip("Dex Grouped by Tx", title="DeFi Protocol"),
+                alt.Tooltip("Txs", title="Transaction Count", format=","),
+                alt.Tooltip("Fee Payers", title="Unique Users", format=","),
+                alt.Tooltip("Normalized", title="Transaction Count Percentage", format=".1%"),
+            ],
+        )
+        .properties(height=600, width=600)
+        .interactive(bind_x=False)
+    )
+    c1.altair_chart(chart, use_container_width=True)
+    chart = (
+        alt.Chart(user_data, title=f"DeFi Unique Fee Payers by Protocol: Daily, Past {date_range}")
+        .mark_area(
+            interpolate="monotone",
+        )
+        .encode(
+            x=alt.X(
+                "yearmonthdate(Date)",
+                title="Date",
+            ),
+            y=alt.Y("Fee Payers", title="Unique Fee Payers"),
+            order=alt.Order("Rank", sort="descending"),
+            color=alt.Color(
+                "Dex Grouped by Fee Payer",
+                title="DeFi Protocol",
+                scale=alt.Scale(scheme="turbo"),
+                sort=alt.EncodingSortField(field="Fee Payers", op="mean", order="descending"),
+            ),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                alt.Tooltip("Dex Grouped by Fee Payer", title="DeFi Protocol"),
+                alt.Tooltip("Txs", title="Transaction Count", format=","),
+                alt.Tooltip("Fee Payers", title="Unique Fee Payers", format=","),
+                alt.Tooltip("Normalized", title="Unique Fee Payers Percentage", format=".1%"),
+            ],
+        )
+        .properties(height=600, width=600)
+        .interactive(bind_x=False)
+    )
+    c2.altair_chart(chart, use_container_width=True)
+
+    chart = (
+        alt.Chart(tx_data)
+        .mark_area(
+            interpolate="monotone",
+        )
+        .encode(
+            x=alt.X(
+                "yearmonthdate(Date)",
+                title="Date",
+            ),
+            y=alt.Y("Txs", title="Transaction Count", stack="normalize"),
+            order=alt.Order("Rank", sort="descending"),
+            color=alt.Color(
+                "Dex Grouped by Tx",
+                title="DeFi Protocol",
+                scale=alt.Scale(scheme="turbo"),
+                sort=alt.EncodingSortField(field="Txs", op="mean", order="descending"),
+            ),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                alt.Tooltip("Dex Grouped by Tx", title="DeFi Protocol"),
+                alt.Tooltip("Txs", title="Transaction Count", format=","),
+                alt.Tooltip("Fee Payers", title="Unique Users", format=","),
+                alt.Tooltip("Normalized", title="Transaction Count Percentage", format=".1%"),
+            ],
+        )
+        .properties(height=600, width=600)
+        .interactive(bind_x=False)
+    )
+    c1.altair_chart(chart, use_container_width=True)
+    chart = (
+        alt.Chart(user_data)
+        .mark_area(
+            interpolate="monotone",
+        )
+        .encode(
+            x=alt.X(
+                "yearmonthdate(Date)",
+                title="Date",
+            ),
+            y=alt.Y("Fee Payers", title="Unique Fee Payers", stack="normalize"),
+            order=alt.Order("Rank", sort="descending"),
+            color=alt.Color(
+                "Dex Grouped by Fee Payer",
+                title="DeFi Protocol",
+                scale=alt.Scale(scheme="turbo"),
+                sort=alt.EncodingSortField(field="Fee Payers", op="mean", order="descending"),
+            ),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                alt.Tooltip("Dex Grouped by Fee Payer", title="DeFi Protocol"),
+                alt.Tooltip("Txs", title="Transaction Count", format=","),
+                alt.Tooltip("Fee Payers", title="Unique Fee Payers", format=","),
+                alt.Tooltip("Normalized", title="Unique Fee Payers Percentage", format=".1%"),
+            ],
+        )
+        .properties(height=600, width=600)
+        .interactive(bind_x=False)
+    )
+    c2.altair_chart(chart, use_container_width=True)
+
+    st.subheader("Detailed User Information")
+    c1, c2 = st.columns(2)
+    date_range = c1.radio(
+        "Choose a date range:",
+        [
+            "180d",
+            "90d",
+            "60d",
+            "30d",
+            "14d",
+            "7d",
+        ],
+        horizontal=True,
+        index=2,
+        key="defi_users_date_range",
+    )
+    protocol = c2.selectbox(
+        "Choose a Protocol:",
+        sorted(dex_signers_fee_payers.Dex.unique()),
+        index=5,
+        key="signers_fee_payers_select",
+    )
+    defi_signers = utils.agg_defi_signers_data(dex_signers_fee_payers, date_range, protocol)
+    chart = (
+        alt.Chart(defi_signers, title=f"Total Signers vs Fee Payers, {protocol}: Daily, Past {date_range}")
+        .mark_area()
+        .encode(
+            x=alt.X(
+                "yearmonthdate(Date)",
+                title="Date",
+            ),
+            y=alt.Y("Wallets", title="Unique Wallet Addresses"),
+            color=alt.Color(
+                "Type",
+                title="User Type",
+                scale=alt.Scale(domain=["Fee Payers", "Signers"], range=["#4B3D60", "#FD5E53"]),
+                sort="-y",
+            ),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                alt.Tooltip("Wallets", title="Unique Wallet Addresses", format=","),
+                alt.Tooltip("Type", title="User Type"),
+                alt.Tooltip("Normalized", title="Unique Wallet Addresses Percentage", format=".1%"),
             ],
         )
         .properties(height=600, width=600)
         .interactive()
     )
     c1.altair_chart(chart, use_container_width=True)
-    # Unique addresses
     chart = (
-        alt.Chart(defi_data_grouped, title=f"DeFi Unique Wallet Addresses by Program: Daily, Past 60d")
-        .mark_bar(width=4)
+        alt.Chart(
+            defi_signers,
+            title=f"Total Signers vs Fee Payers Percentage, {protocol}: Daily, Past {date_range}",
+        )
+        .mark_area()
         .encode(
             x=alt.X(
                 "yearmonthdate(Date)",
                 title="Date",
             ),
-            y=alt.Y("Swapper", title="Unique Wallet Addresses"),
-            order=alt.Order("Swapper", sort="descending"),
+            y=alt.Y("Wallets", title="Unique Wallet Addresses", stack="normalize"),
             color=alt.Color(
-                "Swap Program Normalized",
-                title="Swap Program",
-                scale=alt.Scale(scheme="sinebow"),
-                sort=alt.EncodingSortField(field="Swapper", op="max", order="ascending"),
+                "Type",
+                title="User Type",
+                scale=alt.Scale(domain=["Fee Payers", "Signers"], range=["#4B3D60", "#FD5E53"]),
+                sort="-y",
             ),
             tooltip=[
                 alt.Tooltip("yearmonthdate(Date)", title="Date"),
-                alt.Tooltip("Swap Program Normalized", title="Swap Program"),
-                alt.Tooltip("Daily Txs", title="Transaction Count", format=","),
-                alt.Tooltip("Swapper", title="Unique Users", format=","),
+                alt.Tooltip("Wallets", title="Unique Wallet Addresses", format=","),
+                alt.Tooltip("Type", title="User Type"),
+                alt.Tooltip("Normalized", title="Unique Wallet Addresses Percentage", format=".1%"),
             ],
         )
         .properties(height=600, width=600)
@@ -648,24 +798,100 @@ with defi:
     )
     c2.altair_chart(chart, use_container_width=True)
 
+    new_defi_users = utils.agg_new_defi_users_data(dex_new_user, date_range, protocol)
+    chart = (
+        alt.Chart(
+            new_defi_users,
+            title=f"New Users of {protocol}: Daily, Past {date_range}",
+        )
+        .mark_bar(color="#FD5E53")
+        .encode(
+            x=alt.X("yearmonthdate(First Tx Date)", title="Date"),
+            y=alt.Y("New Wallets", title="Wallets"),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(First Tx Date)", title="Date"),
+                alt.Tooltip("New Wallets", title="Wallets", format=","),
+                alt.Tooltip("Program Id"),
+            ],
+            color="Program Id",
+            href="url",
+        )
+        .properties(height=600, width=600)
+        .interactive()
+    )
+    st.altair_chart(chart, use_container_width=True)
+
     with st.expander("View and Download Data Table"):
-        st.subheader("DeFi Swaps - Grouped")
-        st.write(defi_data_grouped)
-        slug = f"ecosystem_overview_defi_grouped"
+        st.subheader("Defi Data - Raw")
+        st.write("**Protocol Info**")
+        st.write(dex_info)
+        slug = f"ecosystem_overview_defi_protocol_info"
         st.download_button(
             "Click to Download",
-            defi_data_grouped.to_csv(index=False).encode("utf-8"),
+            dex_info.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+        st.write("**Signers and Fee Payers by Protocol**")
+        st.write(dex_signers_fee_payers)
+        slug = f"ecosystem_overview_defi_signers_fee_payers"
+        st.download_button(
+            "Click to Download",
+            dex_signers_fee_payers.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+        st.write("**New Users by Protocol**")
+        st.write(dex_new_user)
+        slug = f"ecosystem_overview_defi_new_users"
+        st.download_button(
+            "Click to Download",
+            dex_new_user.to_csv(index=False).encode("utf-8"),
             f"{slug}.csv",
             "text/csv",
             key=f"download-{slug}",
         )
         st.write("---")
-        st.subheader("DeFi Swaps - Raw")
-        st.write(defi_data)
-        slug = f"ecosystem_overview_defi_raw"
+
+        st.subheader("Defi Data - Aggregated")
+        st.write("**Protocol Info -- Transaction data**")
+        st.write(tx_data)
+        slug = f"ecosystem_overview_defi_protocol_info_tx"
         st.download_button(
             "Click to Download",
-            defi_data.to_csv(index=False).encode("utf-8"),
+            tx_data.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+        st.write("**Protocol Info -- User data**")
+        st.write(user_data)
+        slug = f"ecosystem_overview_defi_protocol_info_user"
+        st.download_button(
+            "Click to Download",
+            user_data.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+        st.write(f"**Signers and Fee Payers for {protocol}, past {date_range}**")
+        st.write(defi_signers)
+        slug = f"ecosystem_overview_defi_signers_fee_payers_{protocol}_{date_range}"
+        st.download_button(
+            "Click to Download",
+            defi_signers.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+        st.write(f"**New Users for {protocol}, past {date_range}**")
+        st.write(new_defi_users)
+        slug = f"ecosystem_overview_defi_new_users_{protocol}_{date_range}"
+        st.download_button(
+            "Click to Download",
+            new_defi_users.to_csv(index=False).encode("utf-8"),
             f"{slug}.csv",
             "text/csv",
             key=f"download-{slug}",

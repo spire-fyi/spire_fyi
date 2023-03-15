@@ -70,6 +70,13 @@ past_90d = [
         (datetime.datetime.today() - pd.Timedelta("1d")),
     )
 ]
+past_180d = [
+    f"{x:%Y-%m-%d}"
+    for x in pd.date_range(
+        (datetime.datetime.today() - pd.Timedelta("181d")),
+        (datetime.datetime.today() - pd.Timedelta("1d")),
+    )
+]
 past_90d_hours = [
     # f"{x:%Y-%m-%d %H:%M:%S.%f}"
     f"{x:%F %T.%f}"[:-3]
@@ -125,10 +132,17 @@ def get_queries_by_date(date, query_basename, update_cache=False):
         return query, output_file
 
 
+def get_queries_by_date_and_dex_program(date, query_basename, program, update_cache=False):
+    query = create_query_by_date_and_program(date, query_basename, program)
+    output_dir = Path(f"data/{query_basename}")
+    output_file = Path(output_dir, f"{query_basename}_{date.replace(' ', '_')}_{program}.csv")
+    if update_cache or not output_file.exists():
+        return query, output_file
+
+
 def get_queries_by_mint_list(mintlist, query_basename, update_cache=False):
     query = create_query_by_creator_address_and_mints(query_basename, "", mintlist)
     output_dir = Path(f"data/{query_basename}")
-    date = datetime.date.today()
     output_file = Path(output_dir, f"{query_basename}_2022-12-01.csv")
     if update_cache or not output_file.exists():
         return query, output_file
@@ -174,7 +188,7 @@ def get_nft_transfer_queries(unique_collection_mints, query_basename, update_cac
     return queries_to_do
 
 
-def get_queries_by_date_and_programs(date, query_basename, df, update_cache=False):
+def get_queries_by_date_and_programs(date, query_basename, df, update_cache=False) -> list:
     program_ids = utils.get_program_ids(df)
     queries_to_do = []
     for program in program_ids:
@@ -280,11 +294,13 @@ def query_flipside_data(enumerated_query_info, save=True):
     query_file.parent.mkdir(exist_ok=True, parents=True)
     with open(query_file, "w") as f:
         f.write(query)
-    if i % 1 == 0:
-        sleep(5)
+    # if i % 1 == 0:
+    #     sleep(5)
     if i % 5 == 0:
-        sleep(10)
+        sleep(3)
     if i % 10 == 0:
+        sleep(10)
+    if i % 100 == 0:
         sleep(15)
     try:
         query_result_set = sdk.query(query, cached=False)
@@ -332,14 +348,25 @@ if __name__ == "__main__":
             ("sdk_weekly_program_count_sol", all_weeks),
             ("sdk_weekly_new_users_sol", all_weeks),
             ("sdk_weekly_users_sol", all_weeks),
+            ("sdk_dex", past_180d),
+            ("sdk_openbook_users", past_180d),
+            ("sdk_dex_new_users", past_180d),
         ]
         if do_nft_mints:
             main_queries.append(("sdk_nft_mints", past_90d_hours))
         for q, dates in main_queries:
             for date in dates:
-                queries_to_do = get_queries_by_date(date, q)
-                if queries_to_do is not None:
-                    query_info.append(queries_to_do)
+                if q == "sdk_dex_new_users":  # HACK
+                    dex_program_ids = [x for v in utils.dex_programs.values() for x in v]  # flatten dict
+                    for p in dex_program_ids:
+                        queries_to_do = get_queries_by_date_and_dex_program(date, q, p)
+                        if queries_to_do is not None:
+                            query_info.append(queries_to_do)
+                else:
+                    queries_to_do = get_queries_by_date(date, q)
+                    if queries_to_do is not None:
+                        query_info.append(queries_to_do)
+
         if do_network:
             for dates, max_date_string in [  # HACK
                 (past_7d, "8d"),
@@ -370,6 +397,7 @@ if __name__ == "__main__":
                         queries_to_do = get_queries_by_date_and_programs(date, q, df)
                         if queries_to_do != []:
                             query_info.extend(queries_to_do)
+
     if do_nft_metadata:
         # NFT processing
         nft_metadata_file = "data/unique_collection_mints.csv"
