@@ -80,7 +80,7 @@ with st.expander("Instructions"):
     """
     )
 
-transfers, swaps, nft = st.tabs(["Transfers", "Swaps", "NFT"])
+swaps, nft, transfers = st.tabs(["Swaps", "NFT", "Transfers"])
 
 with transfers:
     st.subheader("Whale Tranfers")
@@ -88,7 +88,11 @@ with transfers:
     transfer_whales = whale_data_dict["transfers"]
     # #HACK: price table is incorrect for some low volume coins
     transfer_whales = transfer_whales[
-        ~(transfer_whales["Token Name"].isin(["Buff Samo", "CashCow", "Boo", "Cope Token", "Solminter"]))
+        ~(
+            transfer_whales["Token Name"].isin(
+                ["Buff Samo", "CashCow", "Boo", "Cope Token", "Solminter", "The Xenobots Project"]
+            )
+        )
     ].reset_index(drop=True)
     scale = st.checkbox(
         "Log Scale",
