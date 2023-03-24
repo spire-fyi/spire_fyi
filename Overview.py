@@ -32,6 +32,7 @@ c2.caption(
     [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5
     """
 )
+#TODO: add stockpile donation? https://www.stockpile.pro/projects/fMqAvbsrWseJji8QyNOf
 c1.image(
     image,
     width=150,

@@ -1,4 +1,32 @@
 TYPE,DATE,WALLETS,DEX
+Fee Payers,2023-03-22,1,GooseFX
+Fee Payers,2023-03-22,6,Saber
+Fee Payers,2023-03-22,1,Cykura
+Signers,2023-03-22,67,Aldrin
+Fee Payers,2023-03-22,192,Openbook
+Signers,2023-03-22,5,Lifinity
+Fee Payers,2023-03-22,39,Serum
+Fee Payers,2023-03-22,4,Invariant
+Signers,2023-03-22,4,Invariant
+Signers,2023-03-22,23908,Stepn
+Signers,2023-03-22,7,Step Finance
+Signers,2023-03-22,8720,Jupiter Aggregator
+Signers,2023-03-22,1,GooseFX
+Signers,2023-03-22,1529,Openbook
+Signers,2023-03-22,3506,Raydium
+Signers,2023-03-22,41,Serum
+Signers,2023-03-22,1,Cykura
+Fee Payers,2023-03-22,6247,Stepn
+Signers,2023-03-22,18,Mercurial
+Fee Payers,2023-03-22,5,Lifinity
+Fee Payers,2023-03-22,1414,Raydium
+Fee Payers,2023-03-22,8522,Jupiter Aggregator
+Signers,2023-03-22,6,Saber
+Fee Payers,2023-03-22,27,Aldrin
+Fee Payers,2023-03-22,8,Mercurial
+Fee Payers,2023-03-22,5,Step Finance
+Signers,2023-03-22,8951,Orca
+Fee Payers,2023-03-22,988,Orca
 Signers,2022-10-27,53895,Stepn
 Signers,2022-10-27,8143,Orca
 Signers,2022-10-27,8,Step Finance
@@ -1711,6 +1739,34 @@ Signers,2022-10-23,2,Invariant
 Fee Payers,2022-10-23,398,Serum
 Signers,2022-10-23,52,Mercurial
 Signers,2022-10-23,48037,Serum
+Fee Payers,2023-03-23,1,Invariant
+Fee Payers,2023-03-23,8,Mercurial
+Fee Payers,2023-03-23,2,GooseFX
+Signers,2023-03-23,9,Saber
+Fee Payers,2023-03-23,9,Lifinity
+Signers,2023-03-23,20,Mercurial
+Fee Payers,2023-03-23,31,Aldrin
+Signers,2023-03-23,7510,Orca
+Fee Payers,2023-03-23,8736,Jupiter Aggregator
+Signers,2023-03-23,23866,Stepn
+Signers,2023-03-23,1,Invariant
+Signers,2023-03-23,3432,Raydium
+Signers,2023-03-23,61,Aldrin
+Signers,2023-03-23,10,Lifinity
+Signers,2023-03-23,1632,Openbook
+Fee Payers,2023-03-23,171,Openbook
+Fee Payers,2023-03-23,2,Mango Markets
+Signers,2023-03-23,2,GooseFX
+Signers,2023-03-23,3,Mango Markets
+Signers,2023-03-23,4,Step Finance
+Signers,2023-03-23,41,Serum
+Fee Payers,2023-03-23,6146,Stepn
+Fee Payers,2023-03-23,4,Step Finance
+Fee Payers,2023-03-23,9,Saber
+Fee Payers,2023-03-23,985,Orca
+Fee Payers,2023-03-23,1424,Raydium
+Signers,2023-03-23,8784,Jupiter Aggregator
+Fee Payers,2023-03-23,41,Serum
 Signers,2023-03-21,10,Saber
 Signers,2023-03-21,1707,Openbook
 Fee Payers,2023-03-21,8774,Jupiter Aggregator
