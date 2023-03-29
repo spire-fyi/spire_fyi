@@ -726,7 +726,6 @@ def get_uri_info(uri: str) -> dict:
         data = requests.get(url).json()
     except:
         data = requests.get(url)
-        print(data.text)
         raise
     info = {"uri": uri}
     info["description"] = data["description"]
@@ -736,7 +735,12 @@ def get_uri_info(uri: str) -> dict:
     except KeyError:
         pass
     try:
-        info = {**info, **get_xnft_contacts(data["xnft"]["contact"])}
+        xnft_contact = data["xnft"]["contact"]
+        if type(xnft_contact) == str:
+            contact_info = {"Contact Other": xnft_contact}
+        else:
+            contact_info = get_xnft_contacts(xnft_contact)
+            info = {**info, **contact_info}
     except KeyError:
         pass
     return info
