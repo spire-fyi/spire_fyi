@@ -24,7 +24,7 @@ c2.caption(
     """
     A viewpoint above Solana data. Insights and on-chain data analytics, inspired by the community and accessible to all. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/), [Helius](https://helius.xyz/) and [SolanaFM APIs](https://docs.solana.fm/).
 
-    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5
+    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5 , or contribute on [Stockpile](https://www.stockpile.pro/projects/fMqAvbsrWseJji8QyNOf)
     """
 )
 c1.image(
@@ -90,7 +90,16 @@ with transfers:
     transfer_whales = transfer_whales[
         ~(
             transfer_whales["Token Name"].isin(
-                ["Buff Samo", "CashCow", "Boo", "Cope Token", "Solminter", "The Xenobots Project"]
+                [
+                    "Buff Samo",
+                    "CashCow",
+                    "Boo",
+                    "Cope Token",
+                    "Solminter",
+                    "The Xenobots Project",
+                    "Starbots GEAR",
+                    "Kalisten",
+                ]
             )
         )
     ].reset_index(drop=True)

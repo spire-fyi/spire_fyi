@@ -29,10 +29,9 @@ c2.caption(
 
     Spire is currently a beta project and is in active development. Reach out on Twitter with questions and comments!
 
-    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5
+    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5 , or contribute on [Stockpile](https://www.stockpile.pro/projects/fMqAvbsrWseJji8QyNOf)
     """
 )
-#TODO: add stockpile donation? https://www.stockpile.pro/projects/fMqAvbsrWseJji8QyNOf
 c1.image(
     image,
     width=150,
@@ -280,9 +279,9 @@ with ecosystem:
     # Total Fee and Burns
     chart = (
         alt.Chart(
-            fees[
-                fees.Date >= (pd.to_datetime(fees.Date.max()) - pd.Timedelta(fee_date_range))
-            ].melt(id_vars="Date"),
+            fees[fees.Date >= (pd.to_datetime(fees.Date.max()) - pd.Timedelta(fee_date_range))].melt(
+                id_vars="Date"
+            ),
             title=f"Total Fees and Fees Burned, Past {fee_date_range}d",
         )
         .mark_area(
@@ -322,9 +321,7 @@ with ecosystem:
 
     price = utils.load_sol_daily_price()
     most_recent_price = price.iloc[-1]["Price (USD)"]
-    fees_in_range = fees[
-                fees.Date >= (pd.to_datetime(fees.Date.max()) - pd.Timedelta(fee_date_range))
-            ].copy()
+    fees_in_range = fees[fees.Date >= (pd.to_datetime(fees.Date.max()) - pd.Timedelta(fee_date_range))].copy()
     c2.metric(
         f"Total Fees in Past {fee_date_range[:-1]} days",
         f"{fees_in_range.Fees.sum():,.0f} SOL (${fees_in_range.Fees.sum() * most_recent_price:,.0f})",

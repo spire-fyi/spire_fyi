@@ -23,7 +23,7 @@ c2.caption(
     """
     A viewpoint above Solana data. Insights and on-chain data analytics, inspired by the community and accessible to all. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/), [Helius](https://helius.xyz/) and [SolanaFM APIs](https://docs.solana.fm/).
 
-    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5
+    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5 , or contribute on [Stockpile](https://www.stockpile.pro/projects/fMqAvbsrWseJji8QyNOf)
     """
 )
 c1.image(
@@ -423,8 +423,92 @@ c2.metric(
     "Proportion of users with more than one Madlist spots",
     f"{len(madlist_count[madlist_count.Count > 1]) / len(madlist_count):.1%}",
 )
+with st.expander("View and Download Data Table"):
+    st.subheader("xNFT Data")
+    st.write("**All xNFT Install Transactions**")
+    st.write(createInstall)
+    slug = f"xnft_installs_tx"
+    st.download_button(
+        "Click to Download",
+        createInstall.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**xNFT Installs by Username**")
+    st.write(xnft_counts_by_user)
+    slug = f"xnft_installs_by_user"
+    st.download_button(
+        "Click to Download",
+        xnft_counts_by_user.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**Daily xNFT Installation Counts**")
+    st.write(chart_df)
+    slug = f"xnft_installs_count_daily"
+    st.download_button(
+        "Click to Download",
+        chart_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**Total xNFT Installation Counts**")
+    st.write(totals)
+    slug = f"xnft_installs_count_total"
+    st.download_button(
+        "Click to Download",
+        totals.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**New xNFT Users**")
+    st.write(new_xnft_users)
+    slug = f"xnft_new_isers"
+    st.download_button(
+        "Click to Download",
+        new_xnft_users.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.subheader("Mad Lad Data")
+    st.write("**All Madlist Token holders**")
+    st.write(mad_lad_df)
+    slug = f"mad_lad_all"
+    st.download_button(
+        "Click to Download",
+        mad_lad_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**All Madlist Token Counts by User**")
+    st.write(madlist_count)
+    slug = f"mad_lad_user"
+    st.download_button(
+        "Click to Download",
+        madlist_count.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**Mad List Tracker**")
+    st.write(arc_df)
+    slug = f"mad_list_tracker"
+    st.download_button(
+        "Click to Download",
+        arc_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
 
-st.write('---')
+
+st.write("---")
 st.header("Backpack Username Lookup")
 address = st.text_input(
     "Enter a Solana address or Backpack username for a summary of activity:",
@@ -564,89 +648,6 @@ else:
 
 
 with st.expander("View and Download Data Table"):
-    st.subheader("xNFT Data")
-    st.write("**All xNFT Install Transactions**")
-    st.write(createInstall)
-    slug = f"xnft_installs_tx"
-    st.download_button(
-        "Click to Download",
-        createInstall.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.write("**xNFT Installs by Username**")
-    st.write(xnft_counts_by_user)
-    slug = f"xnft_installs_by_user"
-    st.download_button(
-        "Click to Download",
-        xnft_counts_by_user.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.write("**Daily xNFT Installation Counts**")
-    st.write(chart_df)
-    slug = f"xnft_installs_count_daily"
-    st.download_button(
-        "Click to Download",
-        chart_df.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.write("**Total xNFT Installation Counts**")
-    st.write(totals)
-    slug = f"xnft_installs_count_total"
-    st.download_button(
-        "Click to Download",
-        totals.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.write("**New xNFT Users**")
-    st.write(new_xnft_users)
-    slug = f"xnft_new_isers"
-    st.download_button(
-        "Click to Download",
-        new_xnft_users.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.subheader("Mad Lad Data")
-    st.write("**All Madlist Token holders**")
-    st.write(mad_lad_df)
-    slug = f"mad_lad_all"
-    st.download_button(
-        "Click to Download",
-        mad_lad_df.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.write("**All Madlist Token Counts by User**")
-    st.write(madlist_count)
-    slug = f"mad_lad_user"
-    st.download_button(
-        "Click to Download",
-        madlist_count.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.write("**Mad List Tracker**")
-    st.write(arc_df)
-    slug = f"mad_list_tracker"
-    st.download_button(
-        "Click to Download",
-        arc_df.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-
     try:
         st.subheader("User Lookup Data")
         st.write("**User Overview**")
@@ -659,7 +660,6 @@ with st.expander("View and Download Data Table"):
             "text/csv",
             key=f"download-{slug}",
         )
-
         st.write("**User NFT sales Data**")
         st.write(sales_data)
         slug = f"user_sales"
@@ -670,7 +670,6 @@ with st.expander("View and Download Data Table"):
             "text/csv",
             key=f"download-{slug}",
         )
-
         st.write("**User NFT purchases Data**")
         st.write(purchases_data)
         slug = f"user_purchases"
@@ -681,7 +680,6 @@ with st.expander("View and Download Data Table"):
             "text/csv",
             key=f"download-{slug}",
         )
-
         st.write("**User NFT Mints data**")
         st.write(mints_data)
         slug = f"user_mints"
@@ -692,7 +690,6 @@ with st.expander("View and Download Data Table"):
             "text/csv",
             key=f"download-{slug}",
         )
-
         st.write("**User Swaps Data**")
         st.write(swaps_data)
         slug = f"user_swaps"
@@ -704,4 +701,4 @@ with st.expander("View and Download Data Table"):
             key=f"download-{slug}",
         )
     except NameError:
-        pass
+        st.write("Enter a Backpack username or wallet address for transaction data.")
