@@ -353,12 +353,12 @@ def load_weekly_new_user_data():
 def load_nft_data():
     main_data = (
         pd.read_json(
-            "https://node-api.flipsidecrypto.com/api/v2/queries/3d71d36a-ca9a-4fcf-97a9-802dbbc2b98d/data/latest"
+            "https://node-api.flipsidecrypto.com/api/v2/queries/2b945162-59a9-4ccc-95ee-fca67ac142c4/data/latest"
         )
         .rename(
             columns={
                 "WEEK": "Date",
-                "MARKETPLACE": "Marketplace",
+                "MARKETPLACE_NORMALIZED": "Marketplace",
                 "TXS": "Transaction Count",
                 "BUYERS": "Buyers",
                 "SELLERS": "Sellers",
@@ -369,6 +369,7 @@ def load_nft_data():
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
+    main_data['Date'] = pd.to_datetime(main_data['Date'])
     buyers_sellers = main_data.melt(
         id_vars=[
             "Date",
@@ -390,24 +391,27 @@ def load_nft_data():
     )
     mints_by_purchaser = (
         pd.read_json(
-            "https://node-api.flipsidecrypto.com/api/v2/queries/ac73a290-6f2e-4e15-be6f-203562bbd911/data/latest"
+            "https://node-api.flipsidecrypto.com/api/v2/queries/04be6d7d-b5cd-4c11-9f73-68288e1353d4/data/latest"
         )
         .rename(columns={"DATE": "Date", "AVERAGE_MINTS": "Average Mints per Address"})
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
+    mints_by_purchaser['Date'] = pd.to_datetime(mints_by_purchaser['Date'])
     mints_by_chain = (
         pd.read_json(
-            "https://node-api.flipsidecrypto.com/api/v2/queries/d40f62a3-d937-460c-938d-a699b5be9f6e/data/latest"
+            "https://node-api.flipsidecrypto.com/api/v2/queries/88cfaf1c-e485-4926-817f-61ed261d9cfb/data/latest"
         )
         .rename(columns={"DATE": "Date", "CHAIN": "Chain", "MINTS": "Count", "MINTERS": "Unique Users"})
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
     mints_by_chain["Type"] = "Mints"
+    mints_by_chain['Date'] = pd.to_datetime(mints_by_chain['Date'])
     sales_by_chain = pd.read_json(
-        "https://node-api.flipsidecrypto.com/api/v2/queries/d79d5037-6777-44eb-a881-e0243af11cea/data/latest"
+        "https://node-api.flipsidecrypto.com/api/v2/queries/7daf5636-2364-4281-b1cb-2d44ae1bcffd/data/latest"
     ).rename(columns={"DATE": "Date", "CHAIN": "Chain", "SALES": "Count", "BUYERS": "Unique Users"})
+    sales_by_chain['Date'] = pd.to_datetime(sales_by_chain['Date'])
     sales_by_chain["Type"] = "Sales"
     by_chain_data = (
         pd.concat([mints_by_chain, sales_by_chain])
