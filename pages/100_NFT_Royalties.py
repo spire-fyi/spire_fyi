@@ -150,7 +150,7 @@ with tab1:
             ],
         )
     )
-    if "2022-10-14" in marketplace_info_date_index:
+    if pd.to_datetime("2022-10-10") in marketplace_info_date_index.Date:
         chart = (base + rules).interactive(bind_x=False).properties(height=600, width=800)
     else:
         chart = base.interactive(bind_x=False).properties(height=600, width=800)
