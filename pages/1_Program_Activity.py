@@ -215,122 +215,123 @@ from
 ;
 """
 program_id = st.text_input("Enter a program address", chart_df.iloc[0]["Program ID"])
-data_load_state = st.text("Querying data for program address...")
-program_usage_data = utils.run_query_and_cache("program_usage", progam_usage_query, program_id)
-new_wallet_data = utils.run_query_and_cache("new_wallet", new_wallets_for_program, program_id)
-data_load_state.text("")
+if st.button("Load data"):
+    data_load_state = st.text("Querying data for program address...")
+    program_usage_data = utils.run_query_and_cache("program_usage", progam_usage_query, program_id)
+    new_wallet_data = utils.run_query_and_cache("new_wallet", new_wallets_for_program, program_id)
+    data_load_state.text("")
 
-program_usage_data = utils.reformat_columns(program_usage_data, datecols=["DATE"])
-new_wallet_data = utils.reformat_columns(new_wallet_data, datecols=["FIRST_TX_DATE"])
-c1, c2 = st.columns(2)
-# Daily Active Users
-chart = (
-    alt.Chart(
-        program_usage_data,
-        title=f"Daily Active Wallets for {utils.get_short_address(program_id)}: Daily, Past 60d",
-    )
-    .mark_area(
-        line={"color": "#4B3D60", "size": 1},
-        color=alt.Gradient(
-            gradient="linear",
-            stops=[
-                alt.GradientStop(color="#4B3D60", offset=0),
-                alt.GradientStop(color="#FD5E53", offset=1),
+    program_usage_data = utils.reformat_columns(program_usage_data, datecols=["DATE"])
+    new_wallet_data = utils.reformat_columns(new_wallet_data, datecols=["FIRST_TX_DATE"])
+    c1, c2 = st.columns(2)
+    # Daily Active Users
+    chart = (
+        alt.Chart(
+            program_usage_data,
+            title=f"Daily Active Wallets for {utils.get_short_address(program_id)}: Daily, Past 60d",
+        )
+        .mark_area(
+            line={"color": "#4B3D60", "size": 1},
+            color=alt.Gradient(
+                gradient="linear",
+                stops=[
+                    alt.GradientStop(color="#4B3D60", offset=0),
+                    alt.GradientStop(color="#FD5E53", offset=1),
+                ],
+                x1=1,
+                x2=1,
+                y1=1,
+                y2=0,
+            ),
+            interpolate="monotone",
+        )
+        .encode(
+            x=alt.X("yearmonthdate(Date)", title="Date"),
+            y=alt.Y("Active Wallets", title="Wallets", scale=alt.Scale(nice=False)),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                alt.Tooltip("Active Wallets", title="Wallets", format=","),
+                alt.Tooltip("Txs", title="Transactions", format=","),
+                alt.Tooltip("Txs Per User", title="Transactions per User", format=",.2f"),
             ],
-            x1=1,
-            x2=1,
-            y1=1,
-            y2=0,
-        ),
-        interpolate="monotone",
+        )
+        .properties(height=600, width=600)
+        .interactive()
     )
-    .encode(
-        x=alt.X("yearmonthdate(Date)", title="Date"),
-        y=alt.Y("Active Wallets", title="Wallets", scale=alt.Scale(nice=False)),
-        tooltip=[
-            alt.Tooltip("yearmonthdate(Date)", title="Date"),
-            alt.Tooltip("Active Wallets", title="Wallets", format=","),
-            alt.Tooltip("Txs", title="Transactions", format=","),
-            alt.Tooltip("Txs Per User", title="Transactions per User", format=",.2f"),
-        ],
-    )
-    .properties(height=600, width=600)
-    .interactive()
-)
-c1.altair_chart(chart, use_container_width=True)
-# New Wallets
-chart = (
-    alt.Chart(
-        new_wallet_data,
-        title=f"New Wallets Interacting with {utils.get_short_address(program_id)}: Daily, Past 60d",
-    )
-    .mark_area(
-        line={"color": "#4B3D60", "size": 1},
-        color=alt.Gradient(
-            gradient="linear",
-            stops=[
-                alt.GradientStop(color="#4B3D60", offset=1),
-                alt.GradientStop(color="#FD5E53", offset=0),
+    c1.altair_chart(chart, use_container_width=True)
+    # New Wallets
+    chart = (
+        alt.Chart(
+            new_wallet_data,
+            title=f"New Wallets Interacting with {utils.get_short_address(program_id)}: Daily, Past 60d",
+        )
+        .mark_area(
+            line={"color": "#4B3D60", "size": 1},
+            color=alt.Gradient(
+                gradient="linear",
+                stops=[
+                    alt.GradientStop(color="#4B3D60", offset=1),
+                    alt.GradientStop(color="#FD5E53", offset=0),
+                ],
+                x1=1,
+                x2=1,
+                y1=1,
+                y2=0,
+            ),
+            interpolate="monotone",
+        )
+        .encode(
+            x=alt.X("yearmonthdate(First Tx Date)", title="Date"),
+            y=alt.Y("New Wallets", scale=alt.Scale(domain=[0, program_usage_data["Active Wallets"].max()])),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(First Tx Date)", title="Date"),
+                alt.Tooltip("New Wallets", title="Wallets", format=","),
             ],
-            x1=1,
-            x2=1,
-            y1=1,
-            y2=0,
-        ),
-        interpolate="monotone",
+        )
+        .properties(height=600, width=600)
+        .interactive()
     )
-    .encode(
-        x=alt.X("yearmonthdate(First Tx Date)", title="Date"),
-        y=alt.Y("New Wallets", scale=alt.Scale(domain=[0, program_usage_data["Active Wallets"].max()])),
-        tooltip=[
-            alt.Tooltip("yearmonthdate(First Tx Date)", title="Date"),
-            alt.Tooltip("New Wallets", title="Wallets", format=","),
-        ],
+    # Transaction Count
+    c2.altair_chart(chart, use_container_width=True)
+    st.write("---")
+    chart = (
+        alt.Chart(
+            program_usage_data,
+            title=f"Transaction Count for {utils.get_short_address(program_id)}: Daily, Past 60d",
+        )
+        .mark_line(width=5, color="#FD5E53")
+        .encode(
+            x=alt.X("yearmonthdate(Date)", title="Date"),
+            y=alt.Y("Txs", title="Transaction Count"),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                alt.Tooltip("Active Wallets", title="Wallets", format=","),
+                alt.Tooltip("Txs", title="Transactions", format=","),
+                alt.Tooltip("Txs Per User", title="Transactions per User", format=",.2f"),
+            ],
+        )
+        .properties(height=600, width=600)
+        .interactive()
     )
-    .properties(height=600, width=600)
-    .interactive()
-)
-# Transaction Count
-c2.altair_chart(chart, use_container_width=True)
-st.write("---")
-chart = (
-    alt.Chart(
-        program_usage_data,
-        title=f"Transaction Count for {utils.get_short_address(program_id)}: Daily, Past 60d",
+    c1.altair_chart(chart, use_container_width=True)
+    # Tx to User Ratio
+    chart = (
+        alt.Chart(
+            program_usage_data,
+            title=f"Transaction to User Ratio for {utils.get_short_address(program_id)}: Daily, Past 60d",
+        )
+        .mark_line(width=5, color="#FFE373")
+        .encode(
+            x=alt.X("yearmonthdate(Date)", title="Date"),
+            y=alt.Y("Txs Per User", title="Transactions per User"),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                alt.Tooltip("Active Wallets", title="Wallets", format=","),
+                alt.Tooltip("Txs", title="Transactions", format=","),
+                alt.Tooltip("Txs Per User", title="Transactions per User", format=",.2f"),
+            ],
+        )
+        .properties(height=600, width=600)
+        .interactive()
     )
-    .mark_line(width=5, color="#FD5E53")
-    .encode(
-        x=alt.X("yearmonthdate(Date)", title="Date"),
-        y=alt.Y("Txs", title="Transaction Count"),
-        tooltip=[
-            alt.Tooltip("yearmonthdate(Date)", title="Date"),
-            alt.Tooltip("Active Wallets", title="Wallets", format=","),
-            alt.Tooltip("Txs", title="Transactions", format=","),
-            alt.Tooltip("Txs Per User", title="Transactions per User", format=",.2f"),
-        ],
-    )
-    .properties(height=600, width=600)
-    .interactive()
-)
-c1.altair_chart(chart, use_container_width=True)
-# Tx to User Ratio
-chart = (
-    alt.Chart(
-        program_usage_data,
-        title=f"Transaction to User Ratio for {utils.get_short_address(program_id)}: Daily, Past 60d",
-    )
-    .mark_line(width=5, color="#FFE373")
-    .encode(
-        x=alt.X("yearmonthdate(Date)", title="Date"),
-        y=alt.Y("Txs Per User", title="Transactions per User"),
-        tooltip=[
-            alt.Tooltip("yearmonthdate(Date)", title="Date"),
-            alt.Tooltip("Active Wallets", title="Wallets", format=","),
-            alt.Tooltip("Txs", title="Transactions", format=","),
-            alt.Tooltip("Txs Per User", title="Transactions per User", format=",.2f"),
-        ],
-    )
-    .properties(height=600, width=600)
-    .interactive()
-)
-c2.altair_chart(chart, use_container_width=True)
+    c2.altair_chart(chart, use_container_width=True)

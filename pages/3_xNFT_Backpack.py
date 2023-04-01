@@ -538,167 +538,167 @@ else:
         st.subheader(f"[{backpack_username}](https://solana.fm/address/{address})")
         st.caption(address)
         backpack = True
+    if st.button("Load data"):
+        tx_info = """
+        --sql
+        select
+            *
+        from
+            solana.core.ez_signers
+        where
+            signer = '{param}'
+        ;
+        """
+        nft_purchases = """
+        --sql
+        select
+            *
+        from
+            solana.core.fact_nft_sales
+        where
+            purchaser = '{param}'
+            and succeeded = 'TRUE'
+        ;
+        """
+        nft_sales = """
+        --sql
+        select
+            *
+        from
+            solana.core.fact_nft_sales
+        where
+            seller = '{param}'
+            and succeeded = 'TRUE'
+        ;
+        """
+        nft_mints = """
+        --sql
+        select
+            *
+        from
+            solana.core.fact_nft_mints
+        where
+            purchaser = '{param}'
+            and succeeded = 'TRUE'
+        ;
+        """
+        swaps = """
+        --sql
+        select
+            *
+        from
+            solana.core.fact_swaps
+        where
+            swapper = '{param}'
+            and succeeded = 'TRUE'
+        ;
+        """
+        data_load_state = st.text(f"Querying data for {address}...")
+        tx_data = utils.run_query_and_cache("backpack_tx_info", tx_info, address)
+        sales_data = utils.run_query_and_cache("backpack_sales_info", nft_sales, address)
+        purchases_data = utils.run_query_and_cache("backpack_purchase_info", nft_purchases, address)
+        mints_data = utils.run_query_and_cache("backpack_mints_info", nft_mints, address)
+        swaps_data = utils.run_query_and_cache("backpack_swaps_info", swaps, address)
+        data_load_state.text("")
 
-    tx_info = """
-    --sql
-    select
-        *
-    from
-        solana.core.ez_signers
-    where
-        signer = '{param}'
-    ;
-    """
-    nft_purchases = """
-    --sql
-    select
-        *
-    from
-        solana.core.fact_nft_sales
-    where
-        purchaser = '{param}'
-        and succeeded = 'TRUE'
-    ;
-    """
-    nft_sales = """
-    --sql
-    select
-        *
-    from
-        solana.core.fact_nft_sales
-    where
-        seller = '{param}'
-        and succeeded = 'TRUE'
-    ;
-    """
-    nft_mints = """
-    --sql
-    select
-        *
-    from
-        solana.core.fact_nft_mints
-    where
-        purchaser = '{param}'
-        and succeeded = 'TRUE'
-    ;
-    """
-    swaps = """
-    --sql
-    select
-        *
-    from
-        solana.core.fact_swaps
-    where
-        swapper = '{param}'
-        and succeeded = 'TRUE'
-    ;
-    """
-    data_load_state = st.text(f"Querying data for {address}...")
-    tx_data = utils.run_query_and_cache("backpack_tx_info", tx_info, address)
-    sales_data = utils.run_query_and_cache("backpack_sales_info", nft_sales, address)
-    purchases_data = utils.run_query_and_cache("backpack_purchase_info", nft_purchases, address)
-    mints_data = utils.run_query_and_cache("backpack_mints_info", nft_mints, address)
-    swaps_data = utils.run_query_and_cache("backpack_swaps_info", swaps, address)
-    data_load_state.text("")
+        if len(tx_data) > 0:
+            try:
+                num_programs = f"{len(pd.unique(ast.literal_eval(tx_data.PROGRAMS_USED.values[0])))}"
+            except ValueError:
+                num_programs = f"{len(pd.unique(tx_data.PROGRAMS_USED.values[0]))}"
+            first_tx_date = f"{pd.to_datetime(tx_data.FIRST_TX_DATE.values[0]):%Y-%m-%d}"
+            num_tx = f"{tx_data.NUM_TXS.values[0]:,}"
+            total_fees = f"{tx_data.TOTAL_FEES.values[0]/utils.LAMPORTS_PER_SOL:,.5f}"
+        else:
+            num_programs = None
+            first_tx_date = None
+            num_tx = None
+            total_fees = None
 
-    if len(tx_data) > 0:
-        try:
-            num_programs = f"{len(pd.unique(ast.literal_eval(tx_data.PROGRAMS_USED.values[0])))}"
-        except ValueError:
-            num_programs = f"{len(pd.unique(tx_data.PROGRAMS_USED.values[0]))}"
-        first_tx_date = f"{pd.to_datetime(tx_data.FIRST_TX_DATE.values[0]):%Y-%m-%d}"
-        num_tx = f"{tx_data.NUM_TXS.values[0]:,}"
-        total_fees = f"{tx_data.TOTAL_FEES.values[0]/utils.LAMPORTS_PER_SOL:,.5f}"
-    else:
-        num_programs = None
-        first_tx_date = None
-        num_tx = None
-        total_fees = None
+        num_swaps = swaps_data.TX_ID.nunique()
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        c1.metric("First Transaction Date", first_tx_date)
+        c2.metric("Number of Transactions", num_tx)
+        c3.metric("Total Fees Paid (SOL)", total_fees)
+        c4.metric("Number of Programs Used", num_programs)
+        c5.metric("Number of DEX swaps", num_swaps)
+        if backpack:
+            c6.metric(
+                "Number of xNFTS installed",
+                f"{createInstall[createInstall['Fee Payer'] == address].Xnft.nunique()}",
+            )
+            madlist_spots = madlist_count[madlist_count.Username == backpack_username]
+            if len(madlist_spots) > 0:
+                c6.metric("Number of Madlist spots", f"{madlist_spots.Count.values[0]}")
 
-    num_swaps = swaps_data.TX_ID.nunique()
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("First Transaction Date", first_tx_date)
-    c2.metric("Number of Transactions", num_tx)
-    c3.metric("Total Fees Paid (SOL)", total_fees)
-    c4.metric("Number of Programs Used", num_programs)
-    c5.metric("Number of DEX swaps", num_swaps)
-    if backpack:
-        c6.metric(
-            "Number of xNFTS installed",
-            f"{createInstall[createInstall['Fee Payer'] == address].Xnft.nunique()}",
-        )
-        madlist_spots = madlist_count[madlist_count.Username == backpack_username]
-        if len(madlist_spots) > 0:
-            c6.metric("Number of Madlist spots", f"{madlist_spots.Count.values[0]}")
+        num_sales = len(sales_data)
+        c1.metric("Number of NFT sales", num_sales)
+        if num_sales != 0:
+            total_sales_amount = sales_data.SALES_AMOUNT.sum()
+            c2.metric("Total amount of NFT Sales", f"{total_sales_amount:,.2f} SOL")
 
-    num_sales = len(sales_data)
-    c1.metric("Number of NFT sales", num_sales)
-    if num_sales != 0:
-        total_sales_amount = sales_data.SALES_AMOUNT.sum()
-        c2.metric("Total amount of NFT Sales", f"{total_sales_amount:,.2f} SOL")
+        num_purchases = len(purchases_data)
+        c3.metric("Number of NFT purchases", num_purchases)
+        if num_purchases != 0:
+            total_purchases_amount = purchases_data.SALES_AMOUNT.sum()
+            c4.metric("Total amount of NFT purchases", f"{total_purchases_amount:,.2f} SOL")
 
-    num_purchases = len(purchases_data)
-    c3.metric("Number of NFT purchases", num_purchases)
-    if num_purchases != 0:
-        total_purchases_amount = purchases_data.SALES_AMOUNT.sum()
-        c4.metric("Total amount of NFT purchases", f"{total_purchases_amount:,.2f} SOL")
-
-    num_mints = mints_data.TX_ID.nunique()
-    c5.metric("Number of NFT mints", num_mints)
+        num_mints = mints_data.TX_ID.nunique()
+        c5.metric("Number of NFT mints", num_mints)
 
 
-with st.expander("View and Download Data Table"):
-    try:
-        st.subheader("User Lookup Data")
-        st.write("**User Overview**")
-        st.write(tx_data)
-        slug = f"user_overview"
-        st.download_button(
-            "Click to Download",
-            tx_data.to_csv(index=False).encode("utf-8"),
-            f"{slug}.csv",
-            "text/csv",
-            key=f"download-{slug}",
-        )
-        st.write("**User NFT sales Data**")
-        st.write(sales_data)
-        slug = f"user_sales"
-        st.download_button(
-            "Click to Download",
-            sales_data.to_csv(index=False).encode("utf-8"),
-            f"{slug}.csv",
-            "text/csv",
-            key=f"download-{slug}",
-        )
-        st.write("**User NFT purchases Data**")
-        st.write(purchases_data)
-        slug = f"user_purchases"
-        st.download_button(
-            "Click to Download",
-            purchases_data.to_csv(index=False).encode("utf-8"),
-            f"{slug}.csv",
-            "text/csv",
-            key=f"download-{slug}",
-        )
-        st.write("**User NFT Mints data**")
-        st.write(mints_data)
-        slug = f"user_mints"
-        st.download_button(
-            "Click to Download",
-            mints_data.to_csv(index=False).encode("utf-8"),
-            f"{slug}.csv",
-            "text/csv",
-            key=f"download-{slug}",
-        )
-        st.write("**User Swaps Data**")
-        st.write(swaps_data)
-        slug = f"user_swaps"
-        st.download_button(
-            "Click to Download",
-            swaps_data.to_csv(index=False).encode("utf-8"),
-            f"{slug}.csv",
-            "text/csv",
-            key=f"download-{slug}",
-        )
-    except NameError:
-        st.write("Enter a Backpack username or wallet address for transaction data.")
+        with st.expander("View and Download Data Table"):
+            try:
+                st.subheader("User Lookup Data")
+                st.write("**User Overview**")
+                st.write(tx_data)
+                slug = f"user_overview"
+                st.download_button(
+                    "Click to Download",
+                    tx_data.to_csv(index=False).encode("utf-8"),
+                    f"{slug}.csv",
+                    "text/csv",
+                    key=f"download-{slug}",
+                )
+                st.write("**User NFT sales Data**")
+                st.write(sales_data)
+                slug = f"user_sales"
+                st.download_button(
+                    "Click to Download",
+                    sales_data.to_csv(index=False).encode("utf-8"),
+                    f"{slug}.csv",
+                    "text/csv",
+                    key=f"download-{slug}",
+                )
+                st.write("**User NFT purchases Data**")
+                st.write(purchases_data)
+                slug = f"user_purchases"
+                st.download_button(
+                    "Click to Download",
+                    purchases_data.to_csv(index=False).encode("utf-8"),
+                    f"{slug}.csv",
+                    "text/csv",
+                    key=f"download-{slug}",
+                )
+                st.write("**User NFT Mints data**")
+                st.write(mints_data)
+                slug = f"user_mints"
+                st.download_button(
+                    "Click to Download",
+                    mints_data.to_csv(index=False).encode("utf-8"),
+                    f"{slug}.csv",
+                    "text/csv",
+                    key=f"download-{slug}",
+                )
+                st.write("**User Swaps Data**")
+                st.write(swaps_data)
+                slug = f"user_swaps"
+                st.download_button(
+                    "Click to Download",
+                    swaps_data.to_csv(index=False).encode("utf-8"),
+                    f"{slug}.csv",
+                    "text/csv",
+                    key=f"download-{slug}",
+                )
+            except NameError:
+                st.write("Enter a Backpack username or wallet address for transaction data.")
