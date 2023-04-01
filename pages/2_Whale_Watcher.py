@@ -291,10 +291,22 @@ with nft:
         .sort_values(by="Value", ascending=False)
         .reset_index(drop=True)
     )
+    rank_sales = (
+        total_sales_whales.groupby("Purchaser")["Value"].count().sort_values(ascending=False).reset_index()
+    )
+    total_sales_whales["Purchaser Display"] = total_sales_whales["Purchaser"].apply(
+        lambda x: f"{x[:4]}...{x[-4:]}" if x in rank_sales.Purchaser[:9].values else "Other"
+    )
     total_amount_whales = (
         other_nft[other_nft.Type == "total_sales_amount"]
         .sort_values(by="Value", ascending=False)
         .reset_index(drop=True)
+    )
+    rank_amount = (
+        total_amount_whales.groupby("Purchaser")["Value"].count().sort_values(ascending=False).reset_index()
+    )
+    total_amount_whales["Purchaser Display"] = total_amount_whales["Purchaser"].apply(
+        lambda x: f"{x[:4]}...{x[-4:]}" if x in rank_amount.Purchaser[:9].values else "Other"
     )
 
     c1, c2 = st.columns(2)
@@ -320,6 +332,12 @@ with nft:
                     title="Total Hourly Purchase Amount (SOL)",
                     scale=alt.Scale(zero=False, type=scale_type),
                 ),
+                color=alt.Color(
+                    "Purchaser Display",
+                    title="Purchaser",
+                    sort=alt.EncodingSortField(field="Value", op="max", order="descending"),
+                    scale=alt.Scale(scheme="turbo"),
+                ),
                 size=alt.Size("Value", title="Hourly Purchase Amount (SOL)"),
                 href="Explorer URL",
                 tooltip=[
@@ -341,6 +359,12 @@ with nft:
                     "Value",
                     title="Total Hourly NFT Purchases",
                     scale=alt.Scale(zero=False, type=scale_type),
+                ),
+                color=alt.Color(
+                    "Purchaser Display",
+                    title="Purchaser",
+                    sort=alt.EncodingSortField(field="Value", op="max", order="descending"),
+                    scale=alt.Scale(scheme="turbo"),
                 ),
                 size=alt.Size("Value", title="Hourly NFT Purchases"),
                 href="Explorer URL",
