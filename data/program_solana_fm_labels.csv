@@ -41,6 +41,7 @@ Associated Token Program,,programs,,"custom,devnet,testnet,mainnet",[],,,ATokenG
 Zebec Program,Zebec Program,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1524086536593375233/wTpZ1Euj_400x400.jpg,,AknC341xog56SrnoK6j3mUvaD1Y7tYayx1sxUGpeYWdX
 Serum Dex Program v1,,programs,,mainnet,[],https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/9AaKcdu5eymQwR19qwYFsqiqcXgL3iAxMQyshRpbqg6z/logo.png,scammed,BJ3jrUzddfuSrZHXSCxMUUQsjKEyLmuuyZebkcaFp2fg
 Atrix Finance Farm Program,Atrix Finance Farm Program,programs,,mainnet,['Defi'],,,BLDDrex4ZSWBgPYaaH6CQCzkJXWfzCiiur9cSFJT8t3x
+BPF Upgradeable Loader,BPFUpgradeableLoader,programs,,mainnet,[],,,BPFLoaderUpgradeab1e11111111111111111111111
 Break Solana Program,,programs,,"devnet,testnet,mainnet",[],,,BrEAK7zGZ6dM71zUDACDqJnekihmwF15noTddWTsknjC
 Tulip Protocol | Leverage Farming Program,Tulip Protocol Leverage Farming Program,programs,,mainnet,"['Defi', 'Leveraged', 'Farming']",https://s2.coinmarketcap.com/static/img/coins/200x200/10373.png,,Bt2WPMmbwHPk36i4CRucNDyLcmoGdC7xEdrVuxgJaNE6
 Acumen Program,,programs,,mainnet,[],,,C64kTdg1Hzv5KoQmZrQRcm2Qz7PkxtFBgw7EpFhvYn8W
