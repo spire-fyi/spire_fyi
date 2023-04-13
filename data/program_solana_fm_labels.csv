@@ -28,6 +28,7 @@ Orca Aquafarm Program,,programs,,mainnet,[],,,82yxjeMsvaURa4MbZZ7WZZHfobirZYkH1z
 Amulet's ClaimProgram,Amulet's ClaimProgram,programs,,mainnet,[],https://avatars.githubusercontent.com/u/93768966?s=280&v=4,,85pVrPA2nmgtmCSiisgbxsPC6aQPUJzwqMPVD32PpqYa
 Mayan Program,Mayan Program,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1536765365648236544/gzQpQK3B_400x400.jpg,,8LPjGDbxhW4G2Q8S6FvdvUdfGWssgtqmvsc63bwNFA7E
 Amulet's PoolProgram,Amulet's PoolProgram,programs,,mainnet,[],https://avatars.githubusercontent.com/u/93768966?s=280&v=4,,8RfV7fpMZFC9cmkq45z3u7vPEhgECZHP5dqfiePrNpaA
+Vyper OTC,Sol,programs,,mainnet,[],,,8aHSkExY28qCvg4gnTLU7y1Ev6HnpJ1NxuWb9XtEesVt
 Amulet's CoverProgram,Amulet's CoverProgram,programs,,mainnet,[],https://avatars.githubusercontent.com/u/93768966?s=280&v=4,,8x3i9o22M8tF2SvYgkqUhSZfjKYeKJSi6rPpJnWE99Fi
 Raydium IDO Program,,programs,,mainnet,[],https://s2.coinmarketcap.com/static/img/coins/64x64/8526.png,,9HzJyW1qZsEiSfMUf6L2jo3CcTKAyBmSyKdwQeYisHrC
 Orca Swap Program v2,,programs,,mainnet,[],,,9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP
@@ -51,6 +52,7 @@ Aldrin AMM V2,Aldrin AMM V2,programs,,mainnet,[],https://pbs.twimg.com/profile_i
 Cypher Program,Cypher Program,programs,,mainnet,[],Cypher Program,,CYPH3o83JX6jY6NkbproSpdmQ5VWJtxjfJ5P8veyYVu3
 Dialect Program,Dialect Program,programs,,mainnet,[],,,CeNUxGUsSeb5RuAGvaMLNx3tEZrpBwQqA7Gs99vMPCAb
 Code Canvas Program,Code Canvas Program,accounts,,mainnet,[],,,CoCaSGpuNso2yQP3oqi1tXt82wBp3y78SJDwLCboc8WS
+Compute budget Program,NATIVECBP,programs,,"mainnet,testnet,devnet",['Native'],,,ComputeBudget111111111111111111111111111111
 Config Program,,programs,,"custom,devnet,testnet,mainnet",[],,,Config1111111111111111111111111111111111111
 Genopets Crafting Manager Program,Genopets Crafting Manager Program,programs,,mainnet,[],,,CrAFTUv7zKXBaS5471aCwHx7mq9Jp1eQQB5FQgdiSLyi
 Lido for Solana Program,,programs,,mainnet,[],,,CrX7kMhLC3cSsXJdT7JDgqrRVWGnUpX3gfEfxxU2NVLi
@@ -168,6 +170,7 @@ OpenBook Program,OpenBook Program,programs,,mainnet,[],https://pbs.twimg.com/pro
 Tulip Staking Program,Tulip Staking,programs,,mainnet,"['Defi', 'Vaults']",https://s2.coinmarketcap.com/static/img/coins/200x200/10373.png,,stkTLPiBsQBUxDhXgxxsTRtxZ38TLqsqhoMvKMSt8Th
 Streamflow Program,Streamflow Program,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1396561843146080259/VJNtxnX0_400x400.jpg,,strmRqUCoQUgGUan5YhzUZa6KqdzwX5L6FpUxfmKg5m
 Token Vault Program,,programs,,"devnet,testnet,mainnet",[],,,vau1zxA2LbssAUEF7Gpw91zMM1LvXrvpzJtmZ58rPsn
+Vyper Core Program,Sol,programs,,mainnet,[],,,vyPErCcGJKQQBeeQ59gXcWrDyU4vBrq8qQfacwmsAsp
 Orca Whirlpool Program,WhirlPool ,programs,,mainnet,['program'],,,whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc
 Wormhole Program ,Wormhole Program,programs,,mainnet,['program'],,,worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth
 Wormhole Token Bridge,Token Bridge,programs,,mainnet,['bridge'],,,wormDTUJ6AWPNvk59vGQbDvGJmqbDTdgWgAqcLBCgUb
