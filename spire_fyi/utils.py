@@ -729,6 +729,7 @@ def get_uri_info(uri: str) -> dict:
     try:
         data = requests.get(url).json()
     except:
+        print(url)
         data = requests.get(url)
         raise
     info = {"uri": uri}
