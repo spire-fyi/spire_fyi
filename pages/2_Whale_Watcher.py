@@ -218,7 +218,7 @@ with swaps:
 
 with nft:
     st.subheader("NFT Whales")
-    st.write("Any NFT purchase worth over **$10,000**")
+    st.write("Any NFT purchase worth over **$5,000**")
     nft_whales = whale_data_dict["nft"]
 
     # Use Helius to get
