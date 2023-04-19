@@ -213,7 +213,7 @@ def get_solana_fm_labels(df, output_prefix, col):
     for i, id_set in enumerate(split_ids):
         if i % 4 == 0:
             time.sleep(1)
-        r = requests.post(label_url, json={"accountHashes": list(id_set), "fields": ["*"]})
+        r = requests.post(label_url, json={"accountHashes": list(id_set)})
         res = r.json()["result"]
         for x in res:
             try:
