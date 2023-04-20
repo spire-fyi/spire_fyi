@@ -725,13 +725,13 @@ def get_xnft_contacts(contact: dict) -> dict:
 def get_uri_info(uri: str) -> dict:
     url = resolve_ipfs_uri(uri)
     if "ipfs" in url:
-        time.sleep(1)
+        time.sleep(3)
     try:
         data = requests.get(url).json()
     except:
-        print(url)
-        data = requests.get(url)
-        raise
+        logging.warning(f"Request failed for: {url}. Retrying in 30s")
+        time.sleep(30)
+        data = requests.get(url).json()
     info = {"uri": uri}
     info["description"] = data["description"]
     info["image"] = resolve_ipfs_uri(data["image"])
