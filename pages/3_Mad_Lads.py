@@ -228,7 +228,7 @@ with sales:
     attribute = c1.selectbox(
         "Attribute:",
         attributes,
-        index=1,
+        index=2,
         key="rarity-selectbox",
     )
     currency = c2.radio(
@@ -241,7 +241,7 @@ with sales:
     load_image = c3.checkbox("Load Image on Hover (downloads a lot of data)", value=False, key="rarity-image")
 
     amount_column = "Sales Amount" if currency == "SOL" else "Sales Amount Usd"
-    y_title = f"Sames Amount ({currency})"
+    y_title = f"Sales Amount ({currency})"
     scale = "log" if log_scale else "linear"
     tooltip = [
         "Rank",
