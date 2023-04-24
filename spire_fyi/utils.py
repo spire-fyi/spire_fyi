@@ -65,6 +65,7 @@ rpc_url = f"https://rpc.helius.xyz/?api-key={helius_key}"
 
 LAMPORTS_PER_SOL = 1_000_000_000
 IPFS_RESOLVER_URL = "https://cloudflare-ipfs.com/ipfs/"
+IPFS_RESOLVER_ALT_URL = "https://ipfs.io/ipfs/"
 
 query_base = "https://next.flipsidecrypto.xyz/edit/queries"
 api_base = "https://api.flipsidecrypto.com/api/v2/queries"
@@ -706,10 +707,13 @@ def create_xnft_info_df(xnft_info: Dict[str, dict]) -> pd.DataFrame:
     return xnft_info_df
 
 
-def resolve_ipfs_uri(uri):
+def resolve_ipfs_uri(uri, use_alternate=False):
     parsed = urlparse(uri)
     if parsed.scheme == "ipfs":
-        url = f"{IPFS_RESOLVER_URL}/{parsed.netloc}"
+        if use_alternate:
+            url = f"{IPFS_RESOLVER_ALT_URL}/{parsed.netloc}"
+        else:
+            url = f"{IPFS_RESOLVER_URL}/{parsed.netloc}"
     else:
         url = uri
     return url
@@ -729,9 +733,16 @@ def get_uri_info(uri: str) -> dict:
     try:
         data = requests.get(url).json()
     except:
-        logging.warning(f"Request failed for: {url} -- Retrying in 30s")
-        time.sleep(30)
-        data = requests.get(url).json()
+        try:
+            logging.warning(f"Request failed for: {url} -- Retrying in 30s")
+            time.sleep(30)
+            url = resolve_ipfs_uri(uri)
+            data = requests.get(url).json()
+        except:
+            logging.warning(f"Request failed for: {url} -- Retrying in 60s with alternate resolver")
+            time.sleep(60)
+            url = resolve_ipfs_uri(uri, use_alternate=True)
+            data = requests.get(url).json()
     info = {"uri": uri}
     info["description"] = data["description"]
     info["image"] = resolve_ipfs_uri(data["image"])
