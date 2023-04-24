@@ -410,7 +410,7 @@ if __name__ == "__main__":
             query_info.extend(queries_to_do)
     if do_xnft:
         # Madlads
-        mintlist = utils.get_mad_lad_mints()
+        mintlist = utils.get_mintlist(["FCk24cq1pYhQo5MQYKHf5N9VnY8tdrToF7u6gvvsnGrn"])
         mad_lad_df = utils.get_mad_lad_df(mintlist)
         mad_lad_df.to_csv("data/mad_lad.csv", index=False)
         mintlist = list(mad_lad_df.mint)

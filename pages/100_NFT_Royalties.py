@@ -138,7 +138,7 @@ with tab1:
                 "value",
                 title="Marketplace",
                 scale=alt.Scale(scheme="turbo"),
-                sort=alt.SortField("order", "ascending")
+                sort=alt.SortField("order", "ascending"),
             ),
             tooltip=[
                 alt.Tooltip("yearmonthdate(Date)", title="Date"),

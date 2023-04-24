@@ -274,155 +274,7 @@ chart = (
 c2.altair_chart(chart, use_container_width=True)
 
 st.write("---")
-c1, c2 = st.columns([1, 8])
-image = Image.open("assets/images/MadLads_Logo.png")
-c1.image(image, width=100)
-c2.header("Mad Lads: Madlist")
-c2.write(
-    "The [Mad Lads](https://twitter.com/MadLadsNFT) NFT collection from the xNFT Backpack team, is mintable only by users with a Madlist spot"
-)
-st.write("---")
 
-mad_lad_df = utils.load_mad_lad_data()
-madlist_count = (
-    mad_lad_df.groupby("Username")
-    .agg(Count=("Mint", "nunique"))
-    .reset_index()
-    .sort_values(by="Count", ascending=False)
-    .reset_index(drop=True)
-)
-daily_counts = (
-    mad_lad_df.groupby(
-        [
-            pd.Grouper(key="Block Timestamp", axis=0, freq="D"),
-        ]
-    )
-    .agg(Count=("Tx Id", "count"))
-    .reset_index()
-)
-
-c1, c2 = st.columns(2)
-chart = (
-    alt.Chart(daily_counts, title="Madlist Spots Minted by Date")
-    .mark_area(
-        line={"color": "#4B3D60"},
-        color=alt.Gradient(
-            gradient="linear",
-            stops=[
-                alt.GradientStop(color="#4B3D60", offset=0),
-                alt.GradientStop(color="#FD5E53", offset=1),
-            ],
-            x1=1,
-            x2=1,
-            y1=1,
-            y2=0,
-        ),
-        interpolate="monotone",
-    )
-    .encode(
-        x=alt.X("yearmonthdate(Block Timestamp)", title="Date"),
-        y=alt.Y("Count", title="Madlist Spots Minted"),
-        tooltip=[
-            alt.Tooltip("yearmonthdate(Block Timestamp)", title="Date"),
-            alt.Tooltip("Count", title="Madlist Spots Minted"),
-        ],
-    )
-).properties(height=600, width=600)
-c1.altair_chart(chart, use_container_width=True)
-
-chart = (
-    alt.Chart(
-        madlist_count.sort_values(by="Count", ascending=False).iloc[:15],
-        title=f"Top 15 Users by Madlist Count",
-    )
-    .mark_bar()
-    .encode(
-        x=alt.X("Username", sort="-y", axis=alt.Axis(labelAngle=-70)),
-        y=alt.Y("Count", title="Madlist Spots Minted"),
-        tooltip=[
-            alt.Tooltip("Username"),
-            alt.Tooltip("Count", title="Madlist Spots Minted", format=","),
-        ],
-        color=alt.Color(
-            "Username",
-            sort=alt.EncodingSortField(field="Count", op="max", order="descending"),
-            scale=alt.Scale(scheme="turbo"),
-            legend=None,
-        ),
-    )
-).properties(height=600, width=600)
-c2.altair_chart(chart, use_container_width=True)
-
-st.subheader("Mad List Tracker")
-c1, c2 = st.columns(2)
-
-inner_radius = 150
-outer_radius = 250
-arc_df = pd.DataFrame(
-    {
-        "Category": [
-            "Claimed by users with > 1 spot",
-            "Claimed by users with 1 spot",
-            "Unclaimed",
-        ],
-        "Spots": [
-            madlist_count[madlist_count.Count > 1].Count.sum(),
-            madlist_count[madlist_count.Count == 1].Count.sum(),
-            10_000 - len(mad_lad_df),
-        ],
-    }
-)
-chart = (
-    alt.Chart(arc_df)
-    .mark_arc(
-        innerRadius=inner_radius,
-        outerRadius=outer_radius,
-        theta=3.1415 / 2,
-        theta2=-3.1415 / 2,
-        yOffset=outer_radius / 2,
-    )
-    .encode(
-        theta=alt.Theta(
-            field="Spots",
-            stack=True,
-            scale=alt.Scale(type="linear", rangeMax=1.5708, rangeMin=-1.5708),
-        ),
-        color=alt.Color(
-            "Category",
-            scale=alt.Scale(
-                domain=["Claimed by users with 1 spot", "Claimed by users with > 1 spot", "Unclaimed"],
-                range=[
-                    "#FD5E53",
-                    "#4B3D60",
-                    "#dbd8df",
-                ],
-            ),
-            legend=alt.Legend(
-                orient="none",
-                legendX=inner_radius * 1.25,
-                legendY=outer_radius * 0.75,
-                direction="vertical",
-                titleAnchor="middle",
-                title=None,
-            ),
-        ),
-    )
-    .properties(height=300, width=600)
-    .configure_legend(
-        titleFontSize=18,
-        labelFontSize=15,
-        labelLimit=400,
-    )
-)
-c1.altair_chart(chart)
-c1.caption("(Assuming a 10,000 NFT collection size)")
-
-c2.metric("Total Madlist spots claimed", len(mad_lad_df))
-c2.metric("Median Madlist spots per user", f"{madlist_count.Count.median():.1f}")
-c2.metric(
-    "Proportion of users with more than one Madlist spots",
-    f"{len(madlist_count[madlist_count.Count > 1]) / len(madlist_count):.1%}",
-)
 with st.expander("View and Download Data Table"):
     st.subheader("xNFT Data")
     st.write("**All xNFT Install Transactions**")
@@ -471,37 +323,6 @@ with st.expander("View and Download Data Table"):
     st.download_button(
         "Click to Download",
         new_xnft_users.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.subheader("Mad Lad Data")
-    st.write("**All Madlist Token holders**")
-    st.write(mad_lad_df)
-    slug = f"mad_lad_all"
-    st.download_button(
-        "Click to Download",
-        mad_lad_df.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.write("**All Madlist Token Counts by User**")
-    st.write(madlist_count)
-    slug = f"mad_lad_user"
-    st.download_button(
-        "Click to Download",
-        madlist_count.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.write("**Mad List Tracker**")
-    st.write(arc_df)
-    slug = f"mad_list_tracker"
-    st.download_button(
-        "Click to Download",
-        arc_df.to_csv(index=False).encode("utf-8"),
         f"{slug}.csv",
         "text/csv",
         key=f"download-{slug}",
@@ -627,6 +448,14 @@ else:
                 "Number of xNFTS installed",
                 f"{createInstall[createInstall['Fee Payer'] == address].Xnft.nunique()}",
             )
+            mad_lad_df = utils.load_mad_lad_data()
+            madlist_count = (
+                mad_lad_df.groupby("Username")
+                .agg(Count=("Mint", "nunique"))
+                .reset_index()
+                .sort_values(by="Count", ascending=False)
+                .reset_index(drop=True)
+            )
             madlist_spots = madlist_count[madlist_count.Username == backpack_username]
             if len(madlist_spots) > 0:
                 c6.metric("Number of Madlist spots", f"{madlist_spots.Count.values[0]}")
@@ -645,7 +474,6 @@ else:
 
         num_mints = mints_data.TX_ID.nunique()
         c5.metric("Number of NFT mints", num_mints)
-
 
         with st.expander("View and Download Data Table"):
             try:

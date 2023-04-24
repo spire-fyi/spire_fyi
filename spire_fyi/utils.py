@@ -369,7 +369,7 @@ def load_nft_data():
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
-    main_data['Date'] = pd.to_datetime(main_data['Date'])
+    main_data["Date"] = pd.to_datetime(main_data["Date"])
     buyers_sellers = main_data.melt(
         id_vars=[
             "Date",
@@ -397,7 +397,7 @@ def load_nft_data():
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
-    mints_by_purchaser['Date'] = pd.to_datetime(mints_by_purchaser['Date'])
+    mints_by_purchaser["Date"] = pd.to_datetime(mints_by_purchaser["Date"])
     mints_by_chain = (
         pd.read_json(
             "https://node-api.flipsidecrypto.com/api/v2/queries/88cfaf1c-e485-4926-817f-61ed261d9cfb/data/latest"
@@ -407,11 +407,11 @@ def load_nft_data():
         .reset_index(drop=True)
     )
     mints_by_chain["Type"] = "Mints"
-    mints_by_chain['Date'] = pd.to_datetime(mints_by_chain['Date'])
+    mints_by_chain["Date"] = pd.to_datetime(mints_by_chain["Date"])
     sales_by_chain = pd.read_json(
         "https://node-api.flipsidecrypto.com/api/v2/queries/7daf5636-2364-4281-b1cb-2d44ae1bcffd/data/latest"
     ).rename(columns={"DATE": "Date", "CHAIN": "Chain", "SALES": "Count", "BUYERS": "Unique Users"})
-    sales_by_chain['Date'] = pd.to_datetime(sales_by_chain['Date'])
+    sales_by_chain["Date"] = pd.to_datetime(sales_by_chain["Date"])
     sales_by_chain["Type"] = "Sales"
     by_chain_data = (
         pd.concat([mints_by_chain, sales_by_chain])
@@ -725,11 +725,11 @@ def get_xnft_contacts(contact: dict) -> dict:
 def get_uri_info(uri: str) -> dict:
     url = resolve_ipfs_uri(uri)
     if "ipfs" in url:
-        time.sleep(3)
+        time.sleep(np.random.randint(2, 10))
     try:
         data = requests.get(url).json()
     except:
-        logging.warning(f"Request failed for: {url}. Retrying in 30s")
+        logging.warning(f"Request failed for: {url} -- Retrying in 30s")
         time.sleep(30)
         data = requests.get(url).json()
     info = {"uri": uri}
@@ -811,7 +811,7 @@ def aggregate_xnft_data(df, n=15):
     return daily_counts, totals
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600*24*3)
 def get_backpack_username(x):
     if x == "":
         return ""
@@ -825,7 +825,7 @@ def get_backpack_username(x):
     return username
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600*24)
 def get_backpack_addresses(username):
     if username == "":
         return ""
@@ -841,11 +841,11 @@ def get_backpack_addresses(username):
         return None
 
 
-def get_mad_lad_mints():
+def get_mintlist(verified_collection_addresses):
     nft = NFTAPI(helius_key)
     # TODO: shouldn't have to deal with pagination due to collection size, but may need to eventually?
     mintlist = nft.get_mintlists(
-        verified_collection_addresses=["FCk24cq1pYhQo5MQYKHf5N9VnY8tdrToF7u6gvvsnGrn"],
+        verified_collection_addresses=verified_collection_addresses,
         first_verified_creators=[],
         limit=10000,
     )
@@ -948,3 +948,10 @@ def agg_new_defi_users_data(df, date_range, protocol):
     ].reset_index(drop=True)
     chart_df["url"] = chart_df["Program Id"].apply(lambda x: f"https://solana.fm/address/{x}")
     return chart_df
+
+
+@st.cache_data(ttl=3600)
+def add_rarity_data(df, rarity_df="data/madlads_rarity.csv", on="Mint", how="inner"):
+    df2 = pd.read_csv(rarity_df)
+    merged = df.merge(df2, on=on, how=how)
+    return merged

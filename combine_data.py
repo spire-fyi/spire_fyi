@@ -3,6 +3,7 @@ import datetime
 import gc
 import json
 import logging
+import time
 from itertools import combinations
 from pathlib import Path
 
@@ -259,6 +260,7 @@ if __name__ == "__main__":
     combine_nft = False
     do_xnft = True
     do_fees = True
+    do_madlad_metadata = False
 
     if do_main:
         program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
@@ -605,3 +607,26 @@ if __name__ == "__main__":
         dates = pd.date_range(end=datetime.date.today() - pd.Timedelta("1d"), periods=60, freq="1d")
         fee_df = utils.load_fees(dates)
         fee_df.to_csv("data/fees.csv", index=False)
+
+    if do_madlad_metadata:
+        data = []
+        rarity_data = requests.get("https://api.howrare.is/v0.1/collections/madlads").json()
+        collection = rarity_data["result"]["data"]["collection"]
+        for x in rarity_data["result"]["data"]["items"]:
+            d = {
+                "Mint": x["mint"],
+                "Collection": collection,
+                "Name": x["name"],
+                "Id": x["id"],
+                "Image": x["image"],
+                "Howrare Url": x["link"],
+                "Rank": x["rank"],
+            }
+            for a in x["attributes"]:
+                d[a["name"]] = a["value"]
+                d[f"{a['name']} Rarity"] = a["rarity"]
+            for k, v in x["all_ranks"].items():
+                d[f"{k} Rank"] = v
+            data.append(d)
+        rarity_df = pd.DataFrame(data)
+        rarity_df.to_csv("data/madlads_rarity.csv", index=False)
