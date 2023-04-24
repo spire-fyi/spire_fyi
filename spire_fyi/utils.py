@@ -811,7 +811,7 @@ def aggregate_xnft_data(df, n=15):
     return daily_counts, totals
 
 
-@st.cache_data(ttl=3600*24*3)
+@st.cache_data(ttl=3600 * 24 * 3)
 def get_backpack_username(x):
     if x == "":
         return ""
@@ -825,7 +825,7 @@ def get_backpack_username(x):
     return username
 
 
-@st.cache_data(ttl=3600*24)
+@st.cache_data(ttl=3600 * 24)
 def get_backpack_addresses(username):
     if username == "":
         return ""

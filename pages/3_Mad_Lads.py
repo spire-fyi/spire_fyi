@@ -122,12 +122,12 @@ mints_per_user = (
 top_users = mints_per_user.iloc[:100]
 backpack_usernames = []
 for x in top_users.Collector:
-    backpack_usernames.append({
-        "Collector": x, "Username":utils.get_backpack_username(x)
-    })
-top_users = top_users.merge(pd.DataFrame(backpack_usernames), on = 'Collector')
+    backpack_usernames.append({"Collector": x, "Username": utils.get_backpack_username(x)})
+top_users = top_users.merge(pd.DataFrame(backpack_usernames), on="Collector")
 no_username_count = top_users[top_users.Username.isna()].Collector.nunique()
-top_users['Minter'] = top_users.apply(lambda x: x.Username if x.Username else f"One of {no_username_count} Addresses with no Username", axis=1)
+top_users["Minter"] = top_users.apply(
+    lambda x: x.Username if x.Username else f"One of {no_username_count} Addresses with no Username", axis=1
+)
 
 
 attributes = [
