@@ -285,6 +285,7 @@ def get_program_chart_data(
     if exclude_oracle:
         chart_df = chart_df[~chart_df.LABEL.isin(["pyth", "switchboard"])]
         chart_df = chart_df[~chart_df.FriendlyName.isin(["SwitchBoard V2 Program", "Chainlink Program"])]
+        chart_df = chart_df[~chart_df.LABEL_SUBTYPE.isin(["oracle"])]
     if type(programs) == int:
         program_ids = (
             chart_df.groupby("PROGRAM_ID")
