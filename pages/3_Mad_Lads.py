@@ -234,6 +234,7 @@ with sales:
         )
     ).properties(height=600, width=600)
     st.altair_chart(chart, use_container_width=True)
+    st.write('---')
 
     c1, c2 = st.columns(2)
     date_range = c1.radio(
@@ -255,16 +256,16 @@ with sales:
         ]
 
     c1, c2 = st.columns(2)
-    total_sales_info_market_place = (
+    total_sales_info_marketplace = (
         total_sales_info.groupby(["Marketplace", "Label"])[metric].sum().reset_index()
     )
     marketplace_totals = []
     for x in marketplaces:
         try:
             marketplace_totals.append(
-                total_sales_info_market_place[
-                    (total_sales_info_market_place.Label == "MadLads")
-                    & (total_sales_info_market_place.Marketplace == x)
+                total_sales_info_marketplace[
+                    (total_sales_info_marketplace.Label == "MadLads")
+                    & (total_sales_info_marketplace.Marketplace == x)
                 ][metric].values[0]
             )
         except:
@@ -279,7 +280,7 @@ with sales:
         }
     )
     chart = (
-        alt.Chart(chart_df, title=f"Proportion of {metric_title} per Marketplace for Mad Lads")
+        alt.Chart(chart_df, title=f"Proportion of Mad Lads {metric_title}, per marketplace")
         .mark_arc(innerRadius=69)
         .encode(
             theta=alt.Theta(metric_title),
@@ -364,16 +365,16 @@ with sales:
         for x in marketplaces:
             c1, c2 = st.columns(2)
             try:
-                mad_lads = total_sales_info_market_place[
-                    (total_sales_info_market_place.Marketplace == x)
-                    & (total_sales_info_market_place.Label == "MadLads")
+                mad_lads = total_sales_info_marketplace[
+                    (total_sales_info_marketplace.Marketplace == x)
+                    & (total_sales_info_marketplace.Label == "MadLads")
                 ][metric].values[0]
             except:
                 mad_lads = 0
             try:
-                other_collections = total_sales_info_market_place[
-                    (total_sales_info_market_place.Marketplace == x)
-                    & (total_sales_info_market_place.Label == "Other")
+                other_collections = total_sales_info_marketplace[
+                    (total_sales_info_marketplace.Marketplace == x)
+                    & (total_sales_info_marketplace.Label == "Other")
                 ][metric].values[0]
             except:
                 mad_lads = 0
@@ -477,6 +478,166 @@ with sales:
         .interactive()
     )
     st.altair_chart(chart, use_container_width=True)
+    st.write("---")
+
+    buyers_df = (
+        sales_df.groupby(["Purchaser"])
+        .agg(
+            Sales_Count=("Tx Id", "count"),
+            Total_Sales_Amount_Sol=("Sales Amount", "sum"),
+            Total_Sales_Amount_Usd=("Sales Amount Usd", "sum"),
+            Avg_Sales_Amount_Sol=("Sales Amount", "mean"),
+            Avg_Sales_Amount_Usd=("Sales Amount Usd", "mean"),
+            Median_Sales_Amount_Sol=("Sales Amount", "median"),
+            Median_Sales_Amount_Usd=("Sales Amount Usd", "median"),
+            Max_Sales_Amount_Sol=("Sales Amount", "max"),
+            Max_Sales_Amount_Usd=("Sales Amount Usd", "max"),
+            Min_Sales_Amount_Sol=("Sales Amount", "min"),
+            Min_Sales_Amount_Usd=("Sales Amount Usd", "min"),
+            Unique_Nfts=("Mint", "nunique"),
+        )
+        .reset_index()
+        .sort_values(by="Sales_Count", ascending=False)
+        .reset_index(drop=True)
+    )
+    buyers_df = buyers_df.rename(columns={x: x.replace("_", " ") for x in buyers_df.columns})
+    buyers_df["Explorer URL"] = buyers_df["Purchaser"].apply(lambda x: f"https://solana.fm/address/{x}")
+
+    sellers_df = (
+        sales_df.groupby(["Seller"])
+        .agg(
+            Sales_Count=("Tx Id", "count"),
+            Total_Sales_Amount_Sol=("Sales Amount", "sum"),
+            Total_Sales_Amount_Usd=("Sales Amount Usd", "sum"),
+            Avg_Sales_Amount_Sol=("Sales Amount", "mean"),
+            Avg_Sales_Amount_Usd=("Sales Amount Usd", "mean"),
+            Median_Sales_Amount_Sol=("Sales Amount", "median"),
+            Median_Sales_Amount_Usd=("Sales Amount Usd", "median"),
+            Max_Sales_Amount_Sol=("Sales Amount", "max"),
+            Max_Sales_Amount_Usd=("Sales Amount Usd", "max"),
+            Min_Sales_Amount_Sol=("Sales Amount", "min"),
+            Min_Sales_Amount_Usd=("Sales Amount Usd", "min"),
+            Unique_Nfts=("Mint", "nunique"),
+        )
+        .reset_index()
+        .sort_values(by="Sales_Count", ascending=False)
+        .reset_index(drop=True)
+    )
+    sellers_df = sellers_df.rename(columns={x: x.replace("_", " ") for x in sellers_df.columns})
+    sellers_df["Explorer URL"] = sellers_df["Seller"].apply(lambda x: f"https://solana.fm/address/{x}")
+
+
+    c1, c2 = st.columns(2)
+    metric = c1.selectbox(
+        "Metric:",
+        [
+            "Sales Count",
+            "Unique Nfts",
+            "Total Sales Amount",
+            "Avg Sales Amount",
+            "Min Sales Amount",
+            "Max Sales Amount",
+            "Median Sales Amount",
+        ],
+        index=0,
+        key="buyer-seller-selectbox",
+    )
+
+    currency = c2.radio(
+        "Currency:",
+        ["Sol", "Usd"],
+        format_func=lambda x: x.upper(),
+        key="buyer-seller-currency",
+        horizontal=True,
+    )
+
+    metric = (
+        f"{metric} {currency}"
+        if metric
+        not in [
+            "Sales Count",
+            "Unique Nfts",
+        ]
+        else metric
+    )
+    metric_title = (
+        f"{metric[:-4]} ({currency.upper()})"
+        if metric
+        not in [
+            "Sales Count",
+            "Unique Nfts",
+        ]
+        else metric
+    )
+    #     c1, c2 = st.columns(2)
+    # for x in [("Purchasers", c1, buyers_df), ("Sellers", c2, sellers_df)]:
+    #     name, col, df = x
+    #     col.metric(f"Average Sales Transactions per User, {name}", f"{df['Sales Count'].mean():,.1f}")
+    #     col.metric(f"Average Sales Transactions per User, {name}", f"{df['Sales Count'].mean():,.1f}")
+
+    cols = st.columns(2)
+    for i, x in enumerate([("Purchaser", buyers_df), ("Seller", sellers_df)]):
+        name, df = x
+        chart_df = utils.add_backpack_username(df[:20], name)
+        chart_df["Address"] = chart_df[name].copy()
+        chart_df[name] = chart_df.apply(lambda x: x.Address if x.Username is None else x.Username, axis=1)
+        chart = (
+            alt.Chart(
+                chart_df,
+                title=f"Top 20 {name}",
+            )
+            .mark_bar()
+            .encode(
+                x=alt.X(f"{name}:N", sort="-y", axis=alt.Axis(labelAngle=-70)),
+                y=alt.Y(metric, title=metric_title),
+                tooltip=[
+                    alt.Tooltip(name),
+                    alt.Tooltip("Address"),
+                    alt.Tooltip("Sales Count", format=","),
+                    alt.Tooltip(f"Unique Nfts", title="Unique NFTs Transacted", format=","),
+                    alt.Tooltip(
+                        f"Sales Amount {currency}", title=f"Sales Amount ({currency.upper()})", format=",.2f"
+                    ),
+                    alt.Tooltip(
+                        f"Avg Sales Amount {currency}",
+                        title=f"Avg Sales Amount ({currency.upper()})",
+                        format=",.2f",
+                    ),
+                    alt.Tooltip(
+                        f"Min Sales Amount {currency}",
+                        title=f"Min Sales Amount ({currency.upper()})",
+                        format=",.2f",
+                    ),
+                    alt.Tooltip(
+                        f"Max Sales Amount {currency}",
+                        title=f"Max Sales Amount ({currency.upper()})",
+                        format=",.2f",
+                    ),
+                    alt.Tooltip(
+                        f"Median Sales Amount {currency}",
+                        title=f"Median Sales Amount ({currency.upper()})",
+                        format=",.2f",
+                    ),
+                ],
+                href="Explorer URL",
+                color=alt.Color(
+                    name,
+                    sort=alt.EncodingSortField(field="Count", op="max", order="descending"),
+                    scale=alt.Scale(scheme="turbo"),
+                    legend=None,
+                ),
+            )
+        ).properties(height=600, width=600)
+        cols[i].altair_chart(chart, use_container_width=True)
+        cols[i].metric(f"Average: `{metric_title}` for all Users, {name}", f"{df[metric].mean():,.1f}")
+        cols[i].metric(f"Median: `{metric_title}` for all Users, {name}", f"{df[metric].median():,.1f}")
+        cols[i].metric(f"Max: `{metric_title}` for all Users, {name}", f"{df[metric].max():,.1f}")
+        cols[i].metric(f"Min: `{metric_title}` for all Users, {name}", f"{df[metric].min():,.1f}")
+
+    # #NOTE Doing this for all addresses takes too long, a lot of non backpack users
+    # buyers_df = utils.add_backpack_username(buyers_df, "Purchaser")
+    # sellers_df = utils.add_backpack_username(sellers_df, "Seller")
+
 
 with mints:
     c1, c2 = st.columns([1, 8])
@@ -737,6 +898,27 @@ with st.expander("View and Download Data Table"):
         "text/csv",
         key=f"download-{slug}",
     )
+    st.write("**Total Sales Information**")
+    st.write(total_sales_info)
+    slug = f"mad_lad_total_sales"
+    st.download_button(
+        "Click to Download",
+        total_sales_info.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**Total Sales Information, by Marketplace**")
+    st.write(total_sales_info_marketplace)
+    slug = f"mad_lad_total_sales_marketplace"
+    st.download_button(
+        "Click to Download",
+        total_sales_info_marketplace.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write('---')
     st.write("**Mad Lad Sales**")
     st.write(sales_df)
     slug = f"mad_lad_sales"
@@ -747,6 +929,27 @@ with st.expander("View and Download Data Table"):
         "text/csv",
         key=f"download-{slug}",
     )
+    st.write("**Mad Lad Sales: Buyers**")
+    st.write(buyers_df)
+    slug = f"mad_lad_sales_buyers"
+    st.download_button(
+        "Click to Download",
+        buyers_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("**Mad Lad Sales: Sellers**")
+    st.write(sellers_df)
+    slug = f"mad_lad_sales_sellers"
+    st.download_button(
+        "Click to Download",
+        sellers_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write('---')
 
     st.subheader("Mints")
     st.write("**All Mint Transactions**")
@@ -769,6 +972,7 @@ with st.expander("View and Download Data Table"):
         "text/csv",
         key=f"download-{slug}",
     )
+    st.write('---')
 
     st.subheader("Madlist Data")
     st.write("**All Madlist Token holders**")

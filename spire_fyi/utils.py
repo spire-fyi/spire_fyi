@@ -843,7 +843,6 @@ def get_backpack_usernames(
         df.to_csv("data/backpack_info.csv", index=False)
     return pd.DataFrame(output)
 
-
 @st.cache_data(ttl=3600 * 24)
 def get_backpack_username(x):
     if x == "":
@@ -895,6 +894,10 @@ def get_backpack_address(username):
         return None
     return address
 
+@st.cache_data(ttl=3600*24)
+def add_backpack_username(df, address_col, username_col="Username"):
+    df[username_col] = get_backpack_usernames(df[address_col].values)[username_col].values
+    return df
 
 def get_mintlist(verified_collection_addresses):
     nft = NFTAPI(helius_key)
