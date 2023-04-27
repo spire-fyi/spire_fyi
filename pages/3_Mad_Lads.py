@@ -79,10 +79,24 @@ for k, v in madlad_query_dict.items():
         pass
 
 
+def apply_top_marketplace_names(x):
+    if x == "Magic Eden" or x == "hadeswap":
+        return x
+    if x == "tensorswap":
+        return "Tensor"
+    else:
+        return "Other"
+
+
 volume_spike_by_marketplace = madlad_data_dict["volume_spike"][
     ["Datetime", "Label", "Combined Marketplace", "Sales Count", "Total Sales Sol", "Total Sales Usd"]
 ].rename(columns={"Combined Marketplace": "Marketplace"})
-volume_spike_total = volume_spike_by_marketplace.groupby(["Datetime", "Label"]).sum().reset_index()
+volume_spike_by_marketplace["Marketplace"] = volume_spike_by_marketplace["Marketplace"].apply(
+    apply_top_marketplace_names
+)
+volume_spike_total = (
+    volume_spike_by_marketplace.groupby(["Datetime", "Label"]).sum(numeric_only=True).reset_index()
+)
 
 sales_df = utils.add_rarity_data(madlad_data_dict["sales"], how="left").rename(columns={"Image": "image"})
 most_recent = sales_df.loc[sales_df.groupby("Mint")["Block Timestamp"].idxmax(), :][
@@ -120,15 +134,14 @@ mints_per_user = (
     .sort_values(by="Count", ascending=False)
 )
 top_users = mints_per_user.iloc[:100]
-backpack_usernames = []
-for x in top_users.Collector:
-    backpack_usernames.append({"Collector": x, "Username": utils.get_backpack_username(x)})
-top_users = top_users.merge(pd.DataFrame(backpack_usernames), on="Collector")
+backpack_usernames = utils.get_backpack_usernames(top_users.Collector)
+top_users = top_users.merge(backpack_usernames, on="Collector")
 no_username_count = top_users[top_users.Username.isna()].Collector.nunique()
 top_users["Minter"] = top_users.apply(
     lambda x: x.Username if x.Username else f"One of {no_username_count} Addresses with no Username", axis=1
 )
 
+marketplaces = ["Tensor", "Magic Eden", "hadeswap", "Other"]
 
 attributes = [
     "Attribute count",
@@ -221,6 +234,195 @@ with sales:
         )
     ).properties(height=600, width=600)
     st.altair_chart(chart, use_container_width=True)
+
+    c1, c2 = st.columns(2)
+    date_range = c1.radio(
+        "Date Range", ["Past 24h", "Past 7d", "Since Mad Lads Launch"], key="total-date", horizontal=True
+    )
+    if date_range == "Since Mad Lads Launch":
+        total_sales_info = volume_spike_by_marketplace[
+            volume_spike_by_marketplace.Datetime >= "2023-04-22 01:00:00"
+        ]
+    elif date_range == "Past 7d":
+        total_sales_info = volume_spike_by_marketplace[
+            volume_spike_by_marketplace.Datetime
+            > volume_spike_by_marketplace.Datetime.max() - pd.Timedelta("7d")
+        ]
+    else:
+        total_sales_info = volume_spike_by_marketplace[
+            volume_spike_by_marketplace.Datetime
+            > volume_spike_by_marketplace.Datetime.max() - pd.Timedelta("24h")
+        ]
+
+    c1, c2 = st.columns(2)
+    total_sales_info_market_place = (
+        total_sales_info.groupby(["Marketplace", "Label"])[metric].sum().reset_index()
+    )
+    marketplace_totals = []
+    for x in marketplaces:
+        try:
+            marketplace_totals.append(
+                total_sales_info_market_place[
+                    (total_sales_info_market_place.Label == "MadLads")
+                    & (total_sales_info_market_place.Marketplace == x)
+                ][metric].values[0]
+            )
+        except:
+            marketplace_totals.append(0)
+
+    overall_total = sum(marketplace_totals)
+    chart_df = pd.DataFrame(
+        {
+            "Marketplace": marketplaces,
+            metric_title: marketplace_totals,
+            "Proportion": [x / overall_total for x in marketplace_totals],
+        }
+    )
+    chart = (
+        alt.Chart(chart_df, title=f"Proportion of {metric_title} per Marketplace for Mad Lads")
+        .mark_arc(innerRadius=69)
+        .encode(
+            theta=alt.Theta(metric_title),
+            color=alt.Color(
+                "Marketplace",
+                scale=alt.Scale(
+                    domain=marketplaces,
+                    range=[
+                        "#4B3D60",
+                        "#FD5E53",
+                        "#FC9C54",
+                        "#FFE373",
+                    ],
+                ),
+                legend=None,
+            ),
+            order=alt.Order(field=metric_title, sort="descending"),
+            tooltip=[
+                "Marketplace",
+                alt.Tooltip(metric_title, format=",.2f" if metric_title != "Sales Count" else ","),
+                alt.Tooltip("Proportion", format=".1%"),
+            ],
+        )
+    ).properties(height=300)
+    c1.altair_chart(chart, use_container_width=True)
+    for x, y in zip(marketplace_totals, marketplaces):
+        c2.metric(
+            f"{metric_title}, Mad Lads: {y}",
+            f"{x:,.2f} ({x / overall_total:.1%})",
+        )
+    st.write("---")
+
+    total_sales_info_label = total_sales_info.groupby(["Label"])[metric].sum().reset_index()
+    c1, c2 = st.columns(2)
+    mad_lads = total_sales_info_label[total_sales_info_label.Label == "MadLads"][metric].values[0]
+    other_collections = total_sales_info_label[total_sales_info_label.Label == "Other"][metric].values[0]
+    total_metric = mad_lads + other_collections
+    c2.metric(
+        f"{metric_title}: Mad Lad",
+        f"{mad_lads:,.2f} ({mad_lads / total_metric:.1%})",
+    )
+    c2.metric(
+        f"{metric_title}: Other Collections",
+        f"{other_collections:,.2f}  ({other_collections / total_metric:.1%})",
+    )
+    c2.metric(
+        f"{metric_title}: Overall",
+        f"{total_metric:,.2f}",
+    )
+
+    chart_df = pd.DataFrame(
+        {
+            "Collection": ["Mad Lads", "Other Collections"],
+            metric_title: [
+                mad_lads,
+                other_collections,
+            ],
+            "Proportion": [x / total_metric for x in (mad_lads, other_collections)],
+        }
+    )
+    chart = (
+        alt.Chart(chart_df, title=f"Proportion of {metric_title} from Mad Lads")
+        .mark_arc(innerRadius=69)
+        .encode(
+            theta=metric_title,
+            color=alt.Color(
+                "Collection",
+                scale=alt.Scale(domain=["Mad Lads", "Other Collections"], range=["#FD5E53", "#4B3D60"]),
+                legend=None,
+            ),
+            tooltip=[
+                "Collection",
+                alt.Tooltip(metric_title, format=",.2f" if metric_title != "Sales Count" else ","),
+                alt.Tooltip("Proportion", format=".1%"),
+            ],
+        )
+    ).properties(height=300)
+    c1.altair_chart(chart, use_container_width=True)
+
+    with st.expander(f"Proportions of {metric_title} from Mad Lads, per marketplace"):
+
+        for x in marketplaces:
+            c1, c2 = st.columns(2)
+            try:
+                mad_lads = total_sales_info_market_place[
+                    (total_sales_info_market_place.Marketplace == x)
+                    & (total_sales_info_market_place.Label == "MadLads")
+                ][metric].values[0]
+            except:
+                mad_lads = 0
+            try:
+                other_collections = total_sales_info_market_place[
+                    (total_sales_info_market_place.Marketplace == x)
+                    & (total_sales_info_market_place.Label == "Other")
+                ][metric].values[0]
+            except:
+                mad_lads = 0
+            total_metric = mad_lads + other_collections
+            c2.metric(
+                f"{x}, {metric_title}: Mad Lad",
+                f"{mad_lads:,.2f} ({mad_lads / total_metric:.1%})",
+            )
+            c2.metric(
+                f"{x}, {metric_title}: Other Collections",
+                f"{other_collections:,.2f} ({other_collections / total_metric:.1%})",
+            )
+            c2.metric(
+                f"{x}, {metric_title}: Overall",
+                f"{total_metric:,.2f}",
+            )
+
+            chart_df = pd.DataFrame(
+                {
+                    "Collection": ["Mad Lads", "Other Collections"],
+                    metric_title: [
+                        mad_lads,
+                        other_collections,
+                    ],
+                    "Proportion": [x / total_metric for x in (mad_lads, other_collections)],
+                }
+            )
+            chart = (
+                alt.Chart(chart_df)
+                .mark_arc(innerRadius=69)
+                .encode(
+                    theta=metric_title,
+                    color=alt.Color(
+                        "Collection",
+                        scale=alt.Scale(
+                            domain=["Mad Lads", "Other Collections"], range=["#FD5E53", "#4B3D60"]
+                        ),
+                        legend=None,
+                    ),
+                    tooltip=[
+                        "Collection",
+                        alt.Tooltip(metric_title, format=",.2f" if metric_title != "Sales Count" else ","),
+                        alt.Tooltip("Proportion", format=".1%"),
+                    ],
+                )
+            ).properties(height=250)
+            c1.altair_chart(chart, use_container_width=True)
+            st.write("---")
+
     st.write("---")
 
     st.subheader("Sales Breakdown")
@@ -244,7 +446,12 @@ with sales:
     y_title = f"Sales Amount ({currency})"
     scale = "log" if log_scale else "linear"
     tooltip = [
+        "Name",
         "Rank",
+        alt.Tooltip("Block Timestamp", title="Transaction datetime"),
+        alt.Tooltip("Tx Id", title="Transaction ID"),
+        alt.Tooltip("Purchaser"),
+        alt.Tooltip("Seller"),
         alt.Tooltip(amount_column, title=y_title, format=",.2f"),
         alt.Tooltip("Last Purchaser"),
         alt.Tooltip("Last Seller"),
@@ -563,7 +770,7 @@ with st.expander("View and Download Data Table"):
         key=f"download-{slug}",
     )
 
-    st.subheader("Mad Lad Data")
+    st.subheader("Madlist Data")
     st.write("**All Madlist Token holders**")
     st.write(mad_lad_df)
     slug = f"mad_lad_all"
@@ -594,3 +801,4 @@ with st.expander("View and Download Data Table"):
         "text/csv",
         key=f"download-{slug}",
     )
+    # TODO: add new data

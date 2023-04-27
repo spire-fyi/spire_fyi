@@ -260,7 +260,7 @@ if __name__ == "__main__":
     combine_nft = False
     do_xnft = True
     do_fees = True
-    do_madlad_metadata = False
+    do_madlad_metadata = True
 
     if do_main:
         program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)

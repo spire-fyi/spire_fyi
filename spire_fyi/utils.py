@@ -822,7 +822,29 @@ def aggregate_xnft_data(df, n=15):
     return daily_counts, totals
 
 
-@st.cache_data(ttl=3600 * 24 * 3)
+@st.cache_data(ttl=3600 * 24)
+def get_backpack_usernames(
+    addresses: Iterable, address_key="Collector", username_key="Username"
+) -> pd.DataFrame:
+    df = pd.read_csv("data/backpack_info.csv")
+    cached = dict(zip(df.address.values, df.user.values))
+    new_entries = []
+    output = []
+    for x in addresses:
+        if x in cached.keys():
+            username = cached[x]
+        else:
+            username = get_backpack_username(x)
+            if username is not None:
+                new_entries.append({"user": username, "address": x})
+        output.append({address_key: x, username_key: username})
+    if new_entries != []:
+        df = pd.concat([df, pd.DataFrame(new_entries)], ignore_index=True)
+        df.to_csv("data/backpack_info.csv", index=False)
+    return pd.DataFrame(output)
+
+
+@st.cache_data(ttl=3600 * 24)
 def get_backpack_username(x):
     if x == "":
         return ""
@@ -837,7 +859,28 @@ def get_backpack_username(x):
 
 
 @st.cache_data(ttl=3600 * 24)
-def get_backpack_addresses(username):
+def get_backpack_addresses(
+    usernames: Iterable, address_key="Collector", username_key="Username"
+) -> pd.DataFrame:
+    df = pd.read_csv("data/backpack_info.csv")
+    cached = dict(zip(df.user.values, df.address.values))
+    new_entries = []
+    output = []
+    for x in usernames:
+        if x in cached.keys():
+            address = cached[x]
+        else:
+            address = get_backpack_address(x)
+            if address is not None:
+                new_entries.append({"user": x, "address": address})
+        output.append({address_key: address, username_key: x})
+    df = pd.concat([df, pd.DataFrame(new_entries)], ignore_index=True)
+    df.to_csv("data/backpack_info.csv", index=False)
+    return pd.DataFrame(output)
+
+
+@st.cache_data(ttl=3600 * 24)
+def get_backpack_address(username):
     if username == "":
         return ""
     try:
@@ -847,9 +890,10 @@ def get_backpack_addresses(username):
         addresses = j["user"]["public_keys"]
         for x in addresses:
             if x["blockchain"] == "solana":
-                return x["public_key"]
+                address = x["public_key"]
     except KeyError:
         return None
+    return address
 
 
 def get_mintlist(verified_collection_addresses):

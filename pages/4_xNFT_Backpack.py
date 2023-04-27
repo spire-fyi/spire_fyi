@@ -337,8 +337,8 @@ address = st.text_input(
     key="backpackt-text-input",
 )
 if len(address) < 32 and address != "":
-    _address = utils.get_backpack_addresses(address)
-    if utils.get_backpack_addresses(address):
+    _address = utils.get_backpack_addresses([address], "Address").Address.values[0]
+    if _address is not None:
         backpack = True
         backpack_username = address
         address = _address
@@ -346,7 +346,7 @@ if len(address) < 32 and address != "":
         st.write("Not a valid Solana address!")
         backpack_username = ""
 else:
-    backpack_username = utils.get_backpack_username(address)
+    backpack_username = utils.get_backpack_usernames([address]).Username.values[0]
 
 if backpack_username == "":
     pass
