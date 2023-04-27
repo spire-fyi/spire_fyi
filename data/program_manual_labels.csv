@@ -1,5 +1,7 @@
 BLOCKCHAIN,CREATOR,ADDRESS,LABEL_TYPE,LABEL_SUBTYPE,LABEL,ADDRESS_NAME
 solana,spire,roya1eFeDvW8HvVrnfPkNKmMmqrFicvkrdbGwM44CTg,,,,Royale by Cymbal
-solana,spire,ocp4vWUzA2z2XMYJ3QhM9vWdyoyoQwAFJhRdVTbvo9E,nft,data/program_flipside_labels.csv,magic eden,Open Creator Protocol
+solana,spire,ocp4vWUzA2z2XMYJ3QhM9vWdyoyoQwAFJhRdVTbvo9E,nft,general_contract,magic eden,Open Creator Protocol
 solana,spire,Guard1JwRhJkVH6XZhzoYxeBVQe872VH6QggF4BWmS9g,nft,general_contract,metaplex,candy guard
-solana,flipside,FarmqiPv5eAj3j1GMdMCMUGXqPUvmquZtMy86QH6rzhG,dex,general_contract,raydium,raydium ecosystem farm
+solana,spire,FarmqiPv5eAj3j1GMdMCMUGXqPUvmquZtMy86QH6rzhG,dex,general_contract,raydium,raydium ecosystem farm
+solana,spire,rorcfdX4h9m9swCKgcypaHJ8NGYVANBpmV9EHn3cYrF,dapp,oracle,helium,Rewards Oracle
+solana,spire,rorcfdX4h9m9swCKgcypaHJ8NGYVANBpmV9EHn3cYrF,dapp,general_contract,helium,Lazy Distributor

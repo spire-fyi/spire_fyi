@@ -234,7 +234,7 @@ with sales:
         )
     ).properties(height=600, width=600)
     st.altair_chart(chart, use_container_width=True)
-    st.write('---')
+    st.write("---")
 
     c1, c2 = st.columns(2)
     date_range = c1.radio(
@@ -472,6 +472,8 @@ with sales:
             tooltip=tooltip,
             opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.05)),
             size=alt.condition(legend_selection, alt.value(25), alt.value(10)),
+            # #NOTE: this doesn't look great but may be interesting to configure later
+            # size=alt.Size(amount_column, title=y_title),
         )
         .add_selection(legend_selection)
         .properties(height=800, width=600)
@@ -526,7 +528,6 @@ with sales:
     sellers_df = sellers_df.rename(columns={x: x.replace("_", " ") for x in sellers_df.columns})
     sellers_df["Explorer URL"] = sellers_df["Seller"].apply(lambda x: f"https://solana.fm/address/{x}")
 
-
     c1, c2 = st.columns(2)
     metric = c1.selectbox(
         "Metric:",
@@ -569,11 +570,6 @@ with sales:
         ]
         else metric
     )
-    #     c1, c2 = st.columns(2)
-    # for x in [("Purchasers", c1, buyers_df), ("Sellers", c2, sellers_df)]:
-    #     name, col, df = x
-    #     col.metric(f"Average Sales Transactions per User, {name}", f"{df['Sales Count'].mean():,.1f}")
-    #     col.metric(f"Average Sales Transactions per User, {name}", f"{df['Sales Count'].mean():,.1f}")
 
     cols = st.columns(2)
     for i, x in enumerate([("Purchaser", buyers_df), ("Seller", sellers_df)]):
@@ -584,7 +580,7 @@ with sales:
         chart = (
             alt.Chart(
                 chart_df,
-                title=f"Top 20 {name}",
+                title=f"Top 20 {name}s",
             )
             .mark_bar()
             .encode(
@@ -596,7 +592,9 @@ with sales:
                     alt.Tooltip("Sales Count", format=","),
                     alt.Tooltip(f"Unique Nfts", title="Unique NFTs Transacted", format=","),
                     alt.Tooltip(
-                        f"Sales Amount {currency}", title=f"Sales Amount ({currency.upper()})", format=",.2f"
+                        f"Total Sales Amount {currency}",
+                        title=f"Sales Amount ({currency.upper()})",
+                        format=",.2f",
                     ),
                     alt.Tooltip(
                         f"Avg Sales Amount {currency}",
@@ -637,7 +635,6 @@ with sales:
     # #NOTE Doing this for all addresses takes too long, a lot of non backpack users
     # buyers_df = utils.add_backpack_username(buyers_df, "Purchaser")
     # sellers_df = utils.add_backpack_username(sellers_df, "Seller")
-
 
 with mints:
     c1, c2 = st.columns([1, 8])
@@ -918,7 +915,7 @@ with st.expander("View and Download Data Table"):
         "text/csv",
         key=f"download-{slug}",
     )
-    st.write('---')
+    st.write("---")
     st.write("**Mad Lad Sales**")
     st.write(sales_df)
     slug = f"mad_lad_sales"
@@ -949,7 +946,7 @@ with st.expander("View and Download Data Table"):
         "text/csv",
         key=f"download-{slug}",
     )
-    st.write('---')
+    st.write("---")
 
     st.subheader("Mints")
     st.write("**All Mint Transactions**")
@@ -972,7 +969,7 @@ with st.expander("View and Download Data Table"):
         "text/csv",
         key=f"download-{slug}",
     )
-    st.write('---')
+    st.write("---")
 
     st.subheader("Madlist Data")
     st.write("**All Madlist Token holders**")
