@@ -445,7 +445,7 @@ with sales:
     st.write("---")
 
     st.subheader("Sales Breakdown")
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     attribute = c1.selectbox(
         "Attribute:",
         attributes,
@@ -458,8 +458,15 @@ with sales:
         key="rarity-currency",
         horizontal=True,
     )
-    log_scale = c3.checkbox("Log Scale", value=True, key="rarity-log")
-    load_image = c3.checkbox("Load Image on Hover (downloads a lot of data)", value=False, key="rarity-image")
+    trait_sort = c3.radio(
+        "Sort Traits by Mean Sales Amount:",
+        ["ascending", "descending"],
+        format_func=lambda x: x.title(),
+        key="rarity-trait",
+        horizontal=True,
+    )
+    log_scale = c4.checkbox("Log Scale", value=True, key="rarity-log")
+    load_image = c4.checkbox("Load Image on Hover (downloads a lot of data)", value=False, key="rarity-image")
 
     amount_column = "Sales Amount" if currency == "SOL" else "Sales Amount Usd"
     y_title = f"Sales Amount ({currency})"
@@ -467,6 +474,7 @@ with sales:
     tooltip = [
         "Name",
         "Rank",
+        alt.Tooltip(attribute),
         alt.Tooltip("Block Timestamp", title="Transaction datetime"),
         alt.Tooltip("Tx Id", title="Transaction ID"),
         alt.Tooltip("Purchaser"),
@@ -478,6 +486,7 @@ with sales:
     ]
     if load_image:
         tooltip.append("image")
+    n_attributes = sales_df[attribute].nunique()
     legend_selection = alt.selection_multi(fields=[attribute], bind="legend")
     chart = (
         alt.Chart(sales_df, title=f'Rarity Rank vs Sales Amount, highlighting the "{attribute}" Attribute')
@@ -485,16 +494,21 @@ with sales:
         .encode(
             x="Rank",
             y=alt.Y(amount_column, title=y_title, scale=alt.Scale(type=scale, nice=False, zero=False)),
-            color=alt.Color(attribute, scale=alt.Scale(scheme="turbo")),
+            color=alt.Color(
+                attribute,
+                scale=alt.Scale(scheme="turbo"),
+                sort=alt.EncodingSortField(amount_column, op="mean", order=trait_sort),
+                legend=alt.Legend(symbolLimit=100, columns=2 if n_attributes > 50 else 1)
+            ),
             href="Howrare Url",
             tooltip=tooltip,
             opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.05)),
-            size=alt.condition(legend_selection, alt.value(25), alt.value(10)),
+            size=alt.condition(legend_selection, alt.value(30), alt.value(5)),
             # #NOTE: this doesn't look great but may be interesting to configure later
             # size=alt.Size(amount_column, title=y_title),
         )
         .add_selection(legend_selection)
-        .properties(height=800, width=600)
+        .properties(height=1000, width=600)
         .interactive()
     )
     st.altair_chart(chart, use_container_width=True)
