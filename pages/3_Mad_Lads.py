@@ -97,6 +97,12 @@ volume_spike_by_marketplace["Marketplace"] = volume_spike_by_marketplace["Market
 volume_spike_total = (
     volume_spike_by_marketplace.groupby(["Datetime", "Label"]).sum(numeric_only=True).reset_index()
 )
+volume_spike_total_daily = (
+    volume_spike_total.groupby([pd.Grouper(key="Datetime", axis=0, freq="D"), "Label"])
+    .sum(numeric_only=True)
+    .reset_index()
+)
+
 
 sales_df = utils.add_rarity_data(madlad_data_dict["sales"], how="left").rename(columns={"Image": "image"})
 most_recent = sales_df.loc[sales_df.groupby("Mint")["Block Timestamp"].idxmax(), :][
@@ -180,7 +186,7 @@ with sales:
         "NFT trading volume spiked after the Mad Lads became tradable. This is also apparent in the [Whale Watcher](Whale_Watcher) page, showing large NFT sales transactions!"
     )
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     metric = c1.selectbox(
         "Metric:",
         [
@@ -196,7 +202,13 @@ with sales:
         index=1,
         key="volume-selectbox",
     )
-    normalize = c2.checkbox("Normalize", value=True, key="volume-normalize")
+    date_type = c2.radio(
+        "Date Aggregation:",
+        ["Hourly", "Daily"],
+        key="spike-currency-date",
+        horizontal=True,
+    )
+
     if metric == "Total Sales" or "Amount" in metric:
         currency = c3.radio(
             "Currency:",
@@ -207,15 +219,21 @@ with sales:
         )
     else:
         currency = None
+    normalize = c4.checkbox("Normalize", value=True, key="volume-normalize")
     stack = "normalize" if normalize else True
     metric = f"{metric} {currency}" if currency is not None else metric
     metric_title = f"{metric[:-4]} ({currency.upper()})" if currency is not None else metric
+    if date_type == "Daily":
+        chart_df = volume_spike_total_daily
+    else:
+        chart_df = volume_spike_total
+
     chart = (
         alt.Chart(
-            volume_spike_total,
-            title=f"NFT {metric_title}: Hourly",
+            chart_df,
+            title=f"NFT {metric_title}: {date_type}",
         )
-        .mark_bar(binSpacing=0)
+        .mark_area(binSpacing=0, interpolate="monotone")
         .encode(
             x=alt.X("yearmonthdatehours(Datetime)", title="Datetime"),
             y=alt.Y(metric, title=metric_title, stack=stack),
