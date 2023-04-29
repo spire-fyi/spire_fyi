@@ -12,7 +12,7 @@ alt.data_transformers.disable_max_rows()
 image = Image.open("assets/images/spire_logo.png")
 
 st.set_page_config(
-    page_title="Spire",
+    page_title="Spire: xNFT Backpack",
     page_icon=image,
     layout="wide",
 )
