@@ -1,31 +1,34 @@
 .vscode/
 
-# raw files
-data/sdk_*
-data/nft_metadata/
-# large combined files
-data/users.csv.gz
+# #NOTE: now using a volume mount so we will ignore all data
+data
+# # raw files
+# data/sdk_*
+# data/nft_metadata/
 
-data/signers_by_programID.csv.gz
-data/signers_by_programID_new_users.csv.gz
+# # large combined files
+# data/users.csv.gz
+# data/signers_by_programID.csv.gz
+# data/signers_by_programID_new_users.csv.gz
+# data/checked_for_metadata.txt
+# data/nft_mints_metadata.csv.gz
+# data/nft_mints.csv.gz
+# data/unique_collection_mints.csv
+# data/nft_sales_with_royalties.csv.gz
+# data/nft_sales_metadata_with_royalties.csv.gz
 
-data/checked_for_metadata.txt
-data/nft_mints_metadata.csv.gz
-data/nft_mints.csv.gz
-data/unique_collection_mints.csv
-data/nft_sales_with_royalties.csv.gz
-data/nft_sales_metadata_with_royalties.csv.gz
-
+# Extra / backup files
 *.bak
 *.bak/*
 **/*.bak
 **/queries
-
 untracked
 **/untracked
 
+# Notebook related
 *.ipynb
 notebooks
 
+# Misc
 .git
 ./etc/letsencrypt

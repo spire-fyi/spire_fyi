@@ -10,6 +10,8 @@ services:
       dockerfile: ./docker/Dockerfile
     ports:
       - "8501:8501"
+    volumes:
+      - ./data:/app/data
     command: streamlit run Overview.py
 
   nginx:
