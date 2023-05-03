@@ -228,21 +228,31 @@ def get_solana_fm_labels(df, output_prefix, col):
     df.to_csv(f"data/{output_prefix}_solana_fm_labels.csv", index=False)
 
 
-def load_program_label_df():
-    fs_labs = pd.read_csv("data/program_flipside_labels.csv")
-    solfm_labs = pd.read_csv("data/program_solana_fm_labels.csv")
-    manual_labs = pd.read_csv("data/program_manual_labels.csv")
-    labs = pd.concat([fs_labs, manual_labs])
+def load_program_label_df(prefix="program", use_manual=True):
+    fs_labs = pd.read_csv(f"data/{prefix}_flipside_labels.csv")
+    solfm_labs = pd.read_csv(f"data/{prefix}_solana_fm_labels.csv")
+    if use_manual:
+        manual_labs = pd.read_csv(f"data/{prefix}_manual_labels.csv")
+        labs = pd.concat([fs_labs, manual_labs])
+    else:
+        labs = fs_labs
     merged = labs.merge(solfm_labs, on="ADDRESS", how="outer")
     return merged
 
 
-def add_program_labels(df):
-    label_df = load_program_label_df()
-    df = df.merge(label_df, left_on="PROGRAM_ID", right_on="ADDRESS", how="left").drop(
-        axis=1, columns=["ADDRESS", "BLOCKCHAIN"]
-    )
-    df.loc[df.PROGRAM_ID == "ComputeBudget111111111111111111111111111111", "LABEL"] = "solana"
+def add_program_labels(
+    df,
+    left_on="PROGRAM_ID",
+    right_on="ADDRESS",
+    drop=["ADDRESS", "BLOCKCHAIN"],
+    rename_solana_label=True,
+    prefix="program",
+    use_manual=True,
+):
+    label_df = load_program_label_df(prefix, use_manual)
+    df = df.merge(label_df, left_on=left_on, right_on=right_on, how="left").drop(axis=1, columns=drop)
+    if rename_solana_label:
+        df.loc[df.PROGRAM_ID == "ComputeBudget111111111111111111111111111111", "LABEL"] = "solana"
     return df
 
 
