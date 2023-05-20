@@ -498,7 +498,7 @@ with sales:
                 attribute,
                 scale=alt.Scale(scheme="turbo"),
                 sort=alt.EncodingSortField(amount_column, op="mean", order=trait_sort),
-                legend=alt.Legend(symbolLimit=100, columns=2 if n_attributes > 50 else 1)
+                legend=alt.Legend(symbolLimit=100, columns=2 if n_attributes > 50 else 1),
             ),
             href="Howrare Url",
             tooltip=tooltip,

@@ -342,15 +342,20 @@ if __name__ == "__main__":
         main_queries = [
             ("sdk_programs_new_users_sol", all_dates_2022),
             ("sdk_programs_sol", all_dates_2022),
+            ("sdk_programs_all_signers_sol", past_90d),
+            ("sdk_programs_new_users_all_signers_sol", past_90d),
             ("sdk_new_users_sol", all_dates_2022),
             ("sdk_transactions_sol", all_dates_2022),
             ("sdk_weekly_new_program_count_sol", all_weeks),
             ("sdk_weekly_program_count_sol", all_weeks),
             ("sdk_weekly_new_users_sol", all_weeks),
             ("sdk_weekly_users_sol", all_weeks),
+            ("sdk_weekly_new_users_all_signers_sol", all_weeks),
+            ("sdk_weekly_users_all_signers_sol", all_weeks),
             ("sdk_dex", past_180d),
             ("sdk_openbook_users", past_180d),
             ("sdk_dex_new_users", past_180d),
+            ("sdk_top_stakers_by_date_sol", past_180d),
         ]
         if do_nft_mints:
             main_queries.append(("sdk_nft_mints", past_90d_hours))

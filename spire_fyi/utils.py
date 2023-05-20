@@ -316,11 +316,17 @@ def get_program_chart_data(
 
 
 @st.cache_data(ttl=600)
-def load_labeled_program_data(new_users_only=False):
-    if new_users_only:
-        return pd.read_csv("data/programs_new_users_labeled.csv.gz")
+def load_labeled_program_data(new_users_only=False, user_type=None):
+    if user_type == "Signers":
+        if new_users_only:
+            return pd.read_csv("data/programs_new_users_all_signers_labeled.csv.gz")
+        else:
+            return pd.read_csv("data/programs_all_signers_labeled.csv.gz")
     else:
-        return pd.read_csv("data/programs_labeled.csv.gz")
+        if new_users_only:
+            return pd.read_csv("data/programs_new_users_labeled.csv.gz")
+        else:
+            return pd.read_csv("data/programs_labeled.csv.gz")
 
 
 @st.cache_data(ttl=60)
@@ -343,16 +349,22 @@ def load_weekly_new_program_data():
 
 
 @st.cache_data(ttl=60)
-def load_weekly_user_data():
-    df = pd.read_csv("data/weekly_users.csv")
+def load_weekly_user_data(user_type="Fee Payers"):
+    if user_type != "Fee Payers":
+        df = pd.read_csv("data/weekly_users_all_signers.csv")
+    else:
+        df = pd.read_csv("data/weekly_users.csv")
     datecols = ["WEEK"]
     df[datecols] = df[datecols].apply(pd.to_datetime)
     return df
 
 
 @st.cache_data(ttl=60)
-def load_weekly_new_user_data():
-    df = pd.read_csv("data/weekly_new_users.csv")
+def load_weekly_new_user_data(user_type="Fee Payers"):
+    if user_type != "Fee Payers":
+        df = pd.read_csv("data/weekly_new_users_all_signers.csv")
+    else:
+        df = pd.read_csv("data/weekly_new_users.csv")
     datecols = ["WEEK"]
     df[datecols] = df[datecols].apply(pd.to_datetime)
     df = df.sort_values(by="WEEK")

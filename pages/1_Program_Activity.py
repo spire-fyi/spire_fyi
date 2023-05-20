@@ -55,6 +55,16 @@ metric = c1.radio(
     index=1,
     key="program_metric",
 )
+if metric == "SIGNERS":
+    user_type = c1.radio(
+        "Choose a signer type",
+        ["Fee Payer", "Signers"],
+        horizontal=True,
+        key="program_user_type",
+    )
+else:
+    user_type = None
+
 agg_method = c2.radio(
     "Choose an aggregtion method",
     utils.agg_method_dict.keys(),
@@ -73,7 +83,7 @@ exclude_oracle = c4.checkbox("Exclude Oracle Programs", key="program_exclude_ora
 new_users_only = c4.checkbox("New Users Only", key="program_new_users")
 log_scale = c4.checkbox("Log Scale", key="program_log_scale")
 st.write("---")
-df = utils.load_labeled_program_data(new_users_only=new_users_only)
+df = utils.load_labeled_program_data(new_users_only=new_users_only, user_type=user_type)
 df["Date"] = pd.to_datetime(df["Date"])
 c1, c2 = st.columns(2)
 date_range = c1.radio(

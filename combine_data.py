@@ -283,6 +283,41 @@ if __name__ == "__main__":
         labeled_program_new_users_df.to_csv(
             "data/programs_new_users_labeled.csv.gz", index=False, compression="gzip"
         )
+        # ------
+        program_all_signers_df = utils.combine_flipside_date_data(
+            "data/sdk_programs_all_signers_sol", add_date=False
+        )
+        program_all_signers_df.to_csv("data/programs_all_signers.csv.gz", index=False, compression="gzip")
+        utils.get_flipside_labels(program_all_signers_df, "program_all_signers", "PROGRAM_ID")
+        utils.get_solana_fm_labels(program_all_signers_df, "program_all_signers", "PROGRAM_ID")
+
+        labeled_program_all_signers_df = utils.add_program_labels(program_all_signers_df)
+        labeled_program_all_signers_df.to_csv(
+            "data/programs_all_signers_labeled.csv.gz", index=False, compression="gzip"
+        )
+
+        # New users only
+        program_new_users_all_signers_df = utils.combine_flipside_date_data(
+            "data/sdk_programs_new_users_all_signers_sol", add_date=False
+        )
+        program_new_users_all_signers_df.to_csv(
+            "data/programs_new_users_all_signers.csv.gz", index=False, compression="gzip"
+        )
+        utils.get_flipside_labels(
+            program_new_users_all_signers_df, "program_new_users_all_signers", "PROGRAM_ID"
+        )
+        utils.get_solana_fm_labels(
+            program_new_users_all_signers_df, "program_new_users_all_signers", "PROGRAM_ID"
+        )
+
+        labeled_program_new_users_all_signers_df = utils.add_program_labels(program_new_users_all_signers_df)
+        labeled_program_new_users_all_signers_df.to_csv(
+            "data/programs_new_users_all_signers_labeled.csv.gz", index=False, compression="gzip"
+        )
+        # ------
+        # stakers
+        stakers_df = utils.combine_flipside_date_data("data/sdk_top_stakers_by_date_sol", add_date=True)
+        stakers_df.to_csv("data/top_stakers.csv.gz", index=False, compression="gzip")
 
         user_df = utils.combine_flipside_date_data("data/sdk_new_users_sol", add_date=False)
         datecols = ["CREATION_DATE", "LAST_USE"]
@@ -342,6 +377,15 @@ if __name__ == "__main__":
             "data/sdk_weekly_new_users_sol", add_date=False
         )
         weekly_new_user_data.to_csv("data/weekly_new_users.csv", index=False)
+
+        weekly_user_all_signers_data = utils.combine_flipside_date_data(
+            "data/sdk_weekly_users_all_signers_sol", add_date=False
+        )
+        weekly_user_all_signers_data.to_csv("data/weekly_users_all_signers.csv", index=False)
+        weekly_new_user_all_signers_data = utils.combine_flipside_date_data(
+            "data/sdk_weekly_new_users_all_signers_sol", add_date=False
+        )
+        weekly_new_user_all_signers_data.to_csv("data/weekly_new_users_all_signers.csv", index=False)
 
         dex_new_users = utils.combine_flipside_date_data("data/sdk_dex_new_users", add_date=False)
         dex_new_users.to_csv("data/dex_new_users.csv", index=False)

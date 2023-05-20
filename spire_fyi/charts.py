@@ -143,7 +143,6 @@ def alt_weekly_unique_chart(df, title, y, ytitle):
                 alt.Tooltip(y, title=ytitle, format=","),
             ],
         )
-        .interactive()
         .properties(height=600)
     )
     return chart
@@ -163,13 +162,7 @@ def alt_weekly_cumulative_chart(df, title, bar_y, line_y):
         y=alt.Y(bar_y),
     )
     line = base.mark_line(color="#FFE373").encode(y=alt.Y(line_y))
-    chart = (
-        (bar + line)
-        .interactive()
-        .properties(height=600)
-        .resolve_scale(y="independent")
-        .properties(height=600)
-    )
+    chart = (bar + line).properties(height=600).resolve_scale(y="independent").properties(height=600)
 
     return chart
 

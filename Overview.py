@@ -56,6 +56,11 @@ overview_query_dict = {
         "api": f"{api_base}/7d69821b-2a72-4a0d-afca-920a20d48a4d/data/latest",
         "datecols": ["DATE"],
     },
+    "Signers and Fee Payers: Successful Transactions only": {
+        "query": f"{query_base}/31cc9e11-9c2a-468e-8e63-cea1460fc19b",
+        "api": f"{api_base}/31cc9e11-9c2a-468e-8e63-cea1460fc19b/data/latest",
+        "datecols": ["DATE"],
+    },
     "Transaction Volume": {
         "query": f"{query_base}/8a0a28fb-36f6-4308-a448-5661c45a1726",
         "api": f"{api_base}/8a0a28fb-36f6-4308-a448-5661c45a1726/data/latest",
@@ -102,6 +107,13 @@ overview_data_dict["Fees"] = (
 
 with ecosystem:
     st.header("Ecosystem Overview")
+    succeeded_only = st.checkbox("Successful transactions only", key="succeeded_tx")
+    if succeeded_only:
+        signers_data = overview_data_dict["Signers and Fee Payers: Successful Transactions only"]
+        title = "Unique Signers and Fee Payers, Successful transactions only: Daily, Past 60d"
+    else:
+        signers_data = overview_data_dict["Signers and Fee Payers"]
+        title = f"Unique Signers and Fee Payers: Daily, Past 60d"
     # #TODO:
     # st.write(
     #     f"""See the [Health Metrics](Health_Metrics) page for more in depth analysis.
@@ -110,10 +122,7 @@ with ecosystem:
     c1, c2 = st.columns(2)
     # Unique Signers and Fee Payers
     chart = (
-        alt.Chart(
-            overview_data_dict["Signers and Fee Payers"],
-            title=f"Unique Signers and Fee Payers: Daily, Past 60d",
-        )
+        alt.Chart(signers_data, title=title)
         .mark_area(
             line={"color": "#4B3D60"},
             color=alt.Gradient(
@@ -144,7 +153,6 @@ with ecosystem:
             ],
         )
         .properties(height=600, width=600)
-        .interactive()
     )
     c1.altair_chart(chart, use_container_width=True)
     # New Solana Wallets
@@ -174,7 +182,6 @@ with ecosystem:
             ],
         )
         .properties(height=600, width=600)
-        .interactive()
     )
     c2.altair_chart(chart, use_container_width=True)
     st.write("---")
@@ -195,7 +202,7 @@ with ecosystem:
         y=alt.Y("Transactions"),
     )
     line = base.mark_line(color="#FFE373").encode(y=alt.Y("Moving Average"))
-    chart = (bar + line).interactive().properties(height=600).properties(width=600)
+    chart = (bar + line).properties(height=600).properties(width=600)
     c1.altair_chart(chart, use_container_width=True)
 
     # Daily Fee per Tx
@@ -257,12 +264,7 @@ with ecosystem:
         )
         .add_selection(selection)
     )
-    chart = (
-        (lines + points + rule)
-        .add_selection(legend_selection)
-        .interactive()
-        .properties(height=550, width=600)
-    )
+    chart = (lines + points + rule).add_selection(legend_selection).properties(height=550, width=600)
     c2.altair_chart(chart, use_container_width=True)
     st.write("---")
 
@@ -315,7 +317,6 @@ with ecosystem:
             ],
         )
         .properties(height=600, width=600)
-        .interactive()
     )
     c1.altair_chart(chart, use_container_width=True)
 
@@ -334,21 +335,23 @@ with ecosystem:
         "Fees shown here are from both vote and non-vote transactions. Currently, 50% of each transaction fee is burned, while the rest goes to validators. See [here](https://docs.solana.com/transaction_fees) for more details."
     )
     st.write("---")
-
+    user_type = st.radio(
+        "Choose a user type", ["Fee Payers", "Signers"], key="weekly_user_type", horizontal=True
+    )
     c1, c2 = st.columns(2)
-    weekly_user_data = utils.load_weekly_user_data()
-    weekly_new_user_data = utils.load_weekly_new_user_data()
-
+    # TODO: add in option for success/fail?
+    weekly_user_data = utils.load_weekly_user_data(user_type)
+    weekly_new_user_data = utils.load_weekly_new_user_data(user_type)
     unique_user_chart = charts.alt_weekly_unique_chart(
         weekly_user_data[weekly_user_data.WEEK > "2020-10-01"],
-        "Unique Users: Weekly",
+        f"Unique {user_type}: Weekly",
         "UNIQUE_USERS",
-        "Unique Fee Payers",
+        f"Unique {user_type}",
     )
     c1.altair_chart(unique_user_chart, use_container_width=True)
     new_user_chart = charts.alt_weekly_cumulative_chart(
         weekly_new_user_data[weekly_new_user_data.WEEK > "2020-10-01"],
-        "New Users: Weekly",
+        f"New {user_type}: Weekly",
         "New Users",
         "Cumulative Users",
     )
@@ -402,7 +405,7 @@ with ecosystem:
                     key=f"download-{slug}",
                 )
                 st.write("---")
-        st.subheader("Users")
+        st.subheader(f"Users: {user_type}")
         combined_user_df = weekly_new_user_data.merge(weekly_user_data, on="WEEK")
         combined_user_df = (
             combined_user_df[["WEEK", "UNIQUE_USERS", "New Users", "Cumulative Users"]]
@@ -450,7 +453,6 @@ with nft:
             ],
         )
         .properties(height=600, width=600)
-        .interactive()
     )
     st.altair_chart(chart, use_container_width=True)
     st.write("---")
@@ -479,7 +481,6 @@ with nft:
             ],
         )
         .properties(height=600, width=600)
-        .interactive()
     )
     c1.altair_chart(chart, use_container_width=True)
     # Sales and Mints: Tx Volume
@@ -507,7 +508,6 @@ with nft:
             ],
         )
         .properties(height=600, width=600)
-        .interactive()
     )
     c2.altair_chart(chart, use_container_width=True)
     with st.expander("View and Download Data Table"):
@@ -763,7 +763,6 @@ with defi:
             ],
         )
         .properties(height=600, width=600)
-        .interactive()
     )
     c1.altair_chart(chart, use_container_width=True)
     chart = (
@@ -792,7 +791,6 @@ with defi:
             ],
         )
         .properties(height=600, width=600)
-        .interactive()
     )
     c2.altair_chart(chart, use_container_width=True)
 
@@ -815,7 +813,6 @@ with defi:
             href="url",
         )
         .properties(height=600, width=600)
-        .interactive()
     )
     st.altair_chart(chart, use_container_width=True)
 
