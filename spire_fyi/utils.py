@@ -78,6 +78,7 @@ agg_method_dict = {
 metric_dict = {
     "TX_COUNT": "Transaction Count",
     "SIGNERS": "Number of signers",
+    "Total Stake": "Total Stake (SOL)"
 }
 
 dex_programs = {
@@ -228,16 +229,19 @@ def get_solana_fm_labels(df, output_prefix, col):
     df.to_csv(f"data/{output_prefix}_solana_fm_labels.csv", index=False)
 
 
-def load_program_label_df(prefix="program", use_manual=True):
-    fs_labs = pd.read_csv(f"data/{prefix}_flipside_labels.csv")
+def load_program_label_df(prefix="program", use_manual=True, sfm_only=False):
     solfm_labs = pd.read_csv(f"data/{prefix}_solana_fm_labels.csv")
-    if use_manual:
-        manual_labs = pd.read_csv(f"data/{prefix}_manual_labels.csv")
-        labs = pd.concat([fs_labs, manual_labs])
+    if sfm_only:
+        return solfm_labs
     else:
-        labs = fs_labs
-    merged = labs.merge(solfm_labs, on="ADDRESS", how="outer")
-    return merged
+        fs_labs = pd.read_csv(f"data/{prefix}_flipside_labels.csv")
+        if use_manual:
+            manual_labs = pd.read_csv(f"data/{prefix}_manual_labels.csv")
+            labs = pd.concat([fs_labs, manual_labs])
+        else:
+            labs = fs_labs
+        merged = labs.merge(solfm_labs, on="ADDRESS", how="outer")
+        return merged
 
 
 def add_program_labels(
@@ -248,22 +252,29 @@ def add_program_labels(
     rename_solana_label=True,
     prefix="program",
     use_manual=True,
+    sfm_only=False,
 ):
-    label_df = load_program_label_df(prefix, use_manual)
+    label_df = load_program_label_df(prefix, use_manual, sfm_only)
     df = df.merge(label_df, left_on=left_on, right_on=right_on, how="left").drop(axis=1, columns=drop)
     if rename_solana_label:
         df.loc[df.PROGRAM_ID == "ComputeBudget111111111111111111111111111111", "LABEL"] = "solana"
     return df
 
 
-def apply_program_name(row):
-    prog_id = row.PROGRAM_ID
-    address_name = row.ADDRESS_NAME
-    label = row.LABEL
-    friendly_name = row.FriendlyName
+def apply_program_name(
+    row,
+    address_col="PROGRAM_ID",
+    address_name_col="ADDRESS_NAME",
+    label_col="LABEL",
+    friendly_name_col="FriendlyName",
+):
+    address = row[address_col]
+    address_name = row[address_name_col]
+    label = row[label_col]
+    friendly_name = row[friendly_name_col]
     if pd.isna(address_name):
         if pd.isna(friendly_name):
-            return prog_id
+            return address
         else:
             return friendly_name
     else:
@@ -273,6 +284,7 @@ def apply_program_name(row):
             return address_name
 
 
+@st.cache_data(ttl=3600)
 def get_program_chart_data(
     df,
     metric,
@@ -287,8 +299,7 @@ def get_program_chart_data(
     elif date_range == "Year to Date":
         chart_df = df.copy()[df.Date >= "2022-01-01"]
     else:
-        d = f"{int(date_range[:-1])+1}d"
-        chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(d))]
+        chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
 
     if exclude_solana:
         chart_df = chart_df[chart_df.LABEL != "solana"]
@@ -1046,3 +1057,37 @@ def add_rarity_data(df, rarity_df="data/madlads_rarity.csv", on="Mint", how="inn
     df2 = pd.read_csv(rarity_df)
     merged = df.merge(df2, on=on, how=how)
     return merged
+
+
+@st.cache_data(ttl=3600)
+def load_staker_data():
+    # TODO: move to combine_data
+    df = pd.read_csv("data/top_stakers.csv.gz")
+    df = reformat_columns(df, ["DATE"])
+    df = (
+        df[["Date"] + df.columns.drop("Date").to_list()]
+        .sort_values(by=["Date", "Total Stake"], ascending=False)
+        .reset_index(drop=True)
+    )
+    return df
+
+
+# @st.cache_data(ttl=3600)
+def get_stakers_chart_data(df, date_range, exclude_foundation, exclude_labeled, n_stakers):
+    chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
+
+    if exclude_foundation:
+        chart_df = chart_df[chart_df["Address Name"] != "Solana Foundation Delegation Account"]
+    if exclude_labeled:
+        chart_df = chart_df[(chart_df["Address Name"].isna()) & (chart_df["Friendlyname"].isna())]
+
+    chart_df = (
+        chart_df.sort_values("Total Stake", ascending=False)
+        .groupby("Date", as_index=False)
+        .head(n_stakers)
+        .sort_values(by=["Date", "Total Stake"], ascending=False)
+        .reset_index(drop=True)
+    )
+    # chart_df = chart_df.set_index('Date').groupby('Address').resample('D').ffill().drop(columns='Address').reset_index()
+
+    return chart_df

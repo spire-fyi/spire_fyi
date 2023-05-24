@@ -10,6 +10,7 @@ def alt_line_chart(
     metric: str,
     log_scale=False,
     chart_title="",
+    legend_title="Program Name"
 ) -> alt.Chart:
     """Create a multiline Altair chart with tooltip
 
@@ -50,9 +51,10 @@ def alt_line_chart(
         ),
         color=alt.Color(
             "Name:N",
-            title="Program Name",
+            title=legend_title,
             scale=alt.Scale(scheme="turbo"),
             sort=alt.EncodingSortField(metric, op="count", order="descending"),
+            legend=alt.Legend(symbolLimit=50)
         ),
         opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
     )

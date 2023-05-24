@@ -261,6 +261,7 @@ if __name__ == "__main__":
     do_xnft = True
     do_fees = True
     do_madlad_metadata = True
+    do_stakers = True
 
     if do_main:
         program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
@@ -315,15 +316,11 @@ if __name__ == "__main__":
             "data/programs_new_users_all_signers_labeled.csv.gz", index=False, compression="gzip"
         )
         # ------
-        # stakers
-        stakers_df = utils.combine_flipside_date_data("data/sdk_top_stakers_by_date_sol", add_date=True)
-        stakers_df.to_csv("data/top_stakers.csv.gz", index=False, compression="gzip")
 
         user_df = utils.combine_flipside_date_data("data/sdk_new_users_sol", add_date=False)
         datecols = ["CREATION_DATE", "LAST_USE"]
         user_df[datecols] = user_df[datecols].apply(pd.to_datetime)
         last30d_users = user_df[user_df.CREATION_DATE > (datetime.datetime.today() - pd.Timedelta("31d"))]
-
         user_df.to_csv("data/users.csv.gz", index=False, compression="gzip")
         last30d_users.to_csv("data/last30d_users.csv.gz", index=False, compression="gzip")
 
@@ -674,3 +671,22 @@ if __name__ == "__main__":
             data.append(d)
         rarity_df = pd.DataFrame(data)
         rarity_df.to_csv("data/madlads_rarity.csv", index=False)
+
+    if do_stakers:
+        stakers_df = utils.combine_flipside_date_data("data/sdk_top_stakers_by_date_sol", add_date=True)
+        all_staker_addresses = stakers_df.rename(columns={"STAKER": "ADDRESS"})
+        utils.get_solana_fm_labels(all_staker_addresses, "stakers", "ADDRESS")
+        labeled_stakers = utils.add_program_labels(
+            all_staker_addresses,
+            left_on="ADDRESS",
+            rename_solana_label=False,
+            prefix="stakers",
+            use_manual=False,
+            drop=[],
+            sfm_only=True,
+        )
+        labeled_stakers["Name"] = labeled_stakers.apply(
+            utils.apply_program_name, axis=1, address_col="ADDRESS"
+        )
+        labeled_stakers.to_csv("data/top_stakers.csv.gz", index=False, compression="gzip")
+        # -----

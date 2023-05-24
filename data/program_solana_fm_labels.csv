@@ -1,5 +1,7 @@
 FriendlyName,Abbreviation,Category,VoteKey,Network,Tags,LogoURI,Flag,ADDRESS
 System Program,,programs,,"custom,devnet,testnet,mainnet",[],,,11111111111111111111111111111111
+Helium Lazy Transactions,Helium Lazy Transactions,programs,,mainnet,[],https://cryptologos.cc/logos/helium-hnt-logo.png,,1atrmQs3eq1N2FEYWu6tyTXbCjP4uQwExpjtnhXtS8h
+Helium Lazy Distributor,Helium Lazy Distributor,programs,,mainnet,[],https://cryptologos.cc/logos/helium-hnt-logo.png,,1azyuavdMyvsivtNxPoz6SucD18eDHeXzFCUPq5XU7w
 Serum Swap Program,Serum Swap Program,programs,,mainnet,[],https://assets.website-files.com/61382d4555f82a75dc677b6f/61ff21f9dcce3b42bfe4135c_serum%20NOF.png,scammed,22Y43yTVxuUkoRKdm9thyRhQ3SdgQS7c7kB6UNCiaczD
 Raydium Liquidity Pool Program v2,,programs,,mainnet,[],https://s2.coinmarketcap.com/static/img/coins/64x64/8526.png,,27haf8L6oxUeXrHrgEgsexjSY5hbVUWEmvv9Nyxg8vQv
 Cega Program,Cega Program,programs,,mainnet,[],,,3HUeooitcfKX1TSCx2xEpg2W31n6Qfmizu7nnbaEWYzs
@@ -155,13 +157,16 @@ Hedgehog Markets P2P,SOL,programs,,mainnet,[],https://pbs.twimg.com/profile_imag
 Zeta Program,Zeta,programs,,mainnet,[],"https://res.cloudinary.com/crunchbase-production/image/upload/c_lpad,f_auto,q_auto:eco,dpr_1/bpujp5jytnshoqrarfwy",,ZETAxsqBRek56DhiGXrn75yj2NHU3aYUnxvHXpkf3aD
 01 Program,01 Program,programs,,mainnet,[],,,Zo1ggzTUKMY5bYnDvT5mtVeZxzf2FaLTbKkmvGUhUQk
 NFT Auction Program,,programs,,"devnet,testnet,mainnet",[],,,auctxRXPeJoc4817jDhf4HbjnhEcr1cCXenosMhK5R8
+Helium Circuit Breaker Program,Helium Circuit Breaker Program,programs,,mainnet,[],https://cryptologos.cc/logos/helium-hnt-logo.png,,circAbx64bbsscPbQzZAUvuXpHqrCe6fLMzc2uKXz9g
 Chainlink Program,Chainlink,programs,,mainnet,[],https://cryptologos.cc/logos/chainlink-link-logo.png,,cjg3oHmg9uuPsP8D6g29NWvhySJkdYdAo9D25PRbKXJ
 NFT Candy Machine v2 Program,,programs,,"devnet,testnet,mainnet",[],,,cndy3Z4yapfJBmL3ShUp5exZKqR3z33thTzeNMm2gRZ
 NFT Candy Machine Program,,programs,,"devnet,testnet,mainnet",[],,,cndyAnrLdpjq1Ssp1z8xxDsB8dxe7u4HL5Nxi2K5WXZ
+Helium Data Credits Program,Helium Data Credits Program,programs,,mainnet,[],https://cryptologos.cc/logos/helium-hnt-logo.png,,credMBJhYFzfn7NxBMdU4aUqFggAjgztaCcv2Fo6fPT
 Drift Program,Drift,programs,,mainnet,['Perp Swaps'],,,dammHkt7jmytvbS3nHTxQNEcP59aE57nxwV21YdqEDN
 Exchange Art Auctions Program,Exchange Art Auctions Program,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1538859020894838786/vhqI2qxD_400x400.png,,exAuvFHqXXbiLrM4ce9m1icwuSyXytRnfBkajukDFuB
 Exchange Art Offers Program,Exchange Art Offers Program,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1538859020894838786/vhqI2qxD_400x400.png,,exofLDXJoFji4Qyf9jSAH59J4pp82UT5pmGgR6iT24Z
 HadeSwap,HadeSwap Program,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1613135820294168577/TUlcbyvE_400x400.jpg,,hadeK9DLv9eA7ya5KCTqSvSvRZeJC3JgD5a9Y3CNbvu
+Helium Voter Stake Registry,Helium Voter Stake Registry,programs,,mainnet,[],https://cryptologos.cc/logos/helium-hnt-logo.png,,hvsrNC3NKbcryqDs2DocYHZ9yPKEVzdSjQG6RVtK1s8
 Token Metadata Program,,programs,,"devnet,testnet,mainnet",[],,,metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s
 Mango Program v3,,programs,,mainnet,[],https://global.discourse-cdn.com/standard10/uploads/mango/original/1X/66a85d6b21c3555fbc8d415e389ba566fccd4127.png,,mv3ekLzLbnVPNxjSKvqBpU3ZeZXPQdEC3bp5MDEBG68
 Name Service Program,,programs,,"devnet,testnet,mainnet",[],,,namesLPneVptA9Z5rqUDD9tMTWEJwofgaYwp8cawRkX
@@ -172,6 +177,7 @@ OpenBook Program,OpenBook Program,programs,,mainnet,[],https://pbs.twimg.com/pro
 Tulip Staking Program,Tulip Staking,programs,,mainnet,"['Defi', 'Vaults']",https://s2.coinmarketcap.com/static/img/coins/200x200/10373.png,,stkTLPiBsQBUxDhXgxxsTRtxZ38TLqsqhoMvKMSt8Th
 Streamflow Program,Streamflow Program,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1396561843146080259/VJNtxnX0_400x400.jpg,,strmRqUCoQUgGUan5YhzUZa6KqdzwX5L6FpUxfmKg5m
 Sunrise Stake Program,Sunrise Stake Program,programs,,mainnet,[],https://docs.sunrisestake.com/img/logo.png,,sunzv8N3A8dRHwUBvxgRDEbWKk8t7yiHR4FLRgFsTX6
+Helium Treasury Management,Helium Treasury Management,programs,,mainnet,[],https://cryptologos.cc/logos/helium-hnt-logo.png,,treaf4wWBBty3fHdyBpo35Mz84M8k3heKXmjmi9vFt5
 Token Vault Program,,programs,,"devnet,testnet,mainnet",[],,,vau1zxA2LbssAUEF7Gpw91zMM1LvXrvpzJtmZ58rPsn
 Vyper Core Program,Sol,programs,,mainnet,[],,,vyPErCcGJKQQBeeQ59gXcWrDyU4vBrq8qQfacwmsAsp
 Orca Whirlpool Program,WhirlPool ,programs,,mainnet,['program'],,,whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc
