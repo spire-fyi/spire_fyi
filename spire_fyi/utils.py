@@ -78,7 +78,7 @@ agg_method_dict = {
 metric_dict = {
     "TX_COUNT": "Transaction Count",
     "SIGNERS": "Number of signers",
-    "Total Stake": "Total Stake (SOL)"
+    "Total Stake": "Total Stake (SOL)",
 }
 
 dex_programs = {
@@ -1069,6 +1069,8 @@ def load_staker_data():
         .sort_values(by=["Date", "Total Stake"], ascending=False)
         .reset_index(drop=True)
     )
+    df["Rank"] = df.groupby("Date")["Total Stake"].rank(ascending=False)
+    df['Diff'] = df.groupby(['Address']).Rank.diff()
     return df
 
 

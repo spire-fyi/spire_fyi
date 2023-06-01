@@ -10,7 +10,8 @@ def alt_line_chart(
     metric: str,
     log_scale=False,
     chart_title="",
-    legend_title="Program Name"
+    legend_title="Program Name",
+    interactive=True
 ) -> alt.Chart:
     """Create a multiline Altair chart with tooltip
 
@@ -33,7 +34,6 @@ def alt_line_chart(
     else:
         scale = "linear"
     columns = data["Name"].unique()
-
     base = alt.Chart(data, title=chart_title).encode(x=alt.X("yearmonthdate(Date):T", title=None))
     selection = alt.selection_single(
         fields=["Date"],
@@ -43,7 +43,7 @@ def alt_line_chart(
         clear="mouseout",
     )
     legend_selection = alt.selection_multi(fields=["Name"], bind="legend")
-    lines = base.mark_line(point=True).encode(
+    lines = base.mark_line(point=True, interpolate='monotone').encode(
         y=alt.Y(
             f"{metric}:Q",
             title=utils.metric_dict[metric],
@@ -78,9 +78,11 @@ def alt_line_chart(
     )
     chart = lines + points + rule
 
+    if interactive:
+        chart = chart.interactive()
+
     return (
         chart.add_selection(legend_selection)
-        .interactive()
         .properties(height=800, width=800)
         # .configure_axis(grid=False)
     )

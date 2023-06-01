@@ -3,6 +3,7 @@ System Program,,programs,,"custom,devnet,testnet,mainnet",[],,,11111111111111111
 Helium Lazy Transactions,Helium Lazy Transactions,programs,,mainnet,[],https://cryptologos.cc/logos/helium-hnt-logo.png,,1atrmQs3eq1N2FEYWu6tyTXbCjP4uQwExpjtnhXtS8h
 Helium Lazy Distributor,Helium Lazy Distributor,programs,,mainnet,[],https://cryptologos.cc/logos/helium-hnt-logo.png,,1azyuavdMyvsivtNxPoz6SucD18eDHeXzFCUPq5XU7w
 Serum Swap Program,Serum Swap Program,programs,,mainnet,[],https://assets.website-files.com/61382d4555f82a75dc677b6f/61ff21f9dcce3b42bfe4135c_serum%20NOF.png,scammed,22Y43yTVxuUkoRKdm9thyRhQ3SdgQS7c7kB6UNCiaczD
+Raydium Liquidity Pool Program v2,,programs,,mainnet,[],https://s2.coinmarketcap.com/static/img/coins/64x64/8526.png,,27haf8L6oxUeXrHrgEgsexjSY5hbVUWEmvv9Nyxg8vQv
 Cega Program,Cega Program,programs,,mainnet,[],,,3HUeooitcfKX1TSCx2xEpg2W31n6Qfmizu7nnbaEWYzs
 Francium Lending Reward Program,Lending Reward,programs,,mainnet,"['lending', 'reward']",https://pbs.twimg.com/profile_images/1476861175023353857/Srga_3kj_400x400.jpg,,3Katmm9dhvLQijAvomteYMo6rfVbY5NaCRNq9ZBqBgr6
 Mean Finance DDCA Program,Mean Finance DDCA Program,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1511040310344044544/ksia9GiX_400x400.jpg,,3nmm1awnyhABJdoA25MYVksxz1xnpUFeepJJyRTZfsyD
@@ -119,6 +120,7 @@ NFT Auction Program,,programs,,"devnet,testnet,mainnet",[],,,auctxRXPeJoc4817jDh
 NFT Candy Machine v2 Program,,programs,,"devnet,testnet,mainnet",[],,,cndy3Z4yapfJBmL3ShUp5exZKqR3z33thTzeNMm2gRZ
 NFT Candy Machine Program,,programs,,"devnet,testnet,mainnet",[],,,cndyAnrLdpjq1Ssp1z8xxDsB8dxe7u4HL5Nxi2K5WXZ
 Helium Data Credits Program,Helium Data Credits Program,programs,,mainnet,[],https://cryptologos.cc/logos/helium-hnt-logo.png,,credMBJhYFzfn7NxBMdU4aUqFggAjgztaCcv2Fo6fPT
+Drift v2,Drift v2,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1608507060206948353/V1ChXSnf_400x400.jpg,,dRiftyHA39MWEi3m9aunc5MzRF1JYuBsbn6VPcn33UH
 Drift Program,Drift,programs,,mainnet,['Perp Swaps'],,,dammHkt7jmytvbS3nHTxQNEcP59aE57nxwV21YdqEDN
 Exchange Art Auctions Program,Exchange Art Auctions Program,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1538859020894838786/vhqI2qxD_400x400.png,,exAuvFHqXXbiLrM4ce9m1icwuSyXytRnfBkajukDFuB
 Exchange Art Offers Program,Exchange Art Offers Program,programs,,mainnet,[],https://pbs.twimg.com/profile_images/1538859020894838786/vhqI2qxD_400x400.png,,exofLDXJoFji4Qyf9jSAH59J4pp82UT5pmGgR6iT24Z
