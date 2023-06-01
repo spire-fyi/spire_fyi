@@ -13,10 +13,10 @@ import pandas as pd
 import requests
 import solders
 import streamlit as st
+from flipside import Flipside
 from helius import NFTAPI, BalancesAPI
 from jinja2 import Environment, FileSystemLoader
 from PIL import Image
-from shroomdk import ShroomDK
 from solana.rpc.async_api import AsyncClient
 
 from .xnft.accounts import Xnft
@@ -58,7 +58,7 @@ __all__ = [
 ]
 
 API_KEY = st.secrets["flipside"]["api_key"]
-sdk = ShroomDK(API_KEY)
+sdk = Flipside(API_KEY)
 
 helius_key = st.secrets["helius"]["api_key"]
 rpc_url = f"https://rpc.helius.xyz/?api-key={helius_key}"
@@ -67,7 +67,7 @@ LAMPORTS_PER_SOL = 1_000_000_000
 IPFS_RESOLVER_URL = "https://cloudflare-ipfs.com/ipfs"
 IPFS_RESOLVER_ALT_URL = "https://ipfs.io/ipfs"
 
-query_base = "https://next.flipsidecrypto.xyz/edit/queries"
+query_base = "https://flipsidecrypto.xyz/edit/queries"
 api_base = "https://api.flipsidecrypto.com/api/v2/queries"
 
 agg_method_dict = {
@@ -177,7 +177,15 @@ def query_flipside_data(query_info, save=True):
     with open(query_file, "w") as f:
         f.write(query)
     try:
-        query_result_set = sdk.query(query, cached=False)
+        query_result_set = sdk.query(
+            query,
+            ttl_minutes=120,
+            timeout_minutes=30,
+            retry_interval_seconds=1,
+            page_size=1000000,
+            page_number=1,
+            cached=False,
+        )
         if save:
             df = pd.DataFrame(query_result_set.rows, columns=query_result_set.columns)
             output_file.parent.mkdir(exist_ok=True, parents=True)
@@ -387,9 +395,7 @@ def load_weekly_new_user_data(user_type="Fee Payers"):
 @st.cache_data(ttl=1800)
 def load_nft_data():
     main_data = (
-        pd.read_json(
-            "https://node-api.flipsidecrypto.com/api/v2/queries/2b945162-59a9-4ccc-95ee-fca67ac142c4/data/latest"
-        )
+        pd.read_json(f"{api_base}/2b945162-59a9-4ccc-95ee-fca67ac142c4/data/latest")
         .rename(
             columns={
                 "WEEK": "Date",
@@ -425,27 +431,23 @@ def load_nft_data():
         ]
     )
     mints_by_purchaser = (
-        pd.read_json(
-            "https://node-api.flipsidecrypto.com/api/v2/queries/04be6d7d-b5cd-4c11-9f73-68288e1353d4/data/latest"
-        )
+        pd.read_json(f"{api_base}/04be6d7d-b5cd-4c11-9f73-68288e1353d4/data/latest")
         .rename(columns={"DATE": "Date", "AVERAGE_MINTS": "Average Mints per Address"})
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
     mints_by_purchaser["Date"] = pd.to_datetime(mints_by_purchaser["Date"])
     mints_by_chain = (
-        pd.read_json(
-            "https://node-api.flipsidecrypto.com/api/v2/queries/88cfaf1c-e485-4926-817f-61ed261d9cfb/data/latest"
-        )
+        pd.read_json(f"{api_base}/88cfaf1c-e485-4926-817f-61ed261d9cfb/data/latest")
         .rename(columns={"DATE": "Date", "CHAIN": "Chain", "MINTS": "Count", "MINTERS": "Unique Users"})
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
     mints_by_chain["Type"] = "Mints"
     mints_by_chain["Date"] = pd.to_datetime(mints_by_chain["Date"])
-    sales_by_chain = pd.read_json(
-        "https://node-api.flipsidecrypto.com/api/v2/queries/7daf5636-2364-4281-b1cb-2d44ae1bcffd/data/latest"
-    ).rename(columns={"DATE": "Date", "CHAIN": "Chain", "SALES": "Count", "BUYERS": "Unique Users"})
+    sales_by_chain = pd.read_json(f"{api_base}/7daf5636-2364-4281-b1cb-2d44ae1bcffd/data/latest").rename(
+        columns={"DATE": "Date", "CHAIN": "Chain", "SALES": "Count", "BUYERS": "Unique Users"}
+    )
     sales_by_chain["Date"] = pd.to_datetime(sales_by_chain["Date"])
     sales_by_chain["Type"] = "Sales"
     by_chain_data = (
@@ -460,8 +462,8 @@ def load_nft_data():
 def load_royalty_data():
     df = (
         pd.read_json(
-            "https://node-api.flipsidecrypto.com/api/v2/queries/ffd713f1-4d05-4f3e-82b8-dc2c87db6691/data/latest"  # fork
-            # "https://node-api.flipsidecrypto.com/api/v2/queries/7572e1e3-fbfb-4dd4-9d45-dd6cde7f42df/data/latest"  # original, see https://twitter.com/BlumbergKellen/status/1601245496789463045
+            f"{api_base}/ffd713f1-4d05-4f3e-82b8-dc2c87db6691/data/latest"  # fork
+            # f"{api_base}/7572e1e3-fbfb-4dd4-9d45-dd6cde7f42df/data/latest"  # original, see https://twitter.com/BlumbergKellen/status/1601245496789463045
         )
         .sort_values(by=["MONTH"])
         .drop(columns=["N_DAYS", "PCT_SALES_AMOUNT"])
@@ -490,9 +492,7 @@ def load_royalty_data():
 
 @st.cache_data(ttl=1800)
 def load_sol_daily_price():
-    df = pd.read_json(
-        "https://node-api.flipsidecrypto.com/api/v2/queries/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest"
-    )
+    df = pd.read_json(f"{api_base}/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest")
     df["Date"] = pd.to_datetime(df["Date"])
     df = df.sort_values(by="Date")
     return df
@@ -549,9 +549,7 @@ def get_random_image(df):
 @st.cache_data(ttl=1800)
 def load_defi_data():
     df = (
-        pd.read_json(
-            "https://node-api.flipsidecrypto.com/api/v2/queries/02d025f0-9eb1-4bff-b317-299c8b251178/data/latest"
-        )
+        pd.read_json(f"{api_base}/02d025f0-9eb1-4bff-b317-299c8b251178/data/latest")
         .sort_values(by=["WEEK", "SWAP_PROGRAM"])
         .reset_index(drop=True)
         .rename(
@@ -636,7 +634,15 @@ def run_query_and_cache(name, sql, param, force_update=False):
         return pd.read_csv(file_path)
     else:
         query = sql.format(param=param)
-        query_result_set = sdk.query(query)
+        query_result_set = sdk.query(
+            query,
+            ttl_minutes=120,
+            timeout_minutes=30,
+            retry_interval_seconds=1,
+            page_size=1000000,
+            page_number=1,
+            cached=False,
+        )
         df = pd.DataFrame(query_result_set.rows, columns=query_result_set.columns)
         df.to_csv(
             file_path,
@@ -1070,7 +1076,7 @@ def load_staker_data():
         .reset_index(drop=True)
     )
     df["Rank"] = df.groupby("Date")["Total Stake"].rank(ascending=False)
-    df['Diff'] = df.groupby(['Address']).Rank.diff()
+    df["Diff"] = df.groupby(["Address"]).Rank.diff()
     return df
 
 

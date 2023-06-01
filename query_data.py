@@ -2,6 +2,7 @@
 
 import ast
 import datetime
+import hashlib
 import json
 import logging
 import shutil
@@ -12,15 +13,13 @@ from time import sleep
 import numpy as np
 import pandas as pd
 import streamlit as st
+from flipside import Flipside
 from jinja2 import Environment, FileSystemLoader
-from shroomdk import ShroomDK
-from shroomdk.api import CreateQueryResp
-from shroomdk.models import Query
 
 import spire_fyi.utils as utils
 
 API_KEY = st.secrets["flipside"]["api_key"]
-sdk = ShroomDK(API_KEY)
+sdk = Flipside(API_KEY)
 
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
@@ -77,6 +76,13 @@ past_180d = [
         (datetime.datetime.today() - pd.Timedelta("1d")),
     )
 ]
+since_marinade_launch = [
+    f"{x:%Y-%m-%d}"
+    for x in pd.date_range(
+        datetime.datetime(2021, 7, 31, 0, 0),  # mSOL launched 2021-08-01
+        (datetime.datetime.today() - pd.Timedelta("1d")),
+    )
+]
 past_90d_hours = [
     # f"{x:%Y-%m-%d %H:%M:%S.%f}"
     f"{x:%F %T.%f}"[:-3]
@@ -124,10 +130,29 @@ def create_query_by_creator_address_and_mints(query_basename, creator_address, m
     return query
 
 
+def create_query_by_date_and_wallets(date, wallets, query_basename):
+    env = Environment(loader=FileSystemLoader("./sql"))
+    template = env.get_template(f"{query_basename}.sql")
+    query = template.render({"date": f"'{date}'", "wallets": wallets})
+    return query
+
+
 def get_queries_by_date(date, query_basename, update_cache=False):
     query = create_query_by_date(date, query_basename)
     output_dir = Path(f"data/{query_basename}")
     output_file = Path(output_dir, f"{query_basename}_{date.replace(' ', '_')}.csv")
+    if update_cache or not output_file.exists():
+        return query, output_file
+
+
+def get_queries_by_date_and_wallets(
+    date, query_basename, wallets, n_wallets, wallet_hash, update_cache=False
+):
+    query = create_query_by_date_and_wallets(date, wallets, query_basename)
+    output_dir = Path(f"data/{query_basename}")
+    output_file = Path(
+        output_dir, f"{query_basename}_{n_wallets}wallets_sha1-{wallet_hash}_{date.replace(' ', '_')}.csv"
+    )
     if update_cache or not output_file.exists():
         return query, output_file
 
@@ -209,83 +234,6 @@ def get_queries_by_date_and_programs(date, query_basename, df, update_cache=Fals
     return queries_to_do
 
 
-def create_query(query, output_file):
-    query_file = Path(output_file.parent, "queries", f"{output_file.stem}.sql")
-    logging.info(f"#@# Submitting query for {output_file} ...")
-    query_file.parent.mkdir(exist_ok=True, parents=True)
-    with open(query_file, "w") as f:
-        f.write(query)
-    q = Query(
-        sql=query,
-        ttl_minutes=120,
-        cached=True,
-        timeout_minutes=30,
-        retry_interval_seconds=1,
-        page_size=1000000,
-        page_number=1,
-    )
-    sent_q = sdk.api.create_query(q)
-    return sent_q
-
-
-def submit_flipside_queries(query_info):
-    sent_queries = []
-    for i, x in enumerate(query_info):
-        query, output_file = x
-        resp = create_query(query, output_file)
-        sent_queries.append((resp, output_file))
-        resp_file = Path(output_file.parent, "responses", f"{output_file.stem}.json")
-        resp_file.parent.mkdir(exist_ok=True, parents=True)
-        with open(resp_file, "w") as f:
-            json.dump(resp.dict(), f)
-        # #TODO: sleep?
-        sleep(0.5)
-        if i % 50 == 0 and i != 0:
-            sleep(60)
-    with open("data/submitted_queries.json", "w") as f:
-        d = {str(k): v.dict() for v, k in sent_queries}
-        json.dump(
-            d,
-            f,
-        )
-    return sent_queries
-
-
-def get_flipside_query_data(submitted_queries):
-    running = []
-    failed = []
-    logging.info(f"Checking status for {len(submitted_queries)} queries...")
-    for x in submitted_queries:
-        query, output_file = x
-        output_file = Path(output_file)
-        result = sdk.api.get_query_result(query.data.token, 1, 100000)
-        if result.data is not None and result.data.status == "running":
-            running.append(x)
-        elif result.data is not None and result.data.status == "finished":
-            df = pd.DataFrame(result.data.results, columns=result.data.columnLabels)
-            output_file.parent.mkdir(exist_ok=True, parents=True)
-            df.to_csv(
-                output_file,
-                index=False,
-            )
-        else:  # #TODO figure out failures better
-            if result.status_msg != "OK":
-                failed.append(x)
-            else:
-                running.append(x)
-    with open("data/failed_queries.json", "a") as f:
-        d = {str(k): v.dict() for v, k in failed}
-        json.dump(
-            d,
-            f,
-        )
-    if len(failed) > 0:
-        logging.info(f"#@# {len(failed)} queries failed")
-    if len(running) > 0:
-        sleep(10)
-        get_flipside_query_data(running)
-
-
 def query_flipside_data(enumerated_query_info, save=True):
     i, query_info = enumerated_query_info
     query, output_file = query_info
@@ -303,7 +251,15 @@ def query_flipside_data(enumerated_query_info, save=True):
     if i % 100 == 0:
         sleep(15)
     try:
-        query_result_set = sdk.query(query, cached=False)
+        query_result_set = sdk.query(
+            query,
+            ttl_minutes=120,
+            timeout_minutes=30,
+            retry_interval_seconds=1,
+            page_size=1000000,
+            page_number=1,
+            cached=False,
+        )
         if save:
             df = pd.DataFrame(query_result_set.rows, columns=query_result_set.columns)
             output_file.parent.mkdir(exist_ok=True, parents=True)
@@ -318,23 +274,16 @@ def query_flipside_data(enumerated_query_info, save=True):
         return
 
 
-def get_submitted_queries_from_json(submitted_query_file):
-    with open(submitted_query_file) as f:
-        subs = json.load(f)
-    submitted_queries = []
-    for k, v in subs.items():
-        submitted_queries.append((CreateQueryResp(**v), k))
-    return submitted_queries
-
-
 if __name__ == "__main__":
     # #TODO make cli...
     update_cache = False
+    lst_force_update = False
     do_main = True
     do_network = False
     do_nft_mints = False
     do_nft_metadata = False
     do_xnft = True
+    do_lst = True
 
     query_info = []
     if do_main:
@@ -413,6 +362,7 @@ if __name__ == "__main__":
         queries_to_do = get_nft_transfer_queries(unique_collection_mints, "sdk_nft_royalty_tx")
         if queries_to_do != []:
             query_info.extend(queries_to_do)
+
     if do_xnft:
         # Madlads
         mintlist = utils.get_mintlist(["FCk24cq1pYhQo5MQYKHf5N9VnY8tdrToF7u6gvvsnGrn"])
@@ -426,6 +376,41 @@ if __name__ == "__main__":
                 get_queries_by_mint_list(mintlist, "sdk_madlist", update_cache=True),
             ]
         )
+
+    if do_lst:
+        """#TODO:
+        - maybe move to combine_data, since it relies on top_stakers?
+        - have an init and update step?
+        - get first transaction date for each new wallet, so can run smaller numbers of queries for new wallets?
+        - query all dates, for `top_stakers`, for each date since mSOL launch
+        - save files for each wallet/max_date combo, so if new wallets are added to top_stakers dont need to re-run
+        - forward fill dates to create final csv
+        """
+        if lst_force_update:
+            top_stakers = pd.read_csv("data/top_stakers.csv.gz")
+            top_staker_addresses = sorted(top_stakers.ADDRESS.unique().tolist())
+        else:  # HACK until better way to update data, sticking with original top stakers as of 5/30
+            with open("data/top_stakers.json") as f:
+                d = json.load(f)
+                top_staker_addresses = d["e69df08b7135b93f6f064d13d9a53b0db7390ec1"]["wallets"]
+        n_wallets = len(top_staker_addresses)
+        wallet_hash = hashlib.sha1("".join(top_staker_addresses).encode("utf-8")).hexdigest()
+        for q, dates in [("sdk_top_liquid_staking_token_holders_delta", since_marinade_launch)]:
+            for date in dates:
+                queries_to_do = get_queries_by_date_and_wallets(
+                    date, q, top_staker_addresses, n_wallets, wallet_hash
+                )
+                if queries_to_do is not None:
+                    query_info.append(queries_to_do)
+        with open("data/top_stakers.json") as f:
+            top_stakers_log = json.load(f)
+        with open("data/top_stakers.json", "w") as f:
+            top_stakers_log[wallet_hash] = {
+                "n_wallets": n_wallets,
+                "last_date": date,
+                "wallets": top_staker_addresses,
+            }
+            json.dump(top_stakers_log, f, indent=2)
 
     logging.info(f"Running {len(query_info)} queries...")
     with Pool() as p:

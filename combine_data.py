@@ -262,6 +262,7 @@ if __name__ == "__main__":
     do_fees = True
     do_madlad_metadata = True
     do_stakers = True
+    do_lst = True
 
     if do_main:
         program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
@@ -690,3 +691,28 @@ if __name__ == "__main__":
         )
         labeled_stakers.to_csv("data/top_stakers.csv.gz", index=False, compression="gzip")
         # -----
+
+    if do_lst:
+        lst_df = utils.combine_flipside_date_data("data/sdk_top_liquid_staking_token_holders_delta")
+        lst_df["Date"] = pd.to_datetime(lst_df["Date"])
+        lst_df = lst_df.sort_values(by=["WALLET", "TOKEN", "Date"]).reset_index(drop=True)
+        lst_df.to_csv("data/liquid_staking_token_holders_delta.csv")
+
+        # https://stackoverflow.com/a/74039090
+        c = ["WALLET", "TOKEN", "TOKEN_NAME", "SYMBOL", "Date"]
+        m = lst_df[c].duplicated(keep="last")
+        s = (
+            lst_df[~m]
+            .set_index("Date")
+            .groupby(["WALLET", "TOKEN", "TOKEN_NAME", "SYMBOL"])
+            .resample("D")
+            .ffill()
+        )
+        lst_df = (
+            s.droplevel(["WALLET", "TOKEN", "TOKEN_NAME", "SYMBOL"])
+            .reset_index()
+            # .sort_values(by=["Date", "WALLET", "TOKEN"])
+            .sort_values(by=["WALLET", "TOKEN", "Date"])
+            .reset_index(drop=True)
+        )
+        lst_df.to_csv("data/liquid_staking_token_holders.csv.gz", index=False, compression="gzip")

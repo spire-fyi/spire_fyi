@@ -18,7 +18,7 @@ Spire is a work in progress and in active development.
 
 Spire uses [`streamlit`](https://streamlit.io/) to build our interactive dashboard.
 
-Historical data is sourced from [Flipside Crypto](https://flipsidecrypto.xyz/) using their [SDK](https://sdk.flipsidecrypto.xyz/shroomdk).
+Historical data is sourced from [Flipside Crypto](https://flipsidecrypto.xyz/) using their [Python SDK](https://docs.flipsidecrypto.com/flipside-api/key-concepts).
 Queries used for this can be found [here](sql).
 
 [Helius](https://helius.xyz/) is used to acquire NFT metadata and mintlist information, essential for NFT royalty analyses.
@@ -40,7 +40,7 @@ Data used for analysis is available for download as a CSV!
     - Mad List Tracker: see how many spots have been claimed so far
   - Backpack Username Lookup: get the address from a Backpack username, or get the username from an address. Also includes some basic usage statistics
 - Infrastructure Updates: Spire is continuously working to improve our app, and is building tooling to automatically update and combine data from various sources, with caching for better performance.
-  - [`spire-fyi-clj`](https://github.com/spire-fyi/spire-fyi-clj), a Clojure application to support the data collection for spire.fyi, was built for this purpose. Currently, this package schedules, executes and stores query results from the [Flipside Crypto API](https://docs.flipsidecrypto.com/shroomdk-sdk/get-started/rest-api) with work in progress to integrate our other data sources (Helius, Solana FM and others)
+  - [`spire-fyi-clj`](https://github.com/spire-fyi/spire-fyi-clj), a Clojure application to support the data collection for spire.fyi, was built for this purpose. Currently, this package schedules, executes and stores query results from the [Flipside Crypto API](https://docs.flipsidecrypto.com/flipside-api/key-concepts) with work in progress to integrate our other data sources (Helius, Solana FM and others)
 - [DeFi Updates (`DeFi` tab at the top of the Overview page](https://spire.fyi): Breakdown of transaction and user counts for various DeFi protocols, view the ratio of Fee Payers to Signers, and track new users over time.
 - [Fee Tracking (`Ecosystem` tab at the top of the Overview page)](https://spire.fyi): The mean, median, 95th and 99th percentile of daily fees per transaction are shown, allowing users to track prioritization fee usage. Additionally, track the total daily transactions fees generated and burned.
 
@@ -63,7 +63,7 @@ Data used for analysis is available for download as a CSV!
 While Spire is meant to be viewed from its [web page](https://spire.fyi/), it can be ran locally using either Python or within a Docker container.
 
 Since there are API keys required to access some data, it is necessary to get these first.
-Get a [Flipside ShrookDK API Key](https://sdk.flipsidecrypto.xyz/shroomdk) and a [Helius API Key](https://helius.xyz/), and save them to a `.streamlit/secrets.toml` file:
+Get a [Flipside API Key](https://flipsidecrypto.xyz/account/api-keys) and a [Helius API Key](https://helius.xyz/), and save them to a `.streamlit/secrets.toml` file:
 ```toml
 [flipside]
 api_key = "FLIPSIDE_KEY_HERE"

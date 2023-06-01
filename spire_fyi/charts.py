@@ -11,7 +11,7 @@ def alt_line_chart(
     log_scale=False,
     chart_title="",
     legend_title="Program Name",
-    interactive=True
+    interactive=True,
 ) -> alt.Chart:
     """Create a multiline Altair chart with tooltip
 
@@ -43,7 +43,7 @@ def alt_line_chart(
         clear="mouseout",
     )
     legend_selection = alt.selection_multi(fields=["Name"], bind="legend")
-    lines = base.mark_line(point=True, interpolate='monotone').encode(
+    lines = base.mark_line(point=True, interpolate="monotone").encode(
         y=alt.Y(
             f"{metric}:Q",
             title=utils.metric_dict[metric],
@@ -54,7 +54,7 @@ def alt_line_chart(
             title=legend_title,
             scale=alt.Scale(scheme="turbo"),
             sort=alt.EncodingSortField(metric, op="count", order="descending"),
-            legend=alt.Legend(symbolLimit=50)
+            legend=alt.Legend(symbolLimit=50),
         ),
         opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
     )
@@ -82,8 +82,7 @@ def alt_line_chart(
         chart = chart.interactive()
 
     return (
-        chart.add_selection(legend_selection)
-        .properties(height=800, width=800)
+        chart.add_selection(legend_selection).properties(height=800, width=800)
         # .configure_axis(grid=False)
     )
 
