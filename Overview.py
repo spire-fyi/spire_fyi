@@ -6,6 +6,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from PIL import Image
 from scipy.stats import ttest_ind, ttest_rel
+from st_pages import _get_page_hiding_code
 
 import spire_fyi.charts as charts
 import spire_fyi.utils as utils
@@ -17,6 +18,10 @@ st.set_page_config(
     page_title="Spire | A viewpoint above Solana data",
     page_icon=image,
     layout="wide",
+)
+st.write(
+    _get_page_hiding_code(st.secrets["hide_pages"]["pages_to_hide"]),
+    unsafe_allow_html=True,
 )
 c1, c2 = st.columns([1, 3])
 

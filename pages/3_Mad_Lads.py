@@ -5,6 +5,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 from PIL import Image
+from st_pages import _get_page_hiding_code
 
 import spire_fyi.utils as utils
 
@@ -15,6 +16,10 @@ st.set_page_config(
     page_title="Spire: Mad Lads",
     page_icon=image,
     layout="wide",
+)
+st.write(
+    _get_page_hiding_code(st.secrets["hide_pages"]["pages_to_hide"]),
+    unsafe_allow_html=True,
 )
 c1, c2 = st.columns([1, 3])
 
