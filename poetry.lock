@@ -3831,6 +3831,21 @@ files = [
 ]
 
 [[package]]
+name = "st-pages"
+version = "0.4.1"
+description = "An experimental version of Streamlit Multi-Page Apps"
+optional = false
+python-versions = ">=3.8, !=2.7.*, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*, !=3.7.*"
+files = [
+    {file = "st_pages-0.4.1-py3-none-any.whl", hash = "sha256:df5c14d72d12d23ed21ab099db82cd3b48595da8235a2fbdd22c91d838e73678"},
+    {file = "st_pages-0.4.1.tar.gz", hash = "sha256:c6979b7a95b2725ba46a07a3b0c5fa3f92c2aaa491dfddd0b858c03d7afbde09"},
+]
+
+[package.dependencies]
+numpy = ">=1.23.4,<2.0.0"
+streamlit = ">=1.10.0"
+
+[[package]]
 name = "stack-data"
 version = "0.6.2"
 description = "Extract data from python stack frames and tracebacks for informative displays"
@@ -3865,13 +3880,13 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlit"
-version = "1.23.0"
+version = "1.23.1"
 description = "A faster way to build and share data apps"
 optional = false
 python-versions = ">=3.7, !=3.9.7"
 files = [
-    {file = "streamlit-1.23.0-py2.py3-none-any.whl", hash = "sha256:efad9a993bdf8a554df6637cddbd076145ab3acfe6d7bf260bfdb0c75c1dbca6"},
-    {file = "streamlit-1.23.0.tar.gz", hash = "sha256:6d9304df669bfacf50763c8a701fcde24d64ce2574bd36a802929c42d658fef8"},
+    {file = "streamlit-1.23.1-py2.py3-none-any.whl", hash = "sha256:02cd55a95acd20d73ff03866956ba6e98d71041ee4728dbfef05cf17069d1bb9"},
+    {file = "streamlit-1.23.1.tar.gz", hash = "sha256:af95a78f9d291f12f779cf66a2bdadfafd8a46fe4fcc6ed281492640ed37bf1e"},
 ]
 
 [package.dependencies]
@@ -3895,7 +3910,7 @@ rich = ">=10.11.0,<14"
 tenacity = ">=8.0.0,<9"
 toml = "<2"
 tornado = ">=6.0.3,<7"
-typing-extensions = ">=3.10.0.0"
+typing-extensions = ">=4.0.1,<5"
 tzlocal = ">=1.1,<5"
 validators = ">=0.2,<1"
 watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
@@ -4105,13 +4120,13 @@ files = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.6.2"
+version = "4.6.3"
 description = "Backported and Experimental Type Hints for Python 3.7+"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "typing_extensions-4.6.2-py3-none-any.whl", hash = "sha256:3a8b36f13dd5fdc5d1b16fe317f5668545de77fa0b8e02006381fd49d731ab98"},
-    {file = "typing_extensions-4.6.2.tar.gz", hash = "sha256:06006244c70ac8ee83fa8282cb188f697b8db25bc8b4df07be1873c43897060c"},
+    {file = "typing_extensions-4.6.3-py3-none-any.whl", hash = "sha256:88a4153d8505aabbb4e13aacb7c486c2b4a33ca3b3f807914a9b4c844c471c26"},
+    {file = "typing_extensions-4.6.3.tar.gz", hash = "sha256:d91d5919357fe7f681a9f2b5b4cb2a5f1ef0a1e9f59c4d8ff0d3491e05c0ffd5"},
 ]
 
 [[package]]
@@ -4645,4 +4660,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "938eb1c7a87b9dbc48b9e605bc9c728303dd1bbe951693058d9ddd10c5f8be89"
+content-hash = "efe15c4dd741863f582d6a21a82f170ccc088b05032832c78f540c3e988de864"
