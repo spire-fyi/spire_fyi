@@ -11,6 +11,7 @@ def alt_line_chart(
     log_scale=False,
     chart_title="",
     legend_title="Program Name",
+    unique_column_name='Name',
     interactive=True,
 ) -> alt.Chart:
     """Create a multiline Altair chart with tooltip
@@ -33,7 +34,7 @@ def alt_line_chart(
         scale = "log"
     else:
         scale = "linear"
-    columns = data["Name"].unique()
+    columns = data[unique_column_name].unique()
     base = alt.Chart(data, title=chart_title).encode(x=alt.X("yearmonthdate(Date):T", title=None))
     selection = alt.selection_single(
         fields=["Date"],
@@ -42,7 +43,7 @@ def alt_line_chart(
         empty="none",
         clear="mouseout",
     )
-    legend_selection = alt.selection_multi(fields=["Name"], bind="legend")
+    legend_selection = alt.selection_multi(fields=[unique_column_name], bind="legend")
     lines = base.mark_line(point=True, interpolate="monotone").encode(
         y=alt.Y(
             f"{metric}:Q",
@@ -50,7 +51,7 @@ def alt_line_chart(
             scale=alt.Scale(type=scale),
         ),
         color=alt.Color(
-            "Name:N",
+            f"{unique_column_name}:N",
             title=legend_title,
             scale=alt.Scale(scheme="turbo"),
             sort=alt.EncodingSortField(metric, op="count", order="descending"),
@@ -60,7 +61,7 @@ def alt_line_chart(
     )
     points = lines.mark_point(size=50).transform_filter(selection)
     rule = (
-        base.transform_pivot("Name", value=metric, groupby=["Date"])
+        base.transform_pivot(unique_column_name, value=metric, groupby=["Date"])
         .mark_rule(color="#983832")
         .encode(
             opacity=alt.condition(selection, alt.value(0.3), alt.value(0)),

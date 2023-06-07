@@ -54,7 +54,7 @@ with st.expander("Instructions"):
 c1, c2, c3, c4 = st.columns(4)
 metric = c1.radio(
     "Choose a metric",
-    utils.metric_dict.keys(),
+    ["TX_COUNT", "SIGNERS"],
     format_func=lambda x: utils.metric_dict[x],
     horizontal=True,
     index=1,

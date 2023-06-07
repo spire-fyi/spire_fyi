@@ -79,6 +79,8 @@ metric_dict = {
     "TX_COUNT": "Transaction Count",
     "SIGNERS": "Number of signers",
     "Total Stake": "Total Stake (SOL)",
+    'Txs': "Transaction Count",
+    "Wallets": "Wallets"
 }
 
 dex_programs = {
@@ -1080,7 +1082,7 @@ def load_staker_data():
     return df
 
 
-# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600)
 def get_stakers_chart_data(df, date_range, exclude_foundation, exclude_labeled, n_stakers):
     chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
 
@@ -1099,3 +1101,34 @@ def get_stakers_chart_data(df, date_range, exclude_foundation, exclude_labeled, 
     # chart_df = chart_df.set_index('Date').groupby('Address').resample('D').ffill().drop(columns='Address').reset_index()
 
     return chart_df
+
+# @st.cache_data(ttl=3600)
+def load_lst(filled=True):
+    if filled:
+        df = pd.read_csv("data/liquid_staking_token_holders.csv.gz")
+    else:
+        df = pd.read_csv("data/liquid_staking_token_holders_delta.csv")
+    df = reformat_columns(df, ["Date"])
+    df = df.sort_values(by=['Wallet', 'Token', 'Date'])
+    return df
+
+
+# @st.cache_data(ttl=3600)
+# def get_stakers_chart_data(df, date_range, exclude_foundation, exclude_labeled, n_stakers):
+#     chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
+
+#     if exclude_foundation:
+#         chart_df = chart_df[chart_df["Address Name"] != "Solana Foundation Delegation Account"]
+#     if exclude_labeled:
+#         chart_df = chart_df[(chart_df["Address Name"].isna()) & (chart_df["Friendlyname"].isna())]
+
+#     chart_df = (
+#         chart_df.sort_values("Total Stake", ascending=False)
+#         .groupby("Date", as_index=False)
+#         .head(n_stakers)
+#         .sort_values(by=["Date", "Total Stake"], ascending=False)
+#         .reset_index(drop=True)
+#     )
+#     # chart_df = chart_df.set_index('Date').groupby('Address').resample('D').ffill().drop(columns='Address').reset_index()
+
+#     return chart_df

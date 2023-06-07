@@ -87,6 +87,12 @@ overview_query_dict = {
         "api": f"{api_base}/13b11f5b-0b50-498e-afa2-d59e5578e6f3/data/latest",
         "datecols": ["DATE"],
     },
+    # Crosschain
+    "Crosschain measures": {
+        "query": f"{query_base}/0f67a62d-5d50-43b9-a7d1-7826cc78571c",
+        "api": f"{api_base}/0f67a62d-5d50-43b9-a7d1-7826cc78571c/data/latest",
+        "datecols": ["DATE"],
+    },
     # Defi
     # NOTE: using self-maintained queries
     # "DeFi Swaps": {
@@ -361,6 +367,33 @@ with ecosystem:
         "Cumulative Users",
     )
     c2.altair_chart(new_user_chart, use_container_width=True)
+
+    st.subheader("Crosschain Comparison")
+
+    c1, c2 = st.columns(2)
+    date_range = c1.radio(
+        "Date range:",
+        ["90d", "60d", "30d", "14d", "7d"],
+        key="crosschain_date_range",
+        horizontal=True,
+        index=2,
+    )
+    metric = c2.radio(
+        "Choose a metric:",
+        ["Wallets", "Txs"],
+        format_func=lambda x: utils.metric_dict[x],
+        horizontal=True,
+        index=1,
+        key="program_metric",
+    )
+    log_scale = c2.checkbox("Log Scale", key="crosschain_log_scale")
+
+    chart_df = overview_data_dict["Crosschain measures"].copy()
+    chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
+    chart = charts.alt_line_chart(
+        chart_df, metric=metric, log_scale=log_scale, unique_column_name="Label", interactive=False
+    )
+    st.altair_chart(chart, use_container_width=True)
 
     with st.expander("View and Download Data Table"):
         for k, v in overview_data_dict.items():
