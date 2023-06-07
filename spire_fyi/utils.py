@@ -79,8 +79,8 @@ metric_dict = {
     "TX_COUNT": "Transaction Count",
     "SIGNERS": "Number of signers",
     "Total Stake": "Total Stake (SOL)",
-    'Txs': "Transaction Count",
-    "Wallets": "Wallets"
+    "Txs": "Transaction Count",
+    "Wallets": "Unique Wallets",
 }
 
 dex_programs = {
@@ -1102,6 +1102,7 @@ def get_stakers_chart_data(df, date_range, exclude_foundation, exclude_labeled, 
 
     return chart_df
 
+
 # @st.cache_data(ttl=3600)
 def load_lst(filled=True):
     if filled:
@@ -1109,7 +1110,7 @@ def load_lst(filled=True):
     else:
         df = pd.read_csv("data/liquid_staking_token_holders_delta.csv")
     df = reformat_columns(df, ["Date"])
-    df = df.sort_values(by=['Wallet', 'Token', 'Date'])
+    df = df.sort_values(by=["Wallet", "Token", "Date"])
     return df
 
 

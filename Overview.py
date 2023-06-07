@@ -391,7 +391,12 @@ with ecosystem:
     chart_df = overview_data_dict["Crosschain measures"].copy()
     chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
     chart = charts.alt_line_chart(
-        chart_df, metric=metric, log_scale=log_scale, unique_column_name="Label", interactive=False
+        chart_df,
+        metric=metric,
+        log_scale=log_scale,
+        unique_column_name="Label",
+        interactive=False,
+        legend_title= utils.metric_dict[metric],
     )
     st.altair_chart(chart, use_container_width=True)
 
