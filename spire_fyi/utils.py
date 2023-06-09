@@ -81,6 +81,7 @@ metric_dict = {
     "Total Stake": "Total Stake (SOL)",
     "Txs": "Transaction Count",
     "Wallets": "Unique Wallets",
+    "Amount": "Amount",
 }
 
 dex_programs = {
@@ -1083,20 +1084,53 @@ def add_rarity_data(df, rarity_df="data/madlads_rarity.csv", on="Mint", how="inn
 # @st.cache_data(ttl=3600)
 def load_staker_data():
     # TODO: move to combine_data
-    df = pd.read_csv("data/staking_combined.csv.gz")
+    df = pd.read_csv(
+        "data/staking_combined.csv.gz",
+        dtype={
+            "Date": "datetime64[ns]",
+            "Address": "object",
+            "Token": "object",
+            "Token Name": "object",
+            "Symbol": "object",
+            "Amount": "float64",
+            "Amount Usd": "float64",
+            "Total Stake": "float64",
+            "Address Name": "object",
+            "Label": "object",
+            "Label Subtype": "object",
+            "Label Type": "object",
+            "Friendlyname": "object",
+            "Abbreviation": "object",
+            "Category": "object",
+            "Votekey": "object",
+            "Network": "object",
+            "Tags": "object",
+            "Logouri": "object",
+            "Flag": "object",
+            "Name": "object",
+            "Rank": "float64",
+            "Diff": "float64",
+        },
+    )
     df = reformat_columns(df, ["DATE"])
     df = (
         df[["Date"] + df.columns.drop("Date").to_list()]
         .sort_values(by=["Date", "Total Stake"], ascending=False)
         .reset_index(drop=True)
     )
-    # df["Rank"] = df.groupby("Date")["Total Stake"].rank(ascending=False)
-    # df["Diff"] = df.groupby(["Address"]).Rank.diff()
     return df
 
 
 @st.cache_data(ttl=3600)
-def get_stakers_chart_data(df, date_range, exclude_foundation, exclude_labeled, n_stakers):
+def get_stakers_chart_data(
+    df,
+    date_range,
+    exclude_foundation,
+    exclude_labeled,
+    n_addresses,
+    user_type,
+    token,
+):
     chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
 
     if exclude_foundation:
@@ -1104,19 +1138,30 @@ def get_stakers_chart_data(df, date_range, exclude_foundation, exclude_labeled, 
     if exclude_labeled:
         chart_df = chart_df[(chart_df["Address Name"].isna()) & (chart_df["Friendlyname"].isna())]
 
-    chart_df = (
-        chart_df.sort_values("Total Stake", ascending=False)
+    staker_chart_df = (
+        chart_df.copy()
+        .sort_values("Total Stake", ascending=False)
         .groupby("Date", as_index=False)
-        .head(n_stakers)
+        .head(n_addresses)
         .sort_values(by=["Date", "Total Stake"], ascending=False)
         .reset_index(drop=True)
     )
-    # chart_df = chart_df.set_index('Date').groupby('Address').resample('D').ffill().drop(columns='Address').reset_index()
+    if user_type == "top_stakers":
+        token_chart_df = staker_chart_df.copy()[staker_chart_df["Token Name"] == token]
+    elif user_type == "top_holders":
+        token_chart_df = (
+            chart_df.copy()[(chart_df.Amount > 1) & (chart_df["Token Name"] == token)]
+            .sort_values("Amount", ascending=False)
+            .groupby(["Date", "Address", "Token"], as_index=False)
+            .head(n_addresses)
+            .sort_values(by=["Address", "Date"], ascending=False)
+            .reset_index(drop=True)
+        )
 
-    return chart_df
+    return staker_chart_df, token_chart_df
 
 
-# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600)
 def load_lst(filled=True):
     if filled:
         df = pd.read_csv("data/liquid_staking_token_holders.csv.gz")
@@ -1125,24 +1170,3 @@ def load_lst(filled=True):
     df = reformat_columns(df, ["DATE"])
     df = df.sort_values(by=["Address", "Token", "Date"])
     return df
-
-
-# @st.cache_data(ttl=3600)
-# def get_stakers_chart_data(df, date_range, exclude_foundation, exclude_labeled, n_stakers):
-#     chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
-
-#     if exclude_foundation:
-#         chart_df = chart_df[chart_df["Address Name"] != "Solana Foundation Delegation Account"]
-#     if exclude_labeled:
-#         chart_df = chart_df[(chart_df["Address Name"].isna()) & (chart_df["Friendlyname"].isna())]
-
-#     chart_df = (
-#         chart_df.sort_values("Total Stake", ascending=False)
-#         .groupby("Date", as_index=False)
-#         .head(n_stakers)
-#         .sort_values(by=["Date", "Total Stake"], ascending=False)
-#         .reset_index(drop=True)
-#     )
-#     # chart_df = chart_df.set_index('Date').groupby('Address').resample('D').ffill().drop(columns='Address').reset_index()
-
-#     return chart_df

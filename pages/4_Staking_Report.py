@@ -47,6 +47,7 @@ Analysis performed by [@h4wk10](https://twitter.com/h4wk10), [@banbannard](https
 )
 
 staker_df = utils.load_staker_data()
+token_name_dict = {x[1]: x[0] for x in utils.liquid_staking_tokens.values()}
 st.write(staker_df)
 
 c1, c2, c3 = st.columns([3, 2, 2])
@@ -66,48 +67,89 @@ date_range = c1.radio(
     index=3,
     key="stakers_date_range",
 )
-n_stakers = c2.slider("Top Stakers per day", 1, 50, 15, key="stakers_slider")
+n_addresses = c2.slider("Number of top addresses per day", 1, 50, 15, key="stakers_slider")
 exclude_foundation = c3.checkbox(
     "Exclude Solana Foundation delegation", value=True, key="stakers_foundation_check"
 )
 exclude_labeled = c3.checkbox("Exclude labeled addresses", value=False, key="stakers_labeled_check")
 log_scale = c3.checkbox("Log Scale", key="stakers_log_scale")
 
-chart_df = utils.get_stakers_chart_data(staker_df, date_range, exclude_foundation, exclude_labeled, n_stakers)
-st.write(chart_df)
+user_type_dict = {"top_stakers": f"Holdings by top {n_addresses} stakers", "top_holders": f"Top {n_addresses} liquid staking token holders"}
+lst_user_type = c1.radio(
+    "Liquid Staking Token User Type",
+    user_type_dict.keys(),
+    format_func=lambda x: user_type_dict[x],
+    key="lst_user_type",
+)
+lst = c2.selectbox(
+    "Choose a Liquid Staking Token",
+    token_name_dict.keys(),
+    # format_func=lambda x: f"{x} ({token_name_dict[x]})", # Not really useful
+    key="lst_token_select",
+)
 
-chart = charts.alt_line_chart(chart_df, "Total Stake", legend_title="Staker", interactive=False)
-st.altair_chart(chart.properties(height=1000), use_container_width=True)
+staker_chart_df, token_chart_df = utils.get_stakers_chart_data(
+    staker_df, date_range, exclude_foundation, exclude_labeled, n_addresses, lst_user_type, lst
+)
 
-st.header("Liquid staking tokens")
+chart = charts.alt_line_chart(
+    staker_chart_df,
+    "Total Stake",
+    legend_title="Staker Address",
+    interactive=False,
+    chart_title="Top stakers",
+    log_scale=log_scale,
+)
+st.altair_chart(chart, use_container_width=True)
+if len(token_chart_df) == 0:
+    st.write("**Liquid Staking Token Holdings**: Selected addresses do not hold LSTs in this date range")
+else:
+    if lst_user_type == "top_stakers":
+        chart_title = f"Holdings by top {n_addresses} stakers: {lst}"
+    elif lst_user_type == "top_holders":
+        chart_title = f"Top {n_addresses} liquid staking token holders among all top stakers: {lst}"
+    chart = charts.alt_line_chart(
+        token_chart_df,
+        "Amount",
+        legend_title="Holder address",
+        interactive=False,
+        chart_title=chart_title,
+        log_scale=log_scale,
+        unique_column_name="Name",
+    )
+    st.altair_chart(chart, use_container_width=True)
 
-# lst_filled_df = utils.load_lst()
+# c1,c2 = st.columns(2)
+
+
+# lst_chart_df =
+
+# name: symbol pairs
+
+
 lst_delta_df = utils.load_lst(filled=False)
 
-# st.subheader("Filled")
-# st.write(lst_filled_df)
+# st.subheader("Delta")
+# st.write(lst_delta_df)
+# st.write("---")
+# c1, c2, c3 = st.columns([3, 2, 2])
+# date_range = c1.radio(
+#     "Choose a date range:",
+#     [  # #TODO: not doing more dates until more data is queried
+#         # "All dates",
+#         # "Year to Date",
+#         "180d",
+#         "90d",
+#         "60d",
+#         "30d",
+#         "14d",
+#         "7d",
+#     ],
+#     horizontal=True,
+#     index=3,
+#     key="lst_date_range",
+# )
 
-st.subheader("Delta")
-st.write(lst_delta_df)
-st.write("---")
-c1, c2, c3 = st.columns([3, 2, 2])
-date_range = c1.radio(
-    "Choose a date range:",
-    [  # #TODO: not doing more dates until more data is queried
-        # "All dates",
-        # "Year to Date",
-        "180d",
-        "90d",
-        "60d",
-        "30d",
-        "14d",
-        "7d",
-    ],
-    horizontal=True,
-    index=3,
-    key="lst_date_range",
-)
-lst = c2.selectbox("Choose a token", staker_df["Token Name"].dropna().unique(), key="lst_token_select")
 # n_stakers = c2.slider("Top Stakers per day", 1, 50, 15, key="lst_slider")
 # exclude_foundation = c3.checkbox(
 #     "Exclude Solana Foundation delegation", value=True, key="lst_foundation_check"
@@ -139,23 +181,22 @@ chart_df = (
 # chart_copy['Date'] = max_date
 # chart_df = pd.concat([chart_df, chart_copy])
 
-st.write(chart_df)
-chart = (
-    (
-        alt.Chart(chart_df)
-        .mark_line()
-        .encode(
-            x=alt.X("yearmonthdate(Date)", title="Date"),
-            y=alt.Y("Amount"),
-            color=alt.Color("Address"),
-            tooltip=[
-                alt.Tooltip("yearmonthdate(Date)", title="Date"),
-                alt.Tooltip("Address"),
-                alt.Tooltip("Amount", format=".2f"),
-            ],
-        )
-    )
-    .properties(height=600)
-    .interactive()
-)
-st.altair_chart(chart, use_container_width=True)
+# chart = (
+#     (
+#         alt.Chart(chart_df)
+#         .mark_line()
+#         .encode(
+#             x=alt.X("yearmonthdate(Date)", title="Date"),
+#             y=alt.Y("Amount"),
+#             color=alt.Color("Address"),
+#             tooltip=[
+#                 alt.Tooltip("yearmonthdate(Date)", title="Date"),
+#                 alt.Tooltip("Address"),
+#                 alt.Tooltip("Amount", format=".2f"),
+#             ],
+#         )
+#     )
+#     .properties(height=600)
+#     .interactive()
+# )
+# st.altair_chart(chart, use_container_width=True)

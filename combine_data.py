@@ -704,7 +704,7 @@ if __name__ == "__main__":
         for token, v in utils.liquid_staking_tokens.items():
             symbol, token_name = v
             lst_delta_df.loc[lst_delta_df["TOKEN"] == token, "TOKEN_NAME"] = token_name
-            lst_delta_df.loc[lst_delta_df["SYMBOL"] == token, "TOKEN_NAME"] = symbol
+            lst_delta_df.loc[lst_delta_df["TOKEN"] == token, "SYMBOL"] = symbol
         lst_delta_df = lst_delta_df.sort_values(by=["ADDRESS", "TOKEN", "DATE"]).reset_index(drop=True)
         lst_delta_df.to_csv("data/liquid_staking_token_holders_delta.csv", index=False)
 
@@ -750,6 +750,13 @@ if __name__ == "__main__":
             how="outer",
             on=["DATE", "ADDRESS"],
             #   right_on=['DATE', 'ADDRESS']
+        )
+        # get rid of na's in Name
+        staking_combined_df["Name"] = staking_combined_df.apply(
+            utils.apply_program_name, axis=1, address_col="ADDRESS"
+        )
+        staking_combined_df["Explorer URL"] = staking_combined_df.ADDRESS.apply(
+            lambda x: f"https://solana.fm/address/{x}"
         )
         staking_combined_df.to_csv("data/staking_combined.csv.gz", index=False, compression="gzip")
 
