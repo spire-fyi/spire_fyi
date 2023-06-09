@@ -1086,31 +1086,7 @@ def load_staker_data():
     # TODO: move to combine_data
     df = pd.read_csv(
         "data/staking_combined.csv.gz",
-        dtype={
-            "Date": "datetime64[ns]",
-            "Address": "object",
-            "Token": "object",
-            "Token Name": "object",
-            "Symbol": "object",
-            "Amount": "float64",
-            "Amount Usd": "float64",
-            "Total Stake": "float64",
-            "Address Name": "object",
-            "Label": "object",
-            "Label Subtype": "object",
-            "Label Type": "object",
-            "Friendlyname": "object",
-            "Abbreviation": "object",
-            "Category": "object",
-            "Votekey": "object",
-            "Network": "object",
-            "Tags": "object",
-            "Logouri": "object",
-            "Flag": "object",
-            "Name": "object",
-            "Rank": "float64",
-            "Diff": "float64",
-        },
+        low_memory=False
     )
     df = reformat_columns(df, ["DATE"])
     df = (
