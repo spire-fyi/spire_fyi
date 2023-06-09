@@ -150,6 +150,19 @@ dex_programs = {
     ],
 }
 
+liquid_staking_tokens = {
+    "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So": ("mSOL", "Marinade staked SOL (mSOL)"),
+    "7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj": ("stSOL", "Lido Staked SOL"),
+    "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn": ("JitoSOL", "Jito Staked SOL"),  #
+    "7Q2afV64in6N6SeZsAAB81TJzwDoD6zpqmHkzi9Dcavn": ("jSOL", "JPOOL Solana Token"),
+    "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm": ("scnSOL", "Socean staked SOL"),
+    "CgnTSoL3DgY9SFHxcLj6CgCgKKoTBr6tp4CPAEWy25DE": ("cgntSOL", "Cogent SOL"),  #
+    "LAinEtNLgpmCP9Rvsf5Hn8W6EhNiKLZQti1xfWMLy6X": ("laineSOL", "Laine Stake"),  #
+    "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1": ("bSOL", "BlazeStake Staked SOL (bSOL)"),
+    "GEJpt3Wjmr628FqXxTgxMce1pLntcPV4uFi8ksxMyPQh": ("daoSOL", "daoSOL Token"),
+    "BdZPG9xWrG3uFrx2KrUW1jT4tZ9VKPDWknYihzoPRJS3": ("prtSOL", "prtSOL (Parrot Staked SOL)"),  #
+}
+
 
 def combine_flipside_date_data(data_dir, add_date=False, with_program=False, nft_royalty=False):
     d = Path(data_dir)
@@ -1067,18 +1080,18 @@ def add_rarity_data(df, rarity_df="data/madlads_rarity.csv", on="Mint", how="inn
     return merged
 
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
 def load_staker_data():
     # TODO: move to combine_data
-    df = pd.read_csv("data/top_stakers.csv.gz")
+    df = pd.read_csv("data/staking_combined.csv.gz")
     df = reformat_columns(df, ["DATE"])
     df = (
         df[["Date"] + df.columns.drop("Date").to_list()]
         .sort_values(by=["Date", "Total Stake"], ascending=False)
         .reset_index(drop=True)
     )
-    df["Rank"] = df.groupby("Date")["Total Stake"].rank(ascending=False)
-    df["Diff"] = df.groupby(["Address"]).Rank.diff()
+    # df["Rank"] = df.groupby("Date")["Total Stake"].rank(ascending=False)
+    # df["Diff"] = df.groupby(["Address"]).Rank.diff()
     return df
 
 
@@ -1109,8 +1122,8 @@ def load_lst(filled=True):
         df = pd.read_csv("data/liquid_staking_token_holders.csv.gz")
     else:
         df = pd.read_csv("data/liquid_staking_token_holders_delta.csv")
-    df = reformat_columns(df, ["Date"])
-    df = df.sort_values(by=["Wallet", "Token", "Date"])
+    df = reformat_columns(df, ["DATE"])
+    df = df.sort_values(by=["Address", "Token", "Date"])
     return df
 
 

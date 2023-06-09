@@ -1,0 +1,8 @@
+FriendlyName,Abbreviation,Category,VoteKey,Network,Tags,LogoURI,Flag,ADDRESS
+BlazeStake Authority,BlazeStake Authority,accounts,,mainnet,[],https://pbs.twimg.com/profile_images/1471965390485946371/OZJsrfdE_400x400.jpg,,6WecYymEARvjG5ZyqkrVQ6YkhPfujNzWpSPwNKXHCbV2
+HashQuark,,validators,CRzMxdyS56N2vkb55X5q155sSdVkjZhiFedWcbscCf7K,mainnet,[],,,6yf57R7U1J1VXszE7CobdYEWQNJMPRfWEgGfaRsVNk32
+Binance Exchange,Binance Exchange,accounts,,mainnet,['Exchange'],https://upload.wikimedia.org/wikipedia/commons/5/57/Binance_Logo.png,,9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM
+Alameda,Alameda,accounts,,mainnet,['mm'],"https://res.cloudinary.com/crunchbase-production/image/upload/c_lpad,f_auto,q_auto:eco,dpr_1/qfkqlginpso3rw0z7qwe",scammed,Bz6zbmbZn2ERVsLq4gUCgqLJCTdWYS1iN59EdSbNoPZv
+CoinDCX Exchange,CoinDCX Exchange,accounts,,mainnet,['Exchange'],https://coindcx.com/blog/wp-content/uploads/2021/09/ProfilePic.svg,,EhZLSqyWrazhqR5bmyyEfFRa3ycWu9KPgQgQ7G1R9zC9
+Bitfinex Exchange Cold Wallet,Bitfinex Exchange Cold Wallet,accounts,,mainnet,['Exchange'],https://www.bitfinex.com/images/thumbnails/bitfinex-2.png,,FyJBKcfcEBzGN74uNxZ95GxnCxeuJJujQCELpPv14ZfN
+Kucoin Main Wallet,Kucoin,accounts,,mainnet,['exchange'],,,HVh6wHNBAsG3pq1Bj5oCzRjoWKVogEDHwUHkRz3ekFgt

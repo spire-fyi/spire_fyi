@@ -11,7 +11,7 @@ def alt_line_chart(
     log_scale=False,
     chart_title="",
     legend_title="Program Name",
-    unique_column_name='Name',
+    unique_column_name="Name",
     interactive=True,
 ) -> alt.Chart:
     """Create a multiline Altair chart with tooltip

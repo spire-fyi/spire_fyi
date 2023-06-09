@@ -254,15 +254,14 @@ def get_collection_name(row):
 
 # #TODO: add to cli
 if __name__ == "__main__":
-    do_main = True
+    do_main = False
     do_network = False
     do_nft = False
     combine_nft = False
-    do_xnft = True
-    do_fees = True
-    do_madlad_metadata = True
-    do_stakers = True
-    do_lst = True
+    do_xnft = False
+    do_fees = False
+    do_madlad_metadata = False
+    do_staking_report = True
 
     if do_main:
         program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
@@ -673,7 +672,7 @@ if __name__ == "__main__":
         rarity_df = pd.DataFrame(data)
         rarity_df.to_csv("data/madlads_rarity.csv", index=False)
 
-    if do_stakers:
+    if do_staking_report:
         stakers_df = utils.combine_flipside_date_data("data/sdk_top_stakers_by_date_sol", add_date=True)
         all_staker_addresses = stakers_df.rename(columns={"STAKER": "ADDRESS"})
         utils.get_solana_fm_labels(all_staker_addresses, "stakers", "ADDRESS")
@@ -689,30 +688,77 @@ if __name__ == "__main__":
         labeled_stakers["Name"] = labeled_stakers.apply(
             utils.apply_program_name, axis=1, address_col="ADDRESS"
         )
+        labeled_stakers["Rank"] = labeled_stakers.groupby("DATE")["TOTAL_STAKE"].rank(ascending=False)
+        labeled_stakers["Diff"] = labeled_stakers.groupby(["ADDRESS"]).Rank.diff()
+        labeled_stakers["DATE"] = pd.to_datetime(labeled_stakers["DATE"])
+        labeled_stakers = labeled_stakers.sort_values(
+            by=["DATE", "TOTAL_STAKE"], ascending=False
+        ).reset_index(drop=True)
         labeled_stakers.to_csv("data/top_stakers.csv.gz", index=False, compression="gzip")
         # -----
 
-    if do_lst:
-        lst_df = utils.combine_flipside_date_data("data/sdk_top_liquid_staking_token_holders_delta")
-        lst_df["Date"] = pd.to_datetime(lst_df["Date"])
-        lst_df = lst_df.sort_values(by=["WALLET", "TOKEN", "Date"]).reset_index(drop=True)
-        lst_df.to_csv("data/liquid_staking_token_holders_delta.csv")
+        lst_delta_df = utils.combine_flipside_date_data("data/sdk_top_liquid_staking_token_holders_delta")
+        lst_delta_df["Date"] = pd.to_datetime(lst_delta_df["Date"])
+        lst_delta_df = lst_delta_df.rename(columns={"Date": "DATE", "WALLET": "ADDRESS"})
+        # Add in token labels
+        for token, v in utils.liquid_staking_tokens.items():
+            symbol, token_name = v
+            lst_delta_df.loc[lst_delta_df["TOKEN"] == token, "TOKEN_NAME"] = token_name
+            lst_delta_df.loc[lst_delta_df["SYMBOL"] == token, "TOKEN_NAME"] = symbol
+        lst_delta_df = lst_delta_df.sort_values(by=["ADDRESS", "TOKEN", "DATE"]).reset_index(drop=True)
+        lst_delta_df.to_csv("data/liquid_staking_token_holders_delta.csv", index=False)
+
+        max_date = lst_delta_df.DATE.max()
+        results = []
+        for x in lst_delta_df.ADDRESS.unique():
+            df = lst_delta_df[lst_delta_df.ADDRESS == x]
+            for y in df.TOKEN.unique():
+                results.append(df[df.TOKEN == y].DATE.idxmax())
+        lst_delta_df_copy = lst_delta_df.iloc[results].copy()
+        lst_delta_df_copy["DATE"] = max_date
+        lst_df = pd.concat([lst_delta_df, lst_delta_df_copy])
 
         # https://stackoverflow.com/a/74039090
-        c = ["WALLET", "TOKEN", "TOKEN_NAME", "SYMBOL", "Date"]
+        c = ["ADDRESS", "TOKEN", "TOKEN_NAME", "SYMBOL", "DATE"]
         m = lst_df[c].duplicated(keep="last")
         s = (
             lst_df[~m]
-            .set_index("Date")
-            .groupby(["WALLET", "TOKEN", "TOKEN_NAME", "SYMBOL"])
+            .set_index("DATE")
+            .groupby(["ADDRESS", "TOKEN", "TOKEN_NAME", "SYMBOL"])
             .resample("D")
             .ffill()
         )
         lst_df = (
-            s.droplevel(["WALLET", "TOKEN", "TOKEN_NAME", "SYMBOL"])
+            s.droplevel(["ADDRESS", "TOKEN", "TOKEN_NAME", "SYMBOL"])
             .reset_index()
-            # .sort_values(by=["Date", "WALLET", "TOKEN"])
-            .sort_values(by=["WALLET", "TOKEN", "Date"])
+            # .sort_values(by=["DATE", "ADDRESS", "TOKEN"])
+            .sort_values(by=["ADDRESS", "TOKEN", "DATE"])
             .reset_index(drop=True)
         )
+        #     lst_df = lst_df.join(
+        #         labeled_stakers['ADDRESS', 'TOTAL_STAKE', 'ADDRESS_NAME', 'LABEL', 'LABEL_SUBTYPE',
+        #    'LABEL_TYPE', 'DATE', 'FriendlyName', 'Abbreviation', 'Category',
+        #    'VoteKey', 'Network', 'Tags', 'LogoURI', 'Flag', 'Name', 'Rank',
+        #    'Diff']
+        #     )
+
         lst_df.to_csv("data/liquid_staking_token_holders.csv.gz", index=False, compression="gzip")
+
+        # Combine the two datasets
+        staking_combined_df = lst_df.merge(
+            labeled_stakers,
+            how="outer",
+            on=["DATE", "ADDRESS"],
+            #   right_on=['DATE', 'ADDRESS']
+        )
+        staking_combined_df.to_csv("data/staking_combined.csv.gz", index=False, compression="gzip")
+
+        # #NOTE: probably dont need this, can just use the delta table
+        # lst_delta_df = lst_delta_df.rename(columns={"Date": "DATE", "WALLET": "ADDRESS"})
+        # staking_delta_combined = lst_delta_df.merge(
+        #     labeled_stakers,
+        #     how="inner",
+        #     on=["DATE", "ADDRESS"],
+        #     #   right_on=['Date', 'WALLET']
+        # )
+        # staking_delta_combined.to_csv("data/staking_delta_combined.csv.gz", index=False, compression="gzip")

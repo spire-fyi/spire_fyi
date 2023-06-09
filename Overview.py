@@ -396,7 +396,7 @@ with ecosystem:
         log_scale=log_scale,
         unique_column_name="Label",
         interactive=False,
-        legend_title= utils.metric_dict[metric],
+        legend_title=utils.metric_dict[metric],
     )
     st.altair_chart(chart, use_container_width=True)
 
