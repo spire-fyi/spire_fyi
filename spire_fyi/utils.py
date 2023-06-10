@@ -1084,10 +1084,7 @@ def add_rarity_data(df, rarity_df="data/madlads_rarity.csv", on="Mint", how="inn
 # @st.cache_data(ttl=3600)
 def load_staker_data():
     # TODO: move to combine_data
-    df = pd.read_csv(
-        "data/staking_combined.csv.gz",
-        low_memory=False
-    )
+    df = pd.read_csv("data/staking_combined.csv.gz", low_memory=False)
     df = reformat_columns(df, ["DATE"])
     df = (
         df[["Date"] + df.columns.drop("Date").to_list()]

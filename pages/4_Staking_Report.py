@@ -74,7 +74,10 @@ exclude_foundation = c3.checkbox(
 exclude_labeled = c3.checkbox("Exclude labeled addresses", value=False, key="stakers_labeled_check")
 log_scale = c3.checkbox("Log Scale", key="stakers_log_scale")
 
-user_type_dict = {"top_stakers": f"Holdings by top {n_addresses} stakers", "top_holders": f"Top {n_addresses} liquid staking token holders"}
+user_type_dict = {
+    "top_stakers": f"Holdings by top {n_addresses} stakers",
+    "top_holders": f"Top {n_addresses} liquid staking token holders",
+}
 lst_user_type = c1.radio(
     "Liquid Staking Token User Type",
     user_type_dict.keys(),
