@@ -8,6 +8,7 @@ font="sans serif"
 [server]
 port = 8501
 headless = true
+maxMessageSize = 500
 
 [browser]
 gatherUsageStats = false
