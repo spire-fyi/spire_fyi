@@ -48,7 +48,6 @@ Analysis performed by [@h4wk10](https://twitter.com/h4wk10), [@banbannard](https
 
 staker_df = utils.load_staker_data()
 token_name_dict = {x[1]: x[0] for x in utils.liquid_staking_tokens.values()}
-st.write(staker_df)
 
 c1, c2, c3 = st.columns([3, 2, 2])
 date_range = c1.radio(
@@ -94,7 +93,6 @@ lst = c2.selectbox(
 staker_chart_df, token_chart_df = utils.get_stakers_chart_data(
     staker_df, date_range, exclude_foundation, exclude_labeled, n_addresses, lst_user_type, lst
 )
-
 chart = charts.alt_line_chart(
     staker_chart_df,
     "Total Stake",
@@ -122,6 +120,40 @@ else:
     )
     st.altair_chart(chart, use_container_width=True)
 
+with st.expander("View and Download Data Table"):
+    st.subheader("Staker info")
+    st.write(staker_chart_df)
+    slug = f"top_stakers"
+    st.download_button(
+        "Click to Download",
+        staker_chart_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+        )
+    st.write('---')
+    st.subheader("Liquid staking token holder info")
+    st.write(token_chart_df)
+    slug = f"lst_holders"
+    st.download_button(
+        "Click to Download",
+        token_chart_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+        )
+    st.write('---')
+    st.subheader("All data")
+    slug = f"all_top_stakers"
+    st.download_button(
+        "Click to Download",
+        staker_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+        )
+
+lst_delta_df = utils.load_lst(filled=False)
 # c1,c2 = st.columns(2)
 
 
@@ -130,7 +162,6 @@ else:
 # name: symbol pairs
 
 
-lst_delta_df = utils.load_lst(filled=False)
 
 # st.subheader("Delta")
 # st.write(lst_delta_df)
@@ -162,18 +193,18 @@ lst_delta_df = utils.load_lst(filled=False)
 
 # #TODO: re-add the user input features, include token dropdown
 # #TODO: need price tables to get accurate value amounts in filled table, as well LST:SOL exchange rate to see total amount of staked sol
-chart_df = staker_df.copy()[
-    (staker_df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range)))
-    & (staker_df["Token Name"] == lst)
-]
-chart_df = (
-    chart_df[chart_df.Amount > 1]
-    .sort_values("Amount", ascending=False)
-    .groupby(["Date", "Address", "Token"], as_index=False)
-    .head(15)
-    .sort_values(by=["Address", "Date"], ascending=False)
-    .reset_index(drop=True)
-)
+# chart_df = staker_df.copy()[
+#     (staker_df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range)))
+#     & (staker_df["Token Name"] == lst)
+# ]
+# chart_df = (
+#     chart_df[chart_df.Amount > 1]
+#     .sort_values("Amount", ascending=False)
+#     .groupby(["Date", "Address", "Token"], as_index=False)
+#     .head(15)
+#     .sort_values(by=["Address", "Date"], ascending=False)
+#     .reset_index(drop=True)
+# )
 # max_date = chart_df.Date.max()
 # results = []
 # for x in chart_df.Wallet.unique():
