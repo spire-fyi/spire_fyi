@@ -234,3 +234,24 @@ lst_delta_df = utils.load_lst(filled=False)
 #     .interactive()
 # )
 # st.altair_chart(chart, use_container_width=True)
+
+# TOTAL STAKE VOLUME OVER TIME
+st.header('Stake Volume Over time')
+daily_stake = staker_df.drop_duplicates(subset=['Date', 'Address'], keep='first')
+daily_stake['Address Name'] = daily_stake['Address Name'].fillna('Other')
+daily_stake = daily_stake.groupby(['Date', 'Address Name']).sum('Total Stake').reset_index()
+daily_stake = daily_stake[(daily_stake['Date'] >= '2022-11-24')]
+
+selection = alt.selection_multi(fields=['Address Name'], bind='legend')
+chart = alt.Chart(daily_stake).mark_area(opacity=0.3).encode(
+    x="Date:T",
+    y=alt.Y("Total Stake:Q").stack(True),
+    color= alt.Color('Address Name:N', scale=alt.Scale(domain=daily_stake['Address Name'].unique().tolist())),
+    opacity=alt.condition(selection, alt.value(0.5), alt.value(0.1)
+    )
+).add_selection(
+    selection
+).transform_filter(
+    selection
+)
+st.altair_chart(chart, use_container_width=True)
