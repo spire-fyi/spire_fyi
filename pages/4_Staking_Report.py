@@ -6,6 +6,10 @@ import pandas as pd
 import streamlit as st
 from PIL import Image
 from st_pages import _get_page_hiding_code
+import plotly.figure_factory as ff
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 import spire_fyi.charts as charts
 import spire_fyi.utils as utils
@@ -70,7 +74,7 @@ n_addresses = c2.slider("Number of top addresses per day", 1, 50, 15, key="stake
 exclude_foundation = c3.checkbox(
     "Exclude Solana Foundation delegation", value=True, key="stakers_foundation_check"
 )
-exclude_labeled = c3.checkbox("Exclude labeled addresses", value=False, key="stakers_labeled_check")
+exclude_labeled = c3.checkbox("Exclude labeled addresses", value=True, key="stakers_labeled_check")
 log_scale = c3.checkbox("Log Scale", key="stakers_log_scale")
 
 user_type_dict = {
@@ -233,3 +237,132 @@ lst_delta_df = utils.load_lst(filled=False)
 #     .interactive()
 # )
 # st.altair_chart(chart, use_container_width=True)
+
+# TOTAL STAKE VOLUME OVER TIME
+daily_stake = staker_df.drop_duplicates(subset=['Date', 'Address'], keep='first')
+daily_stake['Address Name'] = daily_stake['Address Name'].fillna('Other')
+daily_stake = daily_stake.groupby(['Date', 'Address Name']).sum('Total Stake').reset_index()
+daily_stake = daily_stake[(daily_stake['Date'] >= '2022-11-24')]
+
+# selection = alt.selection_multi(fields=['Address Name'], bind='legend')
+# chart = alt.Chart(daily_stake).mark_area(opacity=0.3).encode(
+#     x="Date:T",
+#     y=alt.Y("Total Stake:Q").stack(True),
+#     color= alt.Color('Address Name:N', scale=alt.Scale(domain=daily_stake['Address Name'].unique().tolist())),
+#     opacity=alt.condition(selection, alt.value(0.5), alt.value(0.1)
+#     )
+# ).add_selection(
+#     selection
+# ).transform_filter(
+#     selection
+# )
+# st.altair_chart(chart, use_container_width=True)
+fig2 = px.area(daily_stake, x='Date', y='Total Stake', color = 'Address Name', title = 'Stake Volume Over time'
+, color_discrete_sequence=px.colors.qualitative.Prism)
+fig2.update_xaxes(showgrid=False)
+fig2.update_yaxes(showgrid=True)
+fig2.update_xaxes(title_text='Date')
+fig2.update_yaxes(title_text='Stake Volume')
+st.plotly_chart(fig2, use_container_width=True)
+# END --- TOTAL STAKE VOLUME OVER TIME
+
+# TOP 15 STAKERS
+filter = staker_df['Date'] == staker_df['Date'].max()
+top_staker = staker_df.where(filter).dropna(subset=['Date'])
+top_staker = top_staker.drop_duplicates(subset=['Date', 'Address'], keep='first')
+if exclude_foundation:
+    top_staker = top_staker[top_staker["Address Name"] != "Solana Foundation Delegation Account"]
+if exclude_labeled:
+    top_staker = top_staker[(top_staker["Address Name"].isna()) & (top_staker["Friendlyname"].isna())]
+top_staker = top_staker.nlargest(15,'Total Stake')
+# st.write(top_staker)
+fig2 = px.histogram(top_staker, x='Address', y='Total Stake', log_y= False,
+            title='Top 15 Staker by Volume', color='Address', color_discrete_sequence=px.colors.qualitative.Prism)
+fig2.update_layout(xaxis_title='Staked Volume',
+                yaxis_title='Address')
+
+fig2.update_xaxes(showgrid=False)
+fig2.update_yaxes(showgrid=True)
+st.plotly_chart(fig2, use_container_width=True)
+# END --- TOP 15 STAKERS
+
+# STAKE VOLUME CATEGORY
+def get_stake_volume_category(stake_volume):
+    if stake_volume < 1000:
+      return "Stake < 1k SOL"
+    elif stake_volume < 10000:
+      return "a. 1k < Stake < 10k SOL"
+    elif stake_volume < 100000:
+      return "b. 10k < Stake < 100k SOL"
+    elif stake_volume < 1000000:
+      return "c. 100k < Stake < 1m SOL"
+    else:
+      return "d. Stake > 1m SOL"
+
+filter = staker_df['Date'] == staker_df['Date'].max()
+stake_category = staker_df.where(filter).dropna(subset=['Date'])
+stake_category['stake_category'] = stake_category['Total Stake'].apply(get_stake_volume_category)
+stake_cateogry_count_df = stake_category.groupby(['stake_category']).agg(TOTAL_ADDRESS=('Address', 'nunique')).reset_index()
+# st.write(stake_cateogry_count_df)
+fig2 = px.histogram(stake_cateogry_count_df, x='stake_category', y='TOTAL_ADDRESS', log_y= False,
+            title='Stake Category by Volume', color='stake_category', color_discrete_sequence=px.colors.qualitative.Prism)
+fig2.update_layout(xaxis_title='Staked Volume',
+                yaxis_title='Wallet Count')
+
+fig2.update_xaxes(showgrid=False)
+fig2.update_yaxes(showgrid=True)
+st.plotly_chart(fig2, use_container_width=True)
+# END --- STAKE VOLUME CATEGORY
+
+# LSDs Holding Over time
+LSD_df = staker_df.groupby(['Date', 'Symbol']).sum('amount').reset_index()
+fig2 = px.area(LSD_df, x='Date', y='Amount', color = 'Symbol', title = 'Total LSDs Holding by Top SOL Stakers'
+, color_discrete_sequence=px.colors.qualitative.Prism)
+fig2.update_xaxes(showgrid=False)
+fig2.update_yaxes(showgrid=True)
+fig2.update_xaxes(title_text='Date')
+fig2.update_yaxes(title_text='Total LSD Holding Balance')
+st.plotly_chart(fig2, use_container_width=True)
+# END --- LSDs Holding Over time
+
+# LSDs Current Balance and Holders
+filter = staker_df['Date'] == staker_df['Date'].max()
+LSDs_curr = staker_df.where(filter).dropna(subset=['Date'])
+LSDs_curr = LSDs_curr.where(LSDs_curr['Amount'] > 0)
+LSDs_curr = LSDs_curr.groupby("Symbol").agg(
+    {"Amount": np.sum, "Address": pd.Series.nunique}).reset_index()
+LSDs_curr = LSDs_curr.sort_values(by=["Amount"], ascending=False)
+fig = go.Figure(
+    data=go.Bar(
+        x=LSDs_curr['Symbol'],
+        y=LSDs_curr['Amount'],
+        name="LSD Balance",
+        marker=dict(color='teal')
+    )
+)
+fig.add_trace(
+    go.Scatter(
+        x=LSDs_curr['Symbol'],
+        y=LSDs_curr['Address'],
+        yaxis="y2",
+        name="Holder",
+        marker=dict(color="crimson"),
+    )
+)
+fig.update_layout(
+    
+    title="Current LSDs Balance/Holders from Top Stakers",
+    legend=dict(orientation="h"),
+    yaxis=dict(
+        title=dict(text="LSD Balance"),
+        side="left"
+    ),
+    yaxis2=dict(
+        title=dict(text="Holder"),
+        side="right",
+        overlaying="y",
+        tickmode="sync",
+    ),
+)
+st.plotly_chart(fig , use_container_width=True)
+# END -- LSDs Current Balance and Holders
