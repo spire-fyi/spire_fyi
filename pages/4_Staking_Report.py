@@ -9,6 +9,7 @@ from st_pages import _get_page_hiding_code
 import plotly.figure_factory as ff
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 import spire_fyi.charts as charts
 import spire_fyi.utils as utils
@@ -324,3 +325,45 @@ fig2.update_xaxes(title_text='Date')
 fig2.update_yaxes(title_text='Total LSD Holding Balance')
 st.plotly_chart(fig2, use_container_width=True)
 # END --- LSDs Holding Over time
+
+# LSDs Current Balance and Holders
+filter = staker_df['Date'] == staker_df['Date'].max()
+LSDs_curr = staker_df.where(filter).dropna(subset=['Date'])
+LSDs_curr = LSDs_curr.where(LSDs_curr['Amount'] > 0)
+LSDs_curr = LSDs_curr.groupby("Symbol").agg(
+    {"Amount": np.sum, "Address": pd.Series.nunique}).reset_index()
+LSDs_curr = LSDs_curr.sort_values(by=["Amount"], ascending=False)
+fig = go.Figure(
+    data=go.Bar(
+        x=LSDs_curr['Symbol'],
+        y=LSDs_curr['Amount'],
+        name="LSD Balance",
+        marker=dict(color='teal')
+    )
+)
+fig.add_trace(
+    go.Scatter(
+        x=LSDs_curr['Symbol'],
+        y=LSDs_curr['Address'],
+        yaxis="y2",
+        name="Holder",
+        marker=dict(color="crimson"),
+    )
+)
+fig.update_layout(
+    
+    title="Current LSDs Balance/Holders from Top Stakers",
+    legend=dict(orientation="h"),
+    yaxis=dict(
+        title=dict(text="LSD Balance"),
+        side="left"
+    ),
+    yaxis2=dict(
+        title=dict(text="Holder"),
+        side="right",
+        overlaying="y",
+        tickmode="sync",
+    ),
+)
+st.plotly_chart(fig , use_container_width=True)
+# END -- LSDs Current Balance and Holders
