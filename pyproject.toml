@@ -54,6 +54,7 @@ anchorpy = {extras = ["cli"], version = "^0.16.0"}
 flipside = "^2.0.7"
 st-pages = "^0.4.1"
 altair = {version = "^5.0.1", allow-prereleases = true}
+plotly = "^5.15.0"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.5.0"

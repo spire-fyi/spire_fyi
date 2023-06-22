@@ -280,12 +280,15 @@ if __name__ == "__main__":
     # #TODO make cli...
     update_cache = False
     lst_force_update = False
-    do_main = True
+    do_main = False
     do_network = False
     do_nft_mints = False
     do_nft_metadata = False
-    do_xnft = True
-    do_lst = True
+    do_xnft = False
+    do_lst = False
+    # main routines
+    do_pull_flipside_data = True
+    do_pool = False
 
     query_info = []
     if do_main:
@@ -414,9 +417,17 @@ if __name__ == "__main__":
             }
             json.dump(top_stakers_log, f, indent=2)
 
-    logging.info(f"Running {len(query_info)} queries...")
-    with Pool() as p:
-        p.map(query_flipside_data, list(enumerate(query_info)))
+    if do_pool:
+        logging.info(f"Running {len(query_info)} queries...")
+        with Pool() as p:
+            p.map(query_flipside_data, list(enumerate(query_info)))
+
+    if do_pull_flipside_data:
+        top_staker_interactions = utils.load_flipside_api_data(
+            f"{utils.api_base}/2cc62d89-4f67-4197-82cf-8daf9b69ff45/data/latest",
+            "DATE",
+        )
+        top_staker_interactions.sort_values(by='Date', ascending=False).to_csv("data/top_staker_interactions.csv", index=False)
 
     # #TODO combine data, get program_ids
     # df = combine_flipside_date_data("data/sdk_programs_sol")
