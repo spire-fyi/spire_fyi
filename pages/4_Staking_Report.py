@@ -130,8 +130,8 @@ with st.expander("View and Download Data Table"):
         f"{slug}.csv",
         "text/csv",
         key=f"download-{slug}",
-        )
-    st.write('---')
+    )
+    st.write("---")
     st.subheader("Liquid staking token holder info")
     st.write(token_chart_df)
     slug = f"lst_holders"
@@ -141,8 +141,8 @@ with st.expander("View and Download Data Table"):
         f"{slug}.csv",
         "text/csv",
         key=f"download-{slug}",
-        )
-    st.write('---')
+    )
+    st.write("---")
     st.subheader("All data")
     slug = f"all_top_stakers"
     st.download_button(
@@ -151,7 +151,7 @@ with st.expander("View and Download Data Table"):
         f"{slug}.csv",
         "text/csv",
         key=f"download-{slug}",
-        )
+    )
 
 lst_delta_df = utils.load_lst(filled=False)
 # c1,c2 = st.columns(2)
@@ -160,7 +160,6 @@ lst_delta_df = utils.load_lst(filled=False)
 # lst_chart_df =
 
 # name: symbol pairs
-
 
 
 # st.subheader("Delta")

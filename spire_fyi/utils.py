@@ -303,7 +303,7 @@ def apply_program_name(
             return friendly_name
     else:
         try:
-            return f"{label.title()}: {address_name.title()}"
+            return f"{label.title()}- {address_name.title()}"
         except AttributeError:
             return address_name
 

@@ -261,7 +261,9 @@ def query_flipside_data(enumerated_query_info, save=True):
             cached=False,
         )
         if save:
-            df = pd.DataFrame(query_result_set.rows, columns=query_result_set.columns)
+            df = pd.DataFrame(
+                pd.DataFrame(query_result_set.rows, columns=query_result_set.columns)
+            )  # NOTE: flipside SDK v2.0 returns lowercase values, need to check these
             output_file.parent.mkdir(exist_ok=True, parents=True)
             df.to_csv(
                 output_file,

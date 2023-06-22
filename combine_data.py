@@ -254,12 +254,12 @@ def get_collection_name(row):
 
 # #TODO: add to cli
 if __name__ == "__main__":
-    do_main = False
+    do_main = True
     do_network = False
     do_nft = False
     combine_nft = False
-    do_xnft = False
-    do_fees = False
+    do_xnft = True
+    do_fees = True
     do_madlad_metadata = False
     do_staking_report = True
 
