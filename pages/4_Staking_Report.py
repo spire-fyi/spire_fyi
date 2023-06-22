@@ -51,6 +51,7 @@ Analysis performed by [@h4wk10](https://twitter.com/h4wk10), [@banbannard](https
 )
 
 staker_df = utils.load_staker_data()
+staker_itneraction_df = utils.load_staker_interaction_data()
 token_name_dict = {x[1]: x[0] for x in utils.liquid_staking_tokens.values()}
 
 c1, c2, c3 = st.columns([3, 2, 2])
@@ -215,7 +216,7 @@ lst_delta_df = utils.load_lst(filled=False)
 #     for y in df.Token.unique():
 #         results.append(df[df.Token == y].Date.idxmax())
 # chart_copy = chart_df.iloc[results].copy()
-# chart_copy['Date'] = max_date
+# chart_copy["Date"] = max_date
 # chart_df = pd.concat([chart_df, chart_copy])
 
 # chart = (
@@ -243,20 +244,6 @@ daily_stake = staker_df.drop_duplicates(subset=["Date", "Address"], keep="first"
 daily_stake["Address Name"] = daily_stake["Address Name"].fillna("Other")
 daily_stake = daily_stake.groupby(["Date", "Address Name"]).sum("Total Stake").reset_index()
 daily_stake = daily_stake[(daily_stake["Date"] >= "2022-11-24")]
-
-# selection = alt.selection_multi(fields=['Address Name'], bind='legend')
-# chart = alt.Chart(daily_stake).mark_area(opacity=0.3).encode(
-#     x="Date:T",
-#     y=alt.Y("Total Stake:Q").stack(True),
-#     color= alt.Color('Address Name:N', scale=alt.Scale(domain=daily_stake['Address Name'].unique().tolist())),
-#     opacity=alt.condition(selection, alt.value(0.5), alt.value(0.1)
-#     )
-# ).add_selection(
-#     selection
-# ).transform_filter(
-#     selection
-# )
-# st.altair_chart(chart, use_container_width=True)
 fig2 = px.area(
     daily_stake,
     x="Date",
@@ -350,7 +337,7 @@ fig2.update_yaxes(showgrid=True)
 fig2.update_xaxes(title_text="Date")
 fig2.update_yaxes(title_text="Total LSD Holding Balance")
 st.plotly_chart(fig2, use_container_width=True)
-# END --- LSDs Holding Over time
+# END --- LSDs Holding Over timeload_staker
 
 # LSDs Current Balance and Holders
 filter = staker_df["Date"] == staker_df["Date"].max()
@@ -378,8 +365,42 @@ fig.update_layout(
         title=dict(text="Holder"),
         side="right",
         overlaying="y",
-        tickmode="sync",
+        # tickmode="sync",
     ),
 )
+fig.update_yaxes(showgrid=False)
 st.plotly_chart(fig, use_container_width=True)
-# END -- LSDs Current Balance and Holders
+# END --- LSDs Current Balance and Holders
+
+# Protocol Interaction Total 
+staker_itneraction_df = staker_itneraction_df.rename(columns={"Cap Label": "Protocol"})
+staker_itneraction_df = staker_itneraction_df.groupby("Protocol").agg({"Interact": np.sum, "Address": pd.Series.nunique}).reset_index()
+staker_itneraction_df = staker_itneraction_df.sort_values(by="Interact", ascending=False)
+
+fig = go.Figure(
+    data=go.Bar(x=staker_itneraction_df["Protocol"], y=staker_itneraction_df["Interact"], name="Interactions", marker=dict(color=px.colors.qualitative.Prism[0]))
+)
+fig.add_trace(
+    go.Scatter(
+        x=staker_itneraction_df["Protocol"],
+        y=staker_itneraction_df["Address"],
+        yaxis="y2",
+        name="Stakers",
+        marker=dict(color="orange"),
+    )
+)
+fig.update_layout(
+    title="Top Stakers Protocol Interactions - Last 90 Days",
+    # legend=dict(orientation="h"),
+    yaxis=dict(title=dict(text="Interactions"), side="left", type="log"),
+    yaxis2=dict(
+        title=dict(text="Stakers"),
+        side="right",
+        overlaying="y",
+        # tickmode="sync",
+    )
+)
+fig.update_yaxes(showgrid=False)
+st.plotly_chart(fig, use_container_width=True)
+
+# END --- Protocol Interaction Total
