@@ -125,45 +125,10 @@ else:
     )
     st.altair_chart(chart, use_container_width=True)
 
-with st.expander("View and Download Data Table"):
-    st.subheader("Staker info")
-    st.write(staker_chart_df)
-    slug = f"top_stakers"
-    st.download_button(
-        "Click to Download",
-        staker_chart_df.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.write("---")
-    st.subheader("Liquid staking token holder info")
-    st.write(token_chart_df)
-    slug = f"lst_holders"
-    st.download_button(
-        "Click to Download",
-        token_chart_df.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
-    st.write("---")
-    st.subheader("All data")
-    slug = f"all_top_stakers"
-    st.download_button(
-        "Click to Download",
-        staker_df.to_csv(index=False).encode("utf-8"),
-        f"{slug}.csv",
-        "text/csv",
-        key=f"download-{slug}",
-    )
 
-lst_delta_df = utils.load_lst(filled=False)
+# #TODO: look at Delta, add some overviews
+# lst_delta_df = utils.load_lst(filled=False)
 # c1,c2 = st.columns(2)
-
-
-# lst_chart_df =
-
 # name: symbol pairs
 
 
@@ -239,7 +204,9 @@ lst_delta_df = utils.load_lst(filled=False)
 # )
 # st.altair_chart(chart, use_container_width=True)
 
-# TOTAL STAKE VOLUME OVER TIME
+# Guest analysis by h4wk
+# TOTAL STAKE OVER TIME
+c1, c2 = st.columns(2)
 daily_stake = staker_df.drop_duplicates(subset=["Date", "Address"], keep="first")
 daily_stake["Address Name"] = daily_stake["Address Name"].fillna("Other")
 daily_stake = daily_stake.groupby(["Date", "Address Name"]).sum("Total Stake").reset_index()
@@ -249,15 +216,28 @@ fig2 = px.area(
     x="Date",
     y="Total Stake",
     color="Address Name",
-    title="Stake Volume Over time",
+    title="Total Stake Over time",
     color_discrete_sequence=px.colors.qualitative.Prism,
 )
-fig2.update_xaxes(showgrid=False)
-fig2.update_yaxes(showgrid=True)
-fig2.update_xaxes(title_text="Date")
-fig2.update_yaxes(title_text="Stake Volume")
-st.plotly_chart(fig2, use_container_width=True)
-# END --- TOTAL STAKE VOLUME OVER TIME
+fig2.update_xaxes(title_text="Date", showgrid=False)
+fig2.update_yaxes(title_text="Total Stake (SOL)", showgrid=True)
+c1.plotly_chart(fig2, use_container_width=True)
+# END --- TOTAL STAKE OVER TIME
+# LSTs Holding Over time
+LST_df = staker_df.groupby(["Date", "Symbol"]).sum("amount").reset_index()
+fig2 = px.area(
+    LST_df,
+    x="Date",
+    y="Amount",
+    color="Symbol",
+    title="Total LST Balance by Top SOL Stakers",
+    color_discrete_sequence=px.colors.qualitative.Prism_r,
+)
+fig2.update_xaxes(title_text="Date", showgrid=False)
+fig2.update_yaxes(title_text="Total LST Balance", showgrid=True)
+c2.plotly_chart(fig2, use_container_width=True)
+# END --- LSTs Holding Over timeload_staker
+
 
 # TOP 15 STAKERS
 filter = staker_df["Date"] == staker_df["Date"].max()
@@ -267,18 +247,17 @@ if exclude_foundation:
     top_staker = top_staker[top_staker["Address Name"] != "Solana Foundation Delegation Account"]
 if exclude_labeled:
     top_staker = top_staker[(top_staker["Address Name"].isna()) & (top_staker["Friendlyname"].isna())]
-top_staker = top_staker.nlargest(15, "Total Stake")
+top_staker = top_staker.nlargest(n_addresses, "Total Stake")
 # st.write(top_staker)
 fig2 = px.histogram(
     top_staker,
     x="Address",
     y="Total Stake",
-    log_y=False,
-    title="Top 15 Staker by Volume",
+    title=f"Top {n_addresses} Stakers by Stake Amount",
     color="Address",
     color_discrete_sequence=px.colors.qualitative.Prism,
 )
-fig2.update_layout(xaxis_title="Staked Volume", yaxis_title="Address")
+fig2.update_layout(xaxis_title="Address", yaxis_title="Total Stake (SOL)")
 
 fig2.update_xaxes(showgrid=False)
 fig2.update_yaxes(showgrid=True)
@@ -301,66 +280,49 @@ def get_stake_volume_category(stake_volume):
 
 filter = staker_df["Date"] == staker_df["Date"].max()
 stake_category = staker_df.where(filter).dropna(subset=["Date"])
-stake_category["stake_category"] = stake_category["Total Stake"].apply(get_stake_volume_category)
+stake_category["Stake Category"] = stake_category["Total Stake"].apply(get_stake_volume_category)
 stake_cateogry_count_df = (
-    stake_category.groupby(["stake_category"]).agg(TOTAL_ADDRESS=("Address", "nunique")).reset_index()
+    stake_category.groupby(["Stake Category"]).agg(TOTAL_ADDRESS=("Address", "nunique")).reset_index()
 )
 # st.write(stake_cateogry_count_df)
 fig2 = px.histogram(
     stake_cateogry_count_df,
-    x="stake_category",
+    x="Stake Category",
     y="TOTAL_ADDRESS",
     log_y=False,
-    title="Stake Category by Volume",
-    color="stake_category",
+    title="Top Stakers by Staking Amount Category",
+    color="Stake Category",
     color_discrete_sequence=px.colors.qualitative.Prism,
 )
-fig2.update_layout(xaxis_title="Staked Volume", yaxis_title="Wallet Count")
+fig2.update_layout(xaxis_title="Total Stake (SOL)", yaxis_title="Addresss Count")
 
 fig2.update_xaxes(showgrid=False)
 fig2.update_yaxes(showgrid=True)
 st.plotly_chart(fig2, use_container_width=True)
 # END --- STAKE VOLUME CATEGORY
 
-# LSDs Holding Over time
-LSD_df = staker_df.groupby(["Date", "Symbol"]).sum("amount").reset_index()
-fig2 = px.area(
-    LSD_df,
-    x="Date",
-    y="Amount",
-    color="Symbol",
-    title="Total LSDs Holding by Top SOL Stakers",
-    color_discrete_sequence=px.colors.qualitative.Prism,
-)
-fig2.update_xaxes(showgrid=False)
-fig2.update_yaxes(showgrid=True)
-fig2.update_xaxes(title_text="Date")
-fig2.update_yaxes(title_text="Total LSD Holding Balance")
-st.plotly_chart(fig2, use_container_width=True)
-# END --- LSDs Holding Over timeload_staker
-
-# LSDs Current Balance and Holders
+# LSTs Current Balance and Holders
 filter = staker_df["Date"] == staker_df["Date"].max()
-LSDs_curr = staker_df.where(filter).dropna(subset=["Date"])
-LSDs_curr = LSDs_curr.where(LSDs_curr["Amount"] > 0)
-LSDs_curr = LSDs_curr.groupby("Symbol").agg({"Amount": np.sum, "Address": pd.Series.nunique}).reset_index()
-LSDs_curr = LSDs_curr.sort_values(by=["Amount"], ascending=False)
+LSTs_curr = staker_df.where(filter).dropna(subset=["Date"])
+LSTs_curr = LSTs_curr.where(LSTs_curr["Amount"] > 0)
+LSTs_curr = LSTs_curr.groupby("Symbol").agg({"Amount": np.sum, "Address": pd.Series.nunique}).reset_index()
+LSTs_curr = LSTs_curr.sort_values(by=["Amount"], ascending=False)
 fig = go.Figure(
-    data=go.Bar(x=LSDs_curr["Symbol"], y=LSDs_curr["Amount"], name="LSD Balance", marker=dict(color="teal"))
+    data=go.Bar(x=LSTs_curr["Symbol"], y=LSTs_curr["Amount"], name="LST Balance", marker=dict(color="teal"))
 )
 fig.add_trace(
     go.Scatter(
-        x=LSDs_curr["Symbol"],
-        y=LSDs_curr["Address"],
+        x=LSTs_curr["Symbol"],
+        y=LSTs_curr["Address"],
         yaxis="y2",
         name="Holder",
         marker=dict(color="crimson"),
     )
 )
 fig.update_layout(
-    title="Current LSDs Balance/Holders from Top Stakers",
+    title="Current LST Holding Balance and Holders from Top SOL Stakers",
     legend=dict(orientation="h"),
-    yaxis=dict(title=dict(text="LSD Balance"), side="left"),
+    yaxis=dict(title=dict(text="LST Balance"), side="left"),
     yaxis2=dict(
         title=dict(text="Holder"),
         side="right",
@@ -370,15 +332,24 @@ fig.update_layout(
 )
 fig.update_yaxes(showgrid=False)
 st.plotly_chart(fig, use_container_width=True)
-# END --- LSDs Current Balance and Holders
+# END --- LSTs Current Balance and Holders
 
-# Protocol Interaction Total 
+# Protocol Interaction Total
 staker_itneraction_df = staker_itneraction_df.rename(columns={"Cap Label": "Protocol"})
-staker_itneraction_df = staker_itneraction_df.groupby("Protocol").agg({"Interact": np.sum, "Address": pd.Series.nunique}).reset_index()
+staker_itneraction_df = (
+    staker_itneraction_df.groupby("Protocol")
+    .agg({"Interact": np.sum, "Address": pd.Series.nunique})
+    .reset_index()
+)
 staker_itneraction_df = staker_itneraction_df.sort_values(by="Interact", ascending=False)
 
 fig = go.Figure(
-    data=go.Bar(x=staker_itneraction_df["Protocol"], y=staker_itneraction_df["Interact"], name="Interactions", marker=dict(color=px.colors.qualitative.Prism[0]))
+    data=go.Bar(
+        x=staker_itneraction_df["Protocol"],
+        y=staker_itneraction_df["Interact"],
+        name="Program interactions",
+        marker=dict(color=px.colors.qualitative.Prism[0]),
+    )
 )
 fig.add_trace(
     go.Scatter(
@@ -390,17 +361,52 @@ fig.add_trace(
     )
 )
 fig.update_layout(
-    title="Top Stakers Protocol Interactions - Last 90 Days",
+    title="Program Usage by Top Stakers, Past 90d",
     # legend=dict(orientation="h"),
-    yaxis=dict(title=dict(text="Interactions"), side="left", type="log"),
+    yaxis=dict(title=dict(text="Program Interactions"), side="left", type="log"),
     yaxis2=dict(
-        title=dict(text="Stakers"),
+        title=dict(text="Addresses"),
         side="right",
         overlaying="y",
         # tickmode="sync",
-    )
+    ),
 )
 fig.update_yaxes(showgrid=False)
 st.plotly_chart(fig, use_container_width=True)
+st.caption("Note: Only interactions with a subset of labeled program addresses are counted")
 
 # END --- Protocol Interaction Total
+
+# view and download data tables
+with st.expander("View and Download Data Table"):
+    st.subheader("Staker info")
+    st.write(staker_chart_df)
+    slug = f"top_stakers"
+    st.download_button(
+        "Click to Download",
+        staker_chart_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("---")
+    st.subheader("Liquid staking token holder info")
+    st.write(token_chart_df)
+    slug = f"lst_holders"
+    st.download_button(
+        "Click to Download",
+        token_chart_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("---")
+    st.subheader("All data")
+    slug = f"all_top_stakers"
+    st.download_button(
+        "Click to Download",
+        staker_df.to_csv(index=False).encode("utf-8"),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )

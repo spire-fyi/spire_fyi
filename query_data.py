@@ -427,7 +427,9 @@ if __name__ == "__main__":
             f"{utils.api_base}/2cc62d89-4f67-4197-82cf-8daf9b69ff45/data/latest",
             "DATE",
         )
-        top_staker_interactions.sort_values(by='Date', ascending=False).to_csv("data/top_staker_interactions.csv", index=False)
+        top_staker_interactions.sort_values(by="Date", ascending=False).to_csv(
+            "data/top_staker_interactions.csv", index=False
+        )
 
     # #TODO combine data, get program_ids
     # df = combine_flipside_date_data("data/sdk_programs_sol")

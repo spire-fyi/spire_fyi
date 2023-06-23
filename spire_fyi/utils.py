@@ -1093,6 +1093,7 @@ def load_staker_data():
     )
     return df
 
+
 @st.cache_data(ttl=3600)
 def load_staker_interaction_data():
     df = pd.read_csv("data/top_staker_interactions.csv", low_memory=False)
