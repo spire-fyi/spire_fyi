@@ -113,7 +113,7 @@ with transfers:
         key="transfer-whale-scale",
     )
     scale_type = "log" if scale else "linear"
-    legend_selection = alt.selection_multi(fields=["Token Name"], bind="legend")
+    legend_selection = alt.selection_point(fields=["Token Name"], bind="legend")
     chart = (
         alt.Chart(transfer_whales, title="Transfer 🐋 Transactions, past 7d")
         .mark_circle()
@@ -143,7 +143,7 @@ with transfers:
                 alt.Tooltip("From Label", title="Transfer from Label"),
             ],
         )
-        .add_selection(legend_selection)
+        .add_params(legend_selection)
         .properties(height=600, width=600)
         .interactive()
     )
@@ -169,7 +169,7 @@ with swaps:
         key="swap-whale-scale",
     )
     scale_type = "log" if scale else "linear"
-    legend_selection = alt.selection_multi(fields=["Swap From"], bind="legend")
+    legend_selection = alt.selection_point(fields=["Swap From"], bind="legend")
     chart = (
         alt.Chart(swap_whales, title="Swap 🐋 Transactions, past 7d")
         .mark_circle()
@@ -204,7 +204,7 @@ with swaps:
                 ),
             ],
         )
-        .add_selection(legend_selection)
+        .add_params(legend_selection)
         .properties(height=600, width=600)
         .interactive()
     )
@@ -240,7 +240,7 @@ with nft:
         key="nft-whale-scale",
     )
     scale_type = "log" if scale else "linear"
-    legend_selection = alt.selection_multi(fields=["NFT Name"], bind="legend")
+    legend_selection = alt.selection_point(fields=["NFT Name"], bind="legend")
     chart = (
         alt.Chart(nft_whales, title="NFT 🐋 Transactions, past 7d")
         .mark_circle()
@@ -269,7 +269,7 @@ with nft:
             ],
             opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
         )
-        .add_selection(legend_selection)
+        .add_params(legend_selection)
         .properties(height=600, width=600)
         .interactive()
     )

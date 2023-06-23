@@ -36,14 +36,14 @@ def alt_line_chart(
         scale = "linear"
     columns = data[unique_column_name].unique()
     base = alt.Chart(data, title=chart_title).encode(x=alt.X("yearmonthdate(Date):T", title=None))
-    selection = alt.selection_single(
+    selection = alt.selection_point(
         fields=["Date"],
         nearest=True,
         on="mouseover",
-        empty="none",
+        empty=False,
         clear="mouseout",
     )
-    legend_selection = alt.selection_multi(fields=[unique_column_name], bind="legend")
+    legend_selection = alt.selection_point(fields=[unique_column_name], bind="legend")
     lines = base.mark_line(point=True, interpolate="monotone").encode(
         y=alt.Y(
             f"{metric}:Q",
@@ -75,7 +75,7 @@ def alt_line_chart(
                 for c in columns
             ],
         )
-        .add_selection(selection)
+        .add_params(selection)
     )
     chart = lines + points + rule
 
@@ -83,7 +83,7 @@ def alt_line_chart(
         chart = chart.interactive()
 
     return (
-        chart.add_selection(legend_selection).properties(height=800, width=800)
+        chart.add_params(legend_selection).properties(height=800, width=800)
         # .configure_axis(grid=False)
     )
 

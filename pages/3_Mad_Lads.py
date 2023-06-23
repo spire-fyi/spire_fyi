@@ -492,7 +492,7 @@ with sales:
     if load_image:
         tooltip.append("image")
     n_attributes = sales_df[attribute].nunique()
-    legend_selection = alt.selection_multi(fields=[attribute], bind="legend")
+    legend_selection = alt.selection_point(fields=[attribute], bind="legend")
     chart = (
         alt.Chart(sales_df, title=f'Rarity Rank vs Sales Amount, highlighting the "{attribute}" Attribute')
         .mark_circle()
@@ -512,7 +512,7 @@ with sales:
             # #NOTE: this doesn't look great but may be interesting to configure later
             # size=alt.Size(amount_column, title=y_title),
         )
-        .add_selection(legend_selection)
+        .add_params(legend_selection)
         .properties(height=1000, width=600)
         .interactive()
     )

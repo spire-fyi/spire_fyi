@@ -63,6 +63,8 @@ sdk = Flipside(API_KEY)
 helius_key = st.secrets["helius"]["api_key"]
 rpc_url = f"https://rpc.helius.xyz/?api-key={helius_key}"
 
+RUN_INTERACTIVE_QUERIES = False
+
 LAMPORTS_PER_SOL = 1_000_000_000
 IPFS_RESOLVER_URL = "https://cloudflare-ipfs.com/ipfs"
 IPFS_RESOLVER_ALT_URL = "https://ipfs.io/ipfs"

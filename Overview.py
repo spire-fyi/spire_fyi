@@ -227,14 +227,14 @@ with ecosystem:
     base = alt.Chart(melted_fees, title=f"Fees per Transaction: Daily, Past 60d").encode(
         x=alt.X("yearmonthdate(Date):T", title=None)
     )
-    selection = alt.selection_single(
+    selection = alt.selection_point(
         fields=["Date"],
         nearest=True,
         on="mouseover",
-        empty="none",
+        empty=False,
         clear="mouseout",
     )
-    legend_selection = alt.selection_multi(fields=["variable"], bind="legend")
+    legend_selection = alt.selection_point(fields=["variable"], bind="legend")
     lines = base.mark_line().encode(
         y=alt.Y(
             f"value",
@@ -273,9 +273,9 @@ with ecosystem:
                 for c in columns
             ],
         )
-        .add_selection(selection)
+        .add_params(selection)
     )
-    chart = (lines + points + rule).add_selection(legend_selection).properties(height=550, width=600)
+    chart = (lines + points + rule).add_params(legend_selection).properties(height=550, width=600)
     c2.altair_chart(chart, use_container_width=True)
     st.write("---")
 
