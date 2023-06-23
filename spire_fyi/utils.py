@@ -1093,6 +1093,17 @@ def load_staker_data():
     )
     return df
 
+@st.cache_data(ttl=3600)
+def load_staker_interaction_data():
+    df = pd.read_csv("data/top_staker_interactions.csv", low_memory=False)
+    df = reformat_columns(df, ["Date"])
+    df = (
+        df[["Date"] + df.columns.drop("Date").to_list()]
+        .sort_values(by=["Date", "Address"], ascending=False)
+        .reset_index(drop=True)
+    )
+    return df
+
 
 @st.cache_data(ttl=3600)
 def get_stakers_chart_data(
