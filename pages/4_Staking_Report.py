@@ -51,7 +51,7 @@ Analysis performed by [@h4wk10](https://twitter.com/h4wk10), [@banbannard](https
 )
 
 staker_df = utils.load_staker_data()
-staker_itneraction_df = utils.load_staker_interaction_data()
+staker_interaction_df = utils.load_staker_interaction_data()
 token_name_dict = {x[1]: x[0] for x in utils.liquid_staking_tokens.values()}
 
 c1, c2, c3 = st.columns([3, 2, 2])
@@ -68,14 +68,14 @@ date_range = c1.radio(
         "7d",
     ],
     horizontal=True,
-    index=3,
+    index=1,
     key="stakers_date_range",
 )
 n_addresses = c2.slider("Number of top addresses per day", 1, 50, 15, key="stakers_slider")
 exclude_foundation = c3.checkbox(
     "Exclude Solana Foundation delegation", value=True, key="stakers_foundation_check"
 )
-exclude_labeled = c3.checkbox("Exclude labeled addresses", value=True, key="stakers_labeled_check")
+exclude_labeled = c3.checkbox("Exclude labeled addresses", key="stakers_labeled_check")
 log_scale = c3.checkbox("Log Scale", key="stakers_log_scale")
 
 user_type_dict = {
@@ -335,26 +335,26 @@ st.plotly_chart(fig, use_container_width=True)
 # END --- LSTs Current Balance and Holders
 
 # Protocol Interaction Total
-staker_itneraction_df = staker_itneraction_df.rename(columns={"Cap Label": "Protocol"})
-staker_itneraction_df = (
-    staker_itneraction_df.groupby("Protocol")
+staker_interaction_df = staker_interaction_df.rename(columns={"Cap Label": "Protocol"})
+staker_interaction_df = (
+    staker_interaction_df.groupby("Protocol")
     .agg({"Interact": np.sum, "Address": pd.Series.nunique})
     .reset_index()
 )
-staker_itneraction_df = staker_itneraction_df.sort_values(by="Interact", ascending=False)
+staker_interaction_df = staker_interaction_df.sort_values(by="Interact", ascending=False)
 
 fig = go.Figure(
     data=go.Bar(
-        x=staker_itneraction_df["Protocol"],
-        y=staker_itneraction_df["Interact"],
+        x=staker_interaction_df["Protocol"],
+        y=staker_interaction_df["Interact"],
         name="Program interactions",
         marker=dict(color=px.colors.qualitative.Prism[0]),
     )
 )
 fig.add_trace(
     go.Scatter(
-        x=staker_itneraction_df["Protocol"],
-        y=staker_itneraction_df["Address"],
+        x=staker_interaction_df["Protocol"],
+        y=staker_interaction_df["Address"],
         yaxis="y2",
         name="Stakers",
         marker=dict(color="orange"),
