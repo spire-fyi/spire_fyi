@@ -18,6 +18,6 @@ from
     solana.core.fact_transactions
 where
     programId = 'xnft5aaToUM4UFETUQfj7NUDUBdvYHTVhNFThEYTm55'
-    and block_timestamp :: date > {{ date }}
+    and block_timestamp :: date > {{ date }} and block_timestamp :: date <= {{ date2 }}
 order by
     block_timestamp desc

@@ -167,7 +167,9 @@ liquid_staking_tokens = {
 }
 
 
-def combine_flipside_date_data(data_dir, add_date=False, with_program=False, nft_royalty=False):
+def combine_flipside_date_data(
+    data_dir, add_date=False, with_program=False, nft_royalty=False, rename_columns=None
+):
     d = Path(data_dir)
     data_files = d.glob("*.csv")
     if nft_royalty:
@@ -176,6 +178,10 @@ def combine_flipside_date_data(data_dir, add_date=False, with_program=False, nft
     dfs = []
     for x in data_files:
         df = pd.read_csv(x)
+        # restore old flipside behavior
+        df.columns = [x.upper() for x in df.columns]
+        if rename_columns is not None:
+            df = df.rename(columns=rename_columns)
         if add_date and not with_program:
             date_str = x.name.split("_")[-1].split(".csv")[0]
             df["DATE"] = date_str
@@ -184,6 +190,10 @@ def combine_flipside_date_data(data_dir, add_date=False, with_program=False, nft
             df["DATE"] = date_str
         dfs.append(df)
     combined_df = pd.concat(dfs)
+    try:
+        combined_df = combined_df.drop(columns="__ROW_INDEX")
+    except KeyError:
+        pass
     return combined_df
 
 
@@ -261,6 +271,14 @@ def load_program_label_df(prefix="program", use_manual=True, sfm_only=False):
         return solfm_labs
     else:
         fs_labs = pd.read_csv(f"data/{prefix}_flipside_labels.csv")
+        fs_labs.columns = [x.upper() for x in fs_labs.columns]
+        fs_labs["ADDRESS"] = fs_labs["ADDRESS"].apply(
+            lambda x: "11111111111111111111111111111111" if x == "1.1111111111111112e+31" else x
+        )
+        try:
+            fs_labs = fs_labs.drop(columns="__ROW_INDEX")
+        except KeyError:
+            pass
         if use_manual:
             manual_labs = pd.read_csv(f"data/{prefix}_manual_labels.csv")
             labs = pd.concat([fs_labs, manual_labs])
@@ -325,7 +343,9 @@ def get_program_chart_data(
     elif date_range == "Year to Date":
         chart_df = df.copy()[df.Date >= "2022-01-01"]
     else:
-        chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
+        chart_df = df.copy()[
+            df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(date_range))
+        ]
 
     if exclude_solana:
         chart_df = chart_df[chart_df.LABEL != "solana"]
@@ -370,7 +390,7 @@ def load_labeled_program_data(new_users_only=False, user_type=None):
 def load_weekly_program_data():
     df = pd.read_csv("data/weekly_program.csv")
     datecols = ["WEEK"]
-    df[datecols] = df[datecols].apply(pd.to_datetime)
+    df[datecols] = df[datecols].apply(pd.to_datetime, utc=True)
     return df
 
 
@@ -381,7 +401,7 @@ def load_weekly_new_program_data():
     df = df.reset_index(drop=True)
     df["Cumulative Programs"] = df["New Programs"].cumsum()
     datecols = ["WEEK"]
-    df[datecols] = df[datecols].apply(pd.to_datetime)
+    df[datecols] = df[datecols].apply(pd.to_datetime, utc=True)
     return df
 
 
@@ -392,7 +412,7 @@ def load_weekly_user_data(user_type="Fee Payers"):
     else:
         df = pd.read_csv("data/weekly_users.csv")
     datecols = ["WEEK"]
-    df[datecols] = df[datecols].apply(pd.to_datetime)
+    df[datecols] = df[datecols].apply(pd.to_datetime, utc=True)
     return df
 
 
@@ -403,7 +423,7 @@ def load_weekly_new_user_data(user_type="Fee Payers"):
     else:
         df = pd.read_csv("data/weekly_new_users.csv")
     datecols = ["WEEK"]
-    df[datecols] = df[datecols].apply(pd.to_datetime)
+    df[datecols] = df[datecols].apply(pd.to_datetime, utc=True)
     df = df.sort_values(by="WEEK")
     df = df.rename(columns={"NEW_USERS": "New Users"})
     df["Cumulative Users"] = df["New Users"].cumsum()
@@ -428,7 +448,7 @@ def load_nft_data():
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
-    main_data["Date"] = pd.to_datetime(main_data["Date"])
+    main_data["Date"] = pd.to_datetime(main_data["Date"], utc=True)
     buyers_sellers = main_data.melt(
         id_vars=[
             "Date",
@@ -454,7 +474,7 @@ def load_nft_data():
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
-    mints_by_purchaser["Date"] = pd.to_datetime(mints_by_purchaser["Date"])
+    mints_by_purchaser["Date"] = pd.to_datetime(mints_by_purchaser["Date"], utc=True)
     mints_by_chain = (
         pd.read_json(f"{api_base}/88cfaf1c-e485-4926-817f-61ed261d9cfb/data/latest")
         .rename(columns={"DATE": "Date", "CHAIN": "Chain", "MINTS": "Count", "MINTERS": "Unique Users"})
@@ -462,11 +482,11 @@ def load_nft_data():
         .reset_index(drop=True)
     )
     mints_by_chain["Type"] = "Mints"
-    mints_by_chain["Date"] = pd.to_datetime(mints_by_chain["Date"])
+    mints_by_chain["Date"] = pd.to_datetime(mints_by_chain["Date"], utc=True)
     sales_by_chain = pd.read_json(f"{api_base}/7daf5636-2364-4281-b1cb-2d44ae1bcffd/data/latest").rename(
         columns={"DATE": "Date", "CHAIN": "Chain", "SALES": "Count", "BUYERS": "Unique Users"}
     )
-    sales_by_chain["Date"] = pd.to_datetime(sales_by_chain["Date"])
+    sales_by_chain["Date"] = pd.to_datetime(sales_by_chain["Date"], utc=True)
     sales_by_chain["Type"] = "Sales"
     by_chain_data = (
         pd.concat([mints_by_chain, sales_by_chain])
@@ -511,7 +531,7 @@ def load_royalty_data():
 @st.cache_data(ttl=1800)
 def load_sol_daily_price():
     df = pd.read_json(f"{api_base}/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest")
-    df["Date"] = pd.to_datetime(df["Date"])
+    df["Date"] = pd.to_datetime(df["Date"], utc=True)
     df = df.sort_values(by="Date")
     return df
 
@@ -525,7 +545,7 @@ def load_top_nft_info():
         .rename(columns={"uri_x": "uri"})
         .reset_index(drop=True)
     )
-    df["BLOCK_TIMESTAMP"] = pd.to_datetime(df["BLOCK_TIMESTAMP"])
+    df["BLOCK_TIMESTAMP"] = pd.to_datetime(df["BLOCK_TIMESTAMP"], utc=True)
     df["paid_no_royalty"] = ~df["paid_royalty"]
     df["Date"] = df.BLOCK_TIMESTAMP.dt.normalize()
     # #HACK: get rid of incomplete date
@@ -586,21 +606,21 @@ def load_defi_data():
 def load_weekly_last_use_data():
     df = pd.read_csv("data/weekly_users_last_use.csv")
     datecols = ["LAST_USE"]
-    df[datecols] = df[datecols].apply(pd.to_datetime)
+    df[datecols] = df[datecols].apply(pd.to_datetime, utc=True)
     return df
 
 
 def load_weekly_days_since_last_use_data():
     df = pd.read_csv("data/weekly_days_since_last_use.csv")
     datecols = ["CREATION_DATE"]
-    df[datecols] = df[datecols].apply(pd.to_datetime)
+    df[datecols] = df[datecols].apply(pd.to_datetime, utc=True)
     return df
 
 
 def load_weekly_days_active_data():
     df = pd.read_csv("data/weekly_days_active.csv")
     datecols = ["CREATION_DATE"]
-    df[datecols] = df[datecols].apply(pd.to_datetime)
+    df[datecols] = df[datecols].apply(pd.to_datetime, utc=True)
     return df
 
 
@@ -626,7 +646,7 @@ def get_program_ids(df):
 @st.cache_data(ttl=300)
 def reformat_columns(df: pd.DataFrame, datecols: Union[list, None]) -> pd.DataFrame:
     if datecols is not None:
-        df[datecols] = df[datecols].apply(pd.to_datetime)
+        df[datecols] = df[datecols].apply(pd.to_datetime, utc=True)
         # TODO: eventually use timezones. currently impossible to properly handle with altair and streamlit
         # for x in datecols:
         #     df[x] = pd.to_datetime(df[x], utc=True)
@@ -714,7 +734,7 @@ def load_fees(dates):
         data.append(r.json()["result"])
 
     fees = pd.DataFrame(data)
-    fees["Date"] = pd.to_datetime(fees.date, dayfirst=True)
+    fees["Date"] = pd.to_datetime(fees.date, dayfirst=True, utc=True)
     fees["Fees"] = fees.totalTxFees / 10**9
     fees["Burn"] = fees["Fees"] / 2
     fees = fees[["Date", "Fees", "Burn"]]
@@ -724,7 +744,7 @@ def load_fees(dates):
 @st.cache_data(ttl=3600)
 def load_fee_data():
     df = pd.read_csv("data/fees.csv")
-    df["Date"] = pd.to_datetime(df.Date)
+    df["Date"] = pd.to_datetime(df.Date, utc=True)
     return df
 
 
@@ -920,6 +940,8 @@ def get_backpack_username(x):
         username = j["user"]["username"]
     except KeyError:
         return None
+    except requests.exceptions.SSLError:
+        return None
     return username
 
 
@@ -1020,7 +1042,8 @@ def load_defi_data():
 @st.cache_data(ttl=3600)
 def agg_defi_data(df, date_range):
     chart_df = df.copy()[
-        df["Date"] >= (pd.to_datetime(datetime.datetime.today()) - pd.Timedelta(f"{int(date_range[:-1])}d"))
+        df["Date"]
+        >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(f"{int(date_range[:-1])}d"))
     ]
 
     top_dex_tx = chart_df.groupby(["Dex"]).Txs.sum().sort_values(ascending=False).reset_index()
@@ -1056,7 +1079,12 @@ def agg_defi_data(df, date_range):
 @st.cache_data(ttl=3600)
 def agg_defi_signers_data(df, date_range, protocol):
     chart_df = df.copy()[
-        (df["Date"] >= (pd.to_datetime(datetime.datetime.today()) - pd.Timedelta(f"{int(date_range[:-1])}d")))
+        (
+            df["Date"]
+            >= (
+                pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(f"{int(date_range[:-1])}d")
+            )
+        )
         & (df.Dex == protocol)
     ].reset_index(drop=True)
     chart_df["Normalized"] = chart_df["Wallets"] / chart_df.groupby(["Date"])["Wallets"].transform("sum")
@@ -1068,7 +1096,9 @@ def agg_new_defi_users_data(df, date_range, protocol):
     chart_df = df.copy()[
         (
             df["First Tx Date"]
-            >= (pd.to_datetime(datetime.datetime.today()) - pd.Timedelta(f"{int(date_range[:-1])}d"))
+            >= (
+                pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(f"{int(date_range[:-1])}d")
+            )
         )
         & (df.Dex == protocol)
     ].reset_index(drop=True)
@@ -1118,7 +1148,9 @@ def get_stakers_chart_data(
     user_type,
     token,
 ):
-    chart_df = df.copy()[df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
+    chart_df = df.copy()[
+        df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(date_range))
+    ]
 
     if exclude_foundation:
         chart_df = chart_df[chart_df["Address Name"] != "Solana Foundation Delegation Account"]

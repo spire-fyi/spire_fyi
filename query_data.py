@@ -14,6 +14,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from flipside import Flipside
+
+# from flipside.errors.api_error import ApiError
 from jinja2 import Environment, FileSystemLoader
 
 import spire_fyi.utils as utils
@@ -102,10 +104,13 @@ all_weeks = [
 ]
 
 
-def create_query_by_date(date, query_basename):
+def create_query_by_date(date, query_basename, date2=None):
     env = Environment(loader=FileSystemLoader("./sql"))
     template = env.get_template(f"{query_basename}.sql")
-    query = template.render({"date": f"'{date}'"})
+    if date2 is None:
+        query = template.render({"date": f"'{date}'"})
+    else:
+        query = template.render({"date": f"'{date}'", "date2": f"'{date2}'"})
     return query
 
 
@@ -137,10 +142,13 @@ def create_query_by_date_and_wallets(date, wallets, query_basename):
     return query
 
 
-def get_queries_by_date(date, query_basename, update_cache=False):
-    query = create_query_by_date(date, query_basename)
+def get_queries_by_date(date, query_basename, update_cache=False, output_file=None, date2=None):
+    query = create_query_by_date(date, query_basename, date2)
     output_dir = Path(f"data/{query_basename}")
-    output_file = Path(output_dir, f"{query_basename}_{date.replace(' ', '_')}.csv")
+    if output_file is None:
+        output_file = Path(output_dir, f"{query_basename}_{date.replace(' ', '_')}.csv")
+    else:
+        output_file = Path(output_dir, output_file)
     if update_cache or not output_file.exists():
         return query, output_file
 
@@ -234,7 +242,7 @@ def get_queries_by_date_and_programs(date, query_basename, df, update_cache=Fals
     return queries_to_do
 
 
-def query_flipside_data(enumerated_query_info, save=True):
+def query_flipside_data(enumerated_query_info, save=True, page_size=1000000, page_number=1):
     i, query_info = enumerated_query_info
     query, output_file = query_info
     query_file = Path(output_file.parent, "queries", f"{output_file.stem}.sql")
@@ -256,8 +264,8 @@ def query_flipside_data(enumerated_query_info, save=True):
             ttl_minutes=120,
             timeout_minutes=30,
             retry_interval_seconds=1,
-            page_size=1000000,
-            page_number=1,
+            page_size=page_size,
+            page_number=page_number,
             cached=False,
         )
         if save:
@@ -271,6 +279,13 @@ def query_flipside_data(enumerated_query_info, save=True):
             )
         logging.info(f"#@# Saved {output_file}")
         return output_file
+    # # #TODO deal with large page size
+    # except ApiError as e:
+    #     msg = e.args[0]
+    #     if "RequestedPageSizeTooLarge" in msg:
+    #         #HACK : attempt to parse error message
+    #         max_rows = int(msg.split('We suggest reducing your page size to below ')[1].split(' ')[0])
+    #     return
     except Exception as e:
         logging.info(f"[ERROR] ({query_file}) {e}")
         return
@@ -280,25 +295,23 @@ if __name__ == "__main__":
     # #TODO make cli...
     update_cache = False
     lst_force_update = False
-    do_main = False
+    do_main = True
+    do_new_users = False
     do_network = False
     do_nft_mints = False
     do_nft_metadata = False
-    do_xnft = False
+    do_xnft = True
     do_lst = False
     # main routines
     do_pull_flipside_data = True
-    do_pool = False
+    do_pool = True
 
     query_info = []
     if do_main:
         # #TODO: change dates/programs
         main_queries = [
-            ("sdk_programs_new_users_sol", all_dates_2022),
             ("sdk_programs_sol", all_dates_2022),
             ("sdk_programs_all_signers_sol", past_90d),
-            ("sdk_programs_new_users_all_signers_sol", past_90d),
-            ("sdk_new_users_sol", all_dates_2022),
             ("sdk_transactions_sol", all_dates_2022),
             ("sdk_weekly_new_program_count_sol", all_weeks),
             ("sdk_weekly_program_count_sol", all_weeks),
@@ -308,9 +321,17 @@ if __name__ == "__main__":
             ("sdk_weekly_users_all_signers_sol", all_weeks),
             ("sdk_dex", past_180d),
             ("sdk_openbook_users", past_180d),
-            ("sdk_dex_new_users", past_180d),
             ("sdk_top_stakers_by_date_sol", past_180d),
         ]
+        if do_new_users:
+            main_queries.extend(
+                [
+                    ("sdk_programs_new_users_sol", all_dates_2022),
+                    ("sdk_programs_new_users_all_signers_sol", past_90d),
+                    ("sdk_dex_new_users", past_180d),
+                    # ("sdk_new_users_sol", all_dates_2022), #NOTE: this is not currently used
+                ]
+            )
         if do_nft_mints:
             main_queries.append(("sdk_nft_mints", past_90d_hours))
         for q, dates in main_queries:
@@ -335,14 +356,14 @@ if __name__ == "__main__":
                 (past_90d, "91d"),
             ]:
                 chart_df = pd.read_csv("data/programs_labeled.csv.gz")
-                chart_df["Date"] = pd.to_datetime(chart_df.Date)
+                chart_df["Date"] = pd.to_datetime(chart_df.Date, utc=True)
                 chart_df = chart_df[chart_df.LABEL != "solana"]
                 chart_df = chart_df[
                     chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))
                 ]
 
                 chart_df_new_users = pd.read_csv("data/programs_new_users_labeled.csv.gz")
-                chart_df_new_users["Date"] = pd.to_datetime(chart_df_new_users.Date)
+                chart_df_new_users["Date"] = pd.to_datetime(chart_df_new_users.Date, utc=True)
                 chart_df_new_users = chart_df_new_users[chart_df_new_users.LABEL != "solana"]
                 chart_df_new_users = chart_df_new_users[
                     chart_df_new_users.Date >= (datetime.datetime.today() - pd.Timedelta(max_date_string))
@@ -376,8 +397,22 @@ if __name__ == "__main__":
         mintlist = list(mad_lad_df.mint)
         query_info.extend(
             [
-                get_queries_by_date("2022-12-01", "sdk_xnft", update_cache=True),
-                get_queries_by_date("2022-12-01", "sdk_xnft_new_users", update_cache=True),
+                get_queries_by_date("2022-12-01", "sdk_xnft", date2="2023-04-15"),
+                get_queries_by_date("2022-12-01", "sdk_xnft_new_users", date2="2023-04-15"),
+                get_queries_by_date(
+                    "2023-04-15",
+                    "sdk_xnft",
+                    update_cache=True,
+                    output_file="sdk_xnft_current.csv",
+                    date2=past_7d[-1],
+                ),
+                get_queries_by_date(
+                    "2023-04-15",
+                    "sdk_xnft_new_users",
+                    update_cache=True,
+                    output_file="sdk_xnft_new_users_current.csv",
+                    date2=past_7d[-1],
+                ),
                 get_queries_by_mint_list(mintlist, "sdk_madlist", update_cache=True),
             ]
         )
@@ -400,7 +435,9 @@ if __name__ == "__main__":
                 top_staker_addresses = d["e69df08b7135b93f6f064d13d9a53b0db7390ec1"]["wallets"]
         n_wallets = len(top_staker_addresses)
         wallet_hash = hashlib.sha1("".join(top_staker_addresses).encode("utf-8")).hexdigest()
-        for q, dates in [("sdk_top_liquid_staking_token_holders_delta", since_marinade_launch)]:
+        date_range = since_marinade_launch
+        last_date = date_range[-1]
+        for q, dates in [("sdk_top_liquid_staking_token_holders_delta", date_range)]:
             for date in dates:
                 queries_to_do = get_queries_by_date_and_wallets(
                     date, q, top_staker_addresses, n_wallets, wallet_hash
@@ -412,7 +449,7 @@ if __name__ == "__main__":
         with open("data/top_stakers.json", "w") as f:
             top_stakers_log[wallet_hash] = {
                 "n_wallets": n_wallets,
-                "last_date": date,
+                "last_date": date_range,
                 "wallets": top_staker_addresses,
             }
             json.dump(top_stakers_log, f, indent=2)
@@ -425,7 +462,7 @@ if __name__ == "__main__":
     if do_pull_flipside_data:
         top_staker_interactions = utils.load_flipside_api_data(
             f"{utils.api_base}/2cc62d89-4f67-4197-82cf-8daf9b69ff45/data/latest",
-            "DATE",
+            ["DATE"],
         )
         top_staker_interactions.sort_values(by="Date", ascending=False).to_csv(
             "data/top_staker_interactions.csv", index=False

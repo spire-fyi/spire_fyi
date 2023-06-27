@@ -16,7 +16,7 @@ new_wallets AS (
     FROM
         first_tx
     WHERE
-        first_tx_date :: date > {{ date }}
+        first_tx_date :: date > {{ date }} and first_tx_date :: date <= {{ date2 }}
     GROUP BY
         1
 )

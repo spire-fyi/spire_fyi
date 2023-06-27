@@ -5,7 +5,6 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 from PIL import Image
-from scipy.stats import ttest_ind, ttest_rel
 from st_pages import _get_page_hiding_code
 
 import spire_fyi.charts as charts
@@ -292,9 +291,9 @@ with ecosystem:
     # Total Fee and Burns
     chart = (
         alt.Chart(
-            fees[fees.Date >= (pd.to_datetime(fees.Date.max()) - pd.Timedelta(fee_date_range))].melt(
-                id_vars="Date"
-            ),
+            fees[
+                fees.Date >= (pd.to_datetime(fees.Date.max(), utc=True) - pd.Timedelta(fee_date_range))
+            ].melt(id_vars="Date"),
             title=f"Total Fees and Fees Burned, Past {fee_date_range}d",
         )
         .mark_area(
@@ -333,7 +332,9 @@ with ecosystem:
 
     price = utils.load_sol_daily_price()
     most_recent_price = price.iloc[-1]["Price (USD)"]
-    fees_in_range = fees[fees.Date >= (pd.to_datetime(fees.Date.max()) - pd.Timedelta(fee_date_range))].copy()
+    fees_in_range = fees[
+        fees.Date >= (pd.to_datetime(fees.Date.max(), utc=True) - pd.Timedelta(fee_date_range))
+    ].copy()
     c2.metric(
         f"Total Fees in Past {fee_date_range[:-1]} days",
         f"{fees_in_range.Fees.sum():,.0f} SOL (${fees_in_range.Fees.sum() * most_recent_price:,.0f})",
@@ -389,7 +390,9 @@ with ecosystem:
     log_scale = c2.checkbox("Log Scale", key="crosschain_log_scale")
 
     chart_df = overview_data_dict["Crosschain measures"].copy()
-    chart_df = chart_df[chart_df.Date >= (datetime.datetime.today() - pd.Timedelta(date_range))]
+    chart_df = chart_df[
+        chart_df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(date_range))
+    ]
     chart = charts.alt_line_chart(
         chart_df,
         metric=metric,

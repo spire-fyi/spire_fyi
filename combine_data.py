@@ -34,7 +34,7 @@ def get_net_and_programs(labeled_programs, signers, label, cutoff_date):
     programs = utils.get_program_ids(programs_labeled)
 
     df = signers.copy()
-    df["Date"] = pd.to_datetime(df.Date)
+    df["Date"] = pd.to_datetime(df.Date, utc=True)
     df = df[df.Date >= cutoff_date]
     df = df[df["Program ID"].isin(programs)]
 
@@ -260,11 +260,17 @@ if __name__ == "__main__":
     combine_nft = False
     do_xnft = True
     do_fees = True
-    do_madlad_metadata = False
+    do_madlad_metadata = True
     do_staking_report = True
 
     if do_main:
-        program_df = utils.combine_flipside_date_data("data/sdk_programs_sol", add_date=False)
+        program_df = utils.combine_flipside_date_data(
+            "data/sdk_programs_sol", add_date=False, rename_columns={"DATE": "Date"}
+        )
+        # #HACK: fix issue with data type conversion
+        program_df["PROGRAM_ID"] = program_df["PROGRAM_ID"].apply(
+            lambda x: "11111111111111111111111111111111" if x == "1.1111111111111112e+31" else x
+        )
         program_df.to_csv("data/programs.csv.gz", index=False, compression="gzip")
         utils.get_flipside_labels(program_df, "program", "PROGRAM_ID")
         utils.get_solana_fm_labels(program_df, "program", "PROGRAM_ID")
@@ -274,7 +280,11 @@ if __name__ == "__main__":
 
         # New users only
         program_new_users_df = utils.combine_flipside_date_data(
-            "data/sdk_programs_new_users_sol", add_date=False
+            "data/sdk_programs_new_users_sol", add_date=False, rename_columns={"DATE": "Date"}
+        )
+        # #HACK: fix issue with data type conversion
+        program_new_users_df["PROGRAM_ID"] = program_new_users_df["PROGRAM_ID"].apply(
+            lambda x: "11111111111111111111111111111111" if x == "1.1111111111111112e+31" else x
         )
         program_new_users_df.to_csv("data/programs_new_users.csv.gz", index=False, compression="gzip")
         utils.get_flipside_labels(program_new_users_df, "program_new_users", "PROGRAM_ID")
@@ -286,7 +296,11 @@ if __name__ == "__main__":
         )
         # ------
         program_all_signers_df = utils.combine_flipside_date_data(
-            "data/sdk_programs_all_signers_sol", add_date=False
+            "data/sdk_programs_all_signers_sol", add_date=False, rename_columns={"DATE": "Date"}
+        )
+        # #HACK: fix issue with data type conversion
+        program_all_signers_df["PROGRAM_ID"] = program_all_signers_df["PROGRAM_ID"].apply(
+            lambda x: "11111111111111111111111111111111" if x == "1.1111111111111112e+31" else x
         )
         program_all_signers_df.to_csv("data/programs_all_signers.csv.gz", index=False, compression="gzip")
         utils.get_flipside_labels(program_all_signers_df, "program_all_signers", "PROGRAM_ID")
@@ -299,7 +313,11 @@ if __name__ == "__main__":
 
         # New users only
         program_new_users_all_signers_df = utils.combine_flipside_date_data(
-            "data/sdk_programs_new_users_all_signers_sol", add_date=False
+            "data/sdk_programs_new_users_all_signers_sol", add_date=False, rename_columns={"DATE": "Date"}
+        )
+        # #HACK: fix issue with data type conversion
+        program_new_users_all_signers_df["PROGRAM_ID"] = program_new_users_all_signers_df["PROGRAM_ID"].apply(
+            lambda x: "11111111111111111111111111111111" if x == "1.1111111111111112e+31" else x
         )
         program_new_users_all_signers_df.to_csv(
             "data/programs_new_users_all_signers.csv.gz", index=False, compression="gzip"
@@ -315,48 +333,52 @@ if __name__ == "__main__":
         labeled_program_new_users_all_signers_df.to_csv(
             "data/programs_new_users_all_signers_labeled.csv.gz", index=False, compression="gzip"
         )
+
+        # # #NOTE: this section looks at new users, and is not currently used. will be useful when doing network analysis
+        # user_df = utils.combine_flipside_date_data("data/sdk_new_users_sol", add_date=False)
+        # datecols = ["CREATION_DATE", "LAST_USE"]
+        # user_df[datecols] = user_df[datecols].apply(pd.to_datetime, utc=True)
+        # last30d_users = user_df[user_df.CREATION_DATE > (datetime.datetime.today() - pd.Timedelta("31d"))]
+        # user_df.to_csv("data/users.csv.gz", index=False, compression="gzip")
+        # last30d_users.to_csv("data/last30d_users.csv.gz", index=False, compression="gzip")
+
+        # user_df["Days since last use"] = (datetime.datetime.today() - pd.Timedelta("1d")) - user_df.LAST_USE
+
+        # grouped = (
+        #     user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d")).ADDRESS.count().reset_index()
+        # )
+        # # This is currently taken from the "weekly users" queries
+        # grouped.to_csv("data/grouped_weekly_users.csv", index=False)
+
+        # # These CSVs may be useful, but no analysis use them yet:
+        # grouped = user_df.groupby(pd.Grouper(key="LAST_USE", axis=0, freq="7d")).ADDRESS.count().reset_index()
+        # grouped.to_csv("data/weekly_users_last_use.csv", index=False)
+
+        # user_df["Days since last use"] = (
+        #     ((datetime.datetime.today() - pd.Timedelta("1d")) - user_df.LAST_USE).dt.total_seconds()
+        #     / 3600
+        #     / 24
+        # )
+        # grouped = (
+        #     user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d"))["Days since last use"]
+        #     .mean()
+        #     .reset_index()
+        # )
+        # grouped["Days since creation"] = (
+        #     ((datetime.datetime.today() - pd.Timedelta("1d")) - grouped.CREATION_DATE).dt.total_seconds()
+        #     / 3600
+        #     / 24
+        # )
+        # grouped.to_csv("data/weekly_days_since_last_use.csv", index=False)
+
+        # user_df["Days Active"] = (user_df.LAST_USE - user_df.CREATION_DATE).dt.total_seconds() / 3600 / 24
+        # grouped = (
+        #     user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d"))["Days Active"]
+        #     .mean()
+        #     .reset_index()
+        # )
+        # grouped.to_csv("data/weekly_days_active.csv", index=False)
         # ------
-
-        user_df = utils.combine_flipside_date_data("data/sdk_new_users_sol", add_date=False)
-        datecols = ["CREATION_DATE", "LAST_USE"]
-        user_df[datecols] = user_df[datecols].apply(pd.to_datetime)
-        last30d_users = user_df[user_df.CREATION_DATE > (datetime.datetime.today() - pd.Timedelta("31d"))]
-        user_df.to_csv("data/users.csv.gz", index=False, compression="gzip")
-        last30d_users.to_csv("data/last30d_users.csv.gz", index=False, compression="gzip")
-
-        user_df["Days since last use"] = (datetime.datetime.today() - pd.Timedelta("1d")) - user_df.LAST_USE
-
-        grouped = (
-            user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d")).ADDRESS.count().reset_index()
-        )
-        grouped.to_csv("data/weekly_users.csv", index=False)
-        grouped = user_df.groupby(pd.Grouper(key="LAST_USE", axis=0, freq="7d")).ADDRESS.count().reset_index()
-        grouped.to_csv("data/weekly_users_last_use.csv", index=False)
-
-        user_df["Days since last use"] = (
-            ((datetime.datetime.today() - pd.Timedelta("1d")) - user_df.LAST_USE).dt.total_seconds()
-            / 3600
-            / 24
-        )
-        grouped = (
-            user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d"))["Days since last use"]
-            .mean()
-            .reset_index()
-        )
-        grouped["Days since creation"] = (
-            ((datetime.datetime.today() - pd.Timedelta("1d")) - grouped.CREATION_DATE).dt.total_seconds()
-            / 3600
-            / 24
-        )
-        grouped.to_csv("data/weekly_days_since_last_use.csv", index=False)
-
-        user_df["Days Active"] = (user_df.LAST_USE - user_df.CREATION_DATE).dt.total_seconds() / 3600 / 24
-        grouped = (
-            user_df.groupby(pd.Grouper(key="CREATION_DATE", axis=0, freq="7d"))["Days Active"]
-            .mean()
-            .reset_index()
-        )
-        grouped.to_csv("data/weekly_days_active.csv", index=False)
 
         weekly_program_data = utils.combine_flipside_date_data(
             "data/sdk_weekly_program_count_sol", add_date=False
@@ -364,7 +386,9 @@ if __name__ == "__main__":
         weekly_program_data.to_csv("data/weekly_program.csv", index=False)
 
         weekly_new_program_data = utils.combine_flipside_date_data(
-            "data/sdk_weekly_new_program_count_sol", add_date=False
+            "data/sdk_weekly_new_program_count_sol",
+            add_date=False,
+            rename_columns={"NEW PROGRAMS": "New Programs"},
         )
         weekly_new_program_data.to_csv("data/weekly_new_program.csv", index=False)
 
@@ -415,10 +439,10 @@ if __name__ == "__main__":
             "data/signers_by_programID_new_users.csv.gz", compression="gzip", index=False
         )
 
-        labeled_program_df["Date"] = pd.to_datetime(labeled_program_df.Date)
+        labeled_program_df["Date"] = pd.to_datetime(labeled_program_df.Date, utc=True)
         labeled_program_df["Name"] = labeled_program_df.apply(utils.apply_program_name, axis=1)
 
-        labeled_program_new_users_df["Date"] = pd.to_datetime(labeled_program_new_users_df.Date)
+        labeled_program_new_users_df["Date"] = pd.to_datetime(labeled_program_new_users_df.Date, utc=True)
         labeled_program_new_users_df["Name"] = labeled_program_new_users_df.apply(
             utils.apply_program_name, axis=1
         )
@@ -488,7 +512,7 @@ if __name__ == "__main__":
         gc.collect()
 
         nft_mints_df = utils.combine_flipside_date_data("data/sdk_nft_mints", add_date=False)
-        nft_mints_df["BLOCK_TIMESTAMP"] = pd.to_datetime(nft_mints_df["BLOCK_TIMESTAMP"])
+        nft_mints_df["BLOCK_TIMESTAMP"] = pd.to_datetime(nft_mints_df["BLOCK_TIMESTAMP"], utc=True)
         # #TODO: eventually do all dates, for now just since right before royalties turned off
         nft_mints_df = nft_mints_df[nft_mints_df["BLOCK_TIMESTAMP"] >= "2022-10-07"]
         all_mints = sorted(nft_mints_df.MINT.astype(str).unique())
@@ -532,7 +556,9 @@ if __name__ == "__main__":
         unique_collection_df = utils.combine_flipside_date_data(
             "data/sdk_nft_royalty_tx", add_date=False, nft_royalty=True
         )
-        unique_collection_df["BLOCK_TIMESTAMP"] = pd.to_datetime(unique_collection_df["BLOCK_TIMESTAMP"])
+        unique_collection_df["BLOCK_TIMESTAMP"] = pd.to_datetime(
+            unique_collection_df["BLOCK_TIMESTAMP"], utc=True
+        )
 
         nft_mints_df = nft_mints_df.merge(
             unique_collection_df, on=["BLOCK_TIMESTAMP", "TX_ID", "MINT", "SALES_AMOUNT"], how="left"
@@ -607,7 +633,7 @@ if __name__ == "__main__":
         )
 
     if do_xnft:
-        xnft_df = pd.read_csv("data/sdk_xnft/sdk_xnft_2022-12-01.csv")
+        xnft_df = utils.combine_flipside_date_data("data/sdk_xnft")
         createInstall = xnft_df[xnft_df["INSTRUCTION_TYPE"] == "createInstall"].reset_index(drop=True)
 
         xnfts = createInstall.XNFT.unique()
@@ -620,16 +646,7 @@ if __name__ == "__main__":
 
         merged_xnft = createInstall.merge(xnft_info_df, on="XNFT")
 
-        mad_lad_df = pd.read_csv("data/mad_lad.csv").rename(columns={"mint": "MINT"})
-        mint_df = pd.read_csv("data/sdk_madlist/sdk_madlist_2022-12-01.csv")
-        merged_mad_lad = mad_lad_df.merge(mint_df, on="MINT", how="left")
-        merged_mad_lad.to_csv("data/mad_lad_all.csv", index=False)
-
-        xnft_new_users = pd.read_csv("data/sdk_xnft_new_users/sdk_xnft_new_users_2022-12-01.csv")
-        # TODO: any aggregation?
-        xnft_new_users.to_csv("data/xnft_new_users.csv", index=False)
-
-        # TODO: get all xNFT users.
+        # TODO: get all xNFT users?
         # users = merged_xnft.FEE_PAYER.unique()
         # username_dict = {"FEE_PAYER":[], "Username":[]}
         # for i, x in enumerate(users):
@@ -643,6 +660,15 @@ if __name__ == "__main__":
         # merged_xnft = merged_xnft.merge(username_df, on='FEE_PAYER')
 
         merged_xnft.to_csv("data/xnft_create_install_all_info.csv", index=False)
+
+        mad_lad_df = pd.read_csv("data/mad_lad.csv").rename(columns={"mint": "MINT"})
+        mint_df = utils.combine_flipside_date_data("data/sdk_madlist")
+        merged_mad_lad = mad_lad_df.merge(mint_df, on="MINT", how="left")
+        merged_mad_lad.to_csv("data/mad_lad_all.csv", index=False)
+
+        xnft_new_users = utils.combine_flipside_date_data("data/sdk_xnft_new_users")
+        # TODO: any aggregation?
+        xnft_new_users.to_csv("data/xnft_new_users.csv", index=False)
 
     if do_fees:
         dates = pd.date_range(end=datetime.date.today() - pd.Timedelta("1d"), periods=60, freq="1d")
@@ -673,6 +699,8 @@ if __name__ == "__main__":
         rarity_df.to_csv("data/madlads_rarity.csv", index=False)
 
     if do_staking_report:
+        # #NOTE: there is an issue with the data or query from 6/10 onwards, need to debug
+        # is there an issue in the `base_with_staker` CTW (such as `order by rn desc`)?
         stakers_df = utils.combine_flipside_date_data("data/sdk_top_stakers_by_date_sol", add_date=True)
         all_staker_addresses = stakers_df.rename(columns={"STAKER": "ADDRESS"})
         utils.get_solana_fm_labels(all_staker_addresses, "stakers", "ADDRESS")
@@ -690,7 +718,7 @@ if __name__ == "__main__":
         )
         labeled_stakers["Rank"] = labeled_stakers.groupby("DATE")["TOTAL_STAKE"].rank(ascending=False)
         labeled_stakers["Diff"] = labeled_stakers.groupby(["ADDRESS"]).Rank.diff()
-        labeled_stakers["DATE"] = pd.to_datetime(labeled_stakers["DATE"])
+        labeled_stakers["DATE"] = pd.to_datetime(labeled_stakers["DATE"], utc=True)
         labeled_stakers = labeled_stakers.sort_values(
             by=["DATE", "TOTAL_STAKE"], ascending=False
         ).reset_index(drop=True)
@@ -698,8 +726,8 @@ if __name__ == "__main__":
         # -----
 
         lst_delta_df = utils.combine_flipside_date_data("data/sdk_top_liquid_staking_token_holders_delta")
-        lst_delta_df["Date"] = pd.to_datetime(lst_delta_df["Date"])
-        lst_delta_df = lst_delta_df.rename(columns={"Date": "DATE", "WALLET": "ADDRESS"})
+        lst_delta_df["DATE"] = pd.to_datetime(lst_delta_df["DATE"], utc=True)
+        lst_delta_df = lst_delta_df.rename(columns={"WALLET": "ADDRESS"})
         # Add in token labels
         for token, v in utils.liquid_staking_tokens.items():
             symbol, token_name = v
