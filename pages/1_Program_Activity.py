@@ -121,13 +121,6 @@ else:
 chart_df = utils.get_program_chart_data(
     df, metric, agg_method, date_range, exclude_solana, exclude_oracle, programs
 )
-chart_df["Name"] = chart_df.apply(
-    utils.apply_program_name,
-    axis=1,
-)
-chart_df["Explorer Site"] = chart_df.PROGRAM_ID.apply(lambda x: f"https://solana.fm/address/{x}")
-# catch any `:` in Name values, which break altair
-chart_df["Name"] = chart_df["Name"].apply(lambda x: x.replace(":", "-"))
 chart = charts.alt_line_chart(chart_df, metric, log_scale)
 st.altair_chart(chart, use_container_width=True)
 

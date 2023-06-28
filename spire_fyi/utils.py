@@ -280,7 +280,7 @@ def load_program_label_df(prefix="program", use_manual=True, sfm_only=False):
         except KeyError:
             pass
         if use_manual:
-            manual_labs = pd.read_csv(f"data/{prefix}_manual_labels.csv")
+            manual_labs = pd.read_csv("data/program_manual_labels.csv")
             labs = pd.concat([fs_labs, manual_labs])
         else:
             labs = fs_labs
@@ -368,7 +368,13 @@ def get_program_chart_data(
         .sort_values(by=["Date", metric], ascending=False)
         .reset_index(drop=True)
     )
-
+    chart_df["Name"] = chart_df.apply(
+        apply_program_name,
+        axis=1,
+    )
+    chart_df["Explorer Site"] = chart_df.PROGRAM_ID.apply(lambda x: f"https://solana.fm/address/{x}")
+    # catch any `:` in Name values, which break altair
+    chart_df["Name"] = chart_df["Name"].apply(lambda x: x.replace(":", "-"))
     return chart_df
 
 
@@ -1169,14 +1175,16 @@ def get_stakers_chart_data(
         token_chart_df = staker_chart_df.copy()[staker_chart_df["Token Name"] == token]
     elif user_type == "top_holders":
         token_chart_df = (
-            chart_df.copy()[(chart_df.Amount > 1) & (chart_df["Token Name"] == token)]
+            chart_df.copy()[(chart_df.Amount > 10) & (chart_df["Token Name"] == token)]
             .sort_values("Amount", ascending=False)
             .groupby(["Date", "Address", "Token"], as_index=False)
             .head(n_addresses)
             .sort_values(by=["Address", "Date"], ascending=False)
             .reset_index(drop=True)
         )
-
+    # catch any `:` in Name values, which break altair
+    staker_chart_df["Name"] = staker_chart_df["Name"].apply(lambda x: x.replace(":", "-"))
+    token_chart_df["Name"] = token_chart_df["Name"].apply(lambda x: x.replace(":", "-"))
     return staker_chart_df, token_chart_df
 
 
