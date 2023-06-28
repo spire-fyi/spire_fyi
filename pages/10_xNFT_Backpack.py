@@ -78,7 +78,7 @@ xnfts = c2.slider("Top xNFTs to view", 1, createInstall.Xnft.nunique(), 10, key=
 
 chart_df = createInstall.copy()[
     createInstall["Block Timestamp"]
-    >= (pd.to_datetime(datetime.datetime.today()) - pd.Timedelta(f"{int(date_range[:-1])}d"))
+    >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(f"{int(date_range[:-1])}d"))
 ]
 chart_df, totals = utils.aggregate_xnft_data(chart_df, xnfts)
 
@@ -202,7 +202,9 @@ chart = (
     alt.Chart(
         new_xnft_users[
             new_xnft_users["First Tx Date"]
-            >= (pd.to_datetime(datetime.datetime.today()) - pd.Timedelta(f"{int(date_range[:-1])}d"))
+            >= (
+                pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(f"{int(date_range[:-1])}d")
+            )
         ],
         title="New xNFT Users by Date",
     )
@@ -433,7 +435,7 @@ else:
                     num_programs = f"{len(pd.unique(ast.literal_eval(tx_data.PROGRAMS_USED.values[0])))}"
                 except ValueError:
                     num_programs = f"{len(pd.unique(tx_data.PROGRAMS_USED.values[0]))}"
-                first_tx_date = f"{pd.to_datetime(tx_data.FIRST_TX_DATE.values[0]):%Y-%m-%d}"
+                first_tx_date = f"{pd.to_datetime(tx_data.FIRST_TX_DATE.values[0], utc=True):%Y-%m-%d}"
                 num_tx = f"{tx_data.NUM_TXS.values[0]:,}"
                 total_fees = f"{tx_data.TOTAL_FEES.values[0]/utils.LAMPORTS_PER_SOL:,.5f}"
             else:

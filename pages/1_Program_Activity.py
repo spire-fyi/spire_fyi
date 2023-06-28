@@ -89,7 +89,7 @@ new_users_only = c4.checkbox("New Users Only", key="program_new_users")
 log_scale = c4.checkbox("Log Scale", key="program_log_scale")
 st.write("---")
 df = utils.load_labeled_program_data(new_users_only=new_users_only, user_type=user_type)
-df["Date"] = pd.to_datetime(df["Date"])
+df["Date"] = pd.to_datetime(df["Date"], utc=True)
 c1, c2 = st.columns(2)
 date_range = c1.radio(
     "Choose a date range:",
