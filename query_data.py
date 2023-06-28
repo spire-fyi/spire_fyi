@@ -301,7 +301,7 @@ if __name__ == "__main__":
     do_nft_mints = False
     do_nft_metadata = False
     do_xnft = True
-    do_lst = False
+    do_lst = True
     # main routines
     do_pull_flipside_data = True
     do_pool = True
@@ -321,7 +321,8 @@ if __name__ == "__main__":
             ("sdk_weekly_users_all_signers_sol", all_weeks),
             ("sdk_dex", past_180d),
             ("sdk_openbook_users", past_180d),
-            ("sdk_top_stakers_by_date_sol", past_180d),
+            # #TODO: figure out issue for data after June 10 before re-running
+            # ("sdk_top_stakers_by_date_sol", past_180d),
         ]
         if do_new_users:
             main_queries.extend(
@@ -397,23 +398,27 @@ if __name__ == "__main__":
         mintlist = list(mad_lad_df.mint)
         query_info.extend(
             [
-                get_queries_by_date("2022-12-01", "sdk_xnft", date2="2023-04-15"),
-                get_queries_by_date("2022-12-01", "sdk_xnft_new_users", date2="2023-04-15"),
-                get_queries_by_date(
-                    "2023-04-15",
-                    "sdk_xnft",
-                    update_cache=True,
-                    output_file="sdk_xnft_current.csv",
-                    date2=past_7d[-1],
-                ),
-                get_queries_by_date(
-                    "2023-04-15",
-                    "sdk_xnft_new_users",
-                    update_cache=True,
-                    output_file="sdk_xnft_new_users_current.csv",
-                    date2=past_7d[-1],
-                ),
-                get_queries_by_mint_list(mintlist, "sdk_madlist", update_cache=True),
+                x
+                for x in [
+                    get_queries_by_date("2022-12-01", "sdk_xnft", date2="2023-04-15"),
+                    get_queries_by_date("2022-12-01", "sdk_xnft_new_users", date2="2023-04-15"),
+                    get_queries_by_date(
+                        "2023-04-15",
+                        "sdk_xnft",
+                        update_cache=True,
+                        output_file="sdk_xnft_current.csv",
+                        date2=past_7d[-1],
+                    ),
+                    get_queries_by_date(
+                        "2023-04-15",
+                        "sdk_xnft_new_users",
+                        update_cache=True,
+                        output_file="sdk_xnft_new_users_current.csv",
+                        date2=past_7d[-1],
+                    ),
+                    get_queries_by_mint_list(mintlist, "sdk_madlist", update_cache=True),
+                ]
+                if x is not None
             ]
         )
 
@@ -449,7 +454,7 @@ if __name__ == "__main__":
         with open("data/top_stakers.json", "w") as f:
             top_stakers_log[wallet_hash] = {
                 "n_wallets": n_wallets,
-                "last_date": date_range,
+                "last_date": last_date,
                 "wallets": top_staker_addresses,
             }
             json.dump(top_stakers_log, f, indent=2)

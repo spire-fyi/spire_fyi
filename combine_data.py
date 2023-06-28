@@ -264,76 +264,37 @@ if __name__ == "__main__":
     do_staking_report = True
 
     if do_main:
-        program_df = utils.combine_flipside_date_data(
-            "data/sdk_programs_sol", add_date=False, rename_columns={"DATE": "Date"}
-        )
-        # #HACK: fix issue with data type conversion
-        program_df["PROGRAM_ID"] = program_df["PROGRAM_ID"].apply(
-            lambda x: "11111111111111111111111111111111" if x == "1.1111111111111112e+31" else x
-        )
-        program_df.to_csv("data/programs.csv.gz", index=False, compression="gzip")
-        utils.get_flipside_labels(program_df, "program", "PROGRAM_ID")
-        utils.get_solana_fm_labels(program_df, "program", "PROGRAM_ID")
+        dfs = []
+        for x in [
+            ("data/sdk_programs_sol", "data/programs.csv.gz"),
+            ("data/sdk_programs_new_users_sol", "data/programs_new_users.csv.gz"),
+            ("data/sdk_programs_all_signers_sol", "data/programs_all_signers.csv.gz"),
+            ("data/sdk_programs_new_users_all_signers_sol", "data/programs_new_users_all_signers.csv.gz"),
+        ]:
+            data, output_file = x
+            df = utils.combine_flipside_date_data(data, add_date=False, rename_columns={"DATE": "Date"})
+            df["PROGRAM_ID"] = df["PROGRAM_ID"].apply(
+                lambda x: "11111111111111111111111111111111" if x == "1.1111111111111112e+31" else x
+            )
+            df.to_csv(output_file, index=False, compression="gzip")
+            dfs.append(df)
+        program_df = pd.concat(dfs)
+        utils.get_flipside_labels(program_df, "all_programs", "PROGRAM_ID")
+        utils.get_solana_fm_labels(program_df, "all_programs", "PROGRAM_ID")
 
-        labeled_program_df = utils.add_program_labels(program_df)
-        labeled_program_df.to_csv("data/programs_labeled.csv.gz", index=False, compression="gzip")
+        for data, output_file in zip(
+            dfs,
+            [
+                "data/programs_labeled.csv.gz",
+                "data/programs_new_users_labeled.csv.gz",
+                "data/programs_all_signers_labeled.csv.gz",
+                "data/programs_new_users_all_signers_labeled.csv.gz",
+            ],
+        ):
+            labeled_program_df = utils.add_program_labels(data, prefix="all_programs")
+            labeled_program_df.to_csv(output_file, index=False, compression="gzip")
 
-        # New users only
-        program_new_users_df = utils.combine_flipside_date_data(
-            "data/sdk_programs_new_users_sol", add_date=False, rename_columns={"DATE": "Date"}
-        )
-        # #HACK: fix issue with data type conversion
-        program_new_users_df["PROGRAM_ID"] = program_new_users_df["PROGRAM_ID"].apply(
-            lambda x: "11111111111111111111111111111111" if x == "1.1111111111111112e+31" else x
-        )
-        program_new_users_df.to_csv("data/programs_new_users.csv.gz", index=False, compression="gzip")
-        utils.get_flipside_labels(program_new_users_df, "program_new_users", "PROGRAM_ID")
-        utils.get_solana_fm_labels(program_new_users_df, "program_new_users", "PROGRAM_ID")
-
-        labeled_program_new_users_df = utils.add_program_labels(program_new_users_df)
-        labeled_program_new_users_df.to_csv(
-            "data/programs_new_users_labeled.csv.gz", index=False, compression="gzip"
-        )
-        # ------
-        program_all_signers_df = utils.combine_flipside_date_data(
-            "data/sdk_programs_all_signers_sol", add_date=False, rename_columns={"DATE": "Date"}
-        )
-        # #HACK: fix issue with data type conversion
-        program_all_signers_df["PROGRAM_ID"] = program_all_signers_df["PROGRAM_ID"].apply(
-            lambda x: "11111111111111111111111111111111" if x == "1.1111111111111112e+31" else x
-        )
-        program_all_signers_df.to_csv("data/programs_all_signers.csv.gz", index=False, compression="gzip")
-        utils.get_flipside_labels(program_all_signers_df, "program_all_signers", "PROGRAM_ID")
-        utils.get_solana_fm_labels(program_all_signers_df, "program_all_signers", "PROGRAM_ID")
-
-        labeled_program_all_signers_df = utils.add_program_labels(program_all_signers_df)
-        labeled_program_all_signers_df.to_csv(
-            "data/programs_all_signers_labeled.csv.gz", index=False, compression="gzip"
-        )
-
-        # New users only
-        program_new_users_all_signers_df = utils.combine_flipside_date_data(
-            "data/sdk_programs_new_users_all_signers_sol", add_date=False, rename_columns={"DATE": "Date"}
-        )
-        # #HACK: fix issue with data type conversion
-        program_new_users_all_signers_df["PROGRAM_ID"] = program_new_users_all_signers_df["PROGRAM_ID"].apply(
-            lambda x: "11111111111111111111111111111111" if x == "1.1111111111111112e+31" else x
-        )
-        program_new_users_all_signers_df.to_csv(
-            "data/programs_new_users_all_signers.csv.gz", index=False, compression="gzip"
-        )
-        utils.get_flipside_labels(
-            program_new_users_all_signers_df, "program_new_users_all_signers", "PROGRAM_ID"
-        )
-        utils.get_solana_fm_labels(
-            program_new_users_all_signers_df, "program_new_users_all_signers", "PROGRAM_ID"
-        )
-
-        labeled_program_new_users_all_signers_df = utils.add_program_labels(program_new_users_all_signers_df)
-        labeled_program_new_users_all_signers_df.to_csv(
-            "data/programs_new_users_all_signers_labeled.csv.gz", index=False, compression="gzip"
-        )
-
+        # ----------
         # # #NOTE: this section looks at new users, and is not currently used. will be useful when doing network analysis
         # user_df = utils.combine_flipside_date_data("data/sdk_new_users_sol", add_date=False)
         # datecols = ["CREATION_DATE", "LAST_USE"]
@@ -735,8 +696,11 @@ if __name__ == "__main__":
             lst_delta_df.loc[lst_delta_df["TOKEN"] == token, "SYMBOL"] = symbol
         lst_delta_df = lst_delta_df.sort_values(by=["ADDRESS", "TOKEN", "DATE"]).reset_index(drop=True)
         lst_delta_df.to_csv("data/liquid_staking_token_holders_delta.csv", index=False)
-
-        max_date = lst_delta_df.DATE.max()
+        # #TODO: figure out issue for data after June 10 before using full token date range
+        # max_date = lst_delta_df.DATE.max()
+        max_date = labeled_stakers.DATE.max()
+        lst_delta_df = lst_delta_df[lst_delta_df.DATE <= max_date].reset_index(drop=True)
+        #---
         results = []
         for x in lst_delta_df.ADDRESS.unique():
             df = lst_delta_df[lst_delta_df.ADDRESS == x]
