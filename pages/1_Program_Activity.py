@@ -126,7 +126,8 @@ chart_df["Name"] = chart_df.apply(
     axis=1,
 )
 chart_df["Explorer Site"] = chart_df.PROGRAM_ID.apply(lambda x: f"https://solana.fm/address/{x}")
-
+# catch any `:` in Name values, which break altair
+chart_df["Name"] = chart_df["Name"].apply(lambda x: x.replace(":", "-"))
 chart = charts.alt_line_chart(chart_df, metric, log_scale)
 st.altair_chart(chart, use_container_width=True)
 
