@@ -6,3 +6,6 @@ solana,spire,FarmqiPv5eAj3j1GMdMCMUGXqPUvmquZtMy86QH6rzhG,dex,general_contract,r
 solana,spire,rorcfdX4h9m9swCKgcypaHJ8NGYVANBpmV9EHn3cYrF,dapp,oracle,helium,Rewards Oracle
 solana,spire,1azyuavdMyvsivtNxPoz6SucD18eDHeXzFCUPq5XU7w,dapp,general_contract,helium,Lazy Distributor
 solana,spire,BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY,nft,general_contract,metaplex,Bubblegum
+solana,spire,JUP5cHjnnCx2DppVsufsLrXs8EBZeEZzGtEK9Gdz6ow,dex,aggregator_contract,jupiter,Jupiter Swap v5
+solana,spire,mintjBhypUqvbKvCePPsQN55AYBY3DwFWpuR5PDURdH,,,,Mint Generator
+solana,spire,TCMPhJdwDryooaGtiocG1u3xcYbRpiJzb283XfCZsDp,nft,general_contract,tensor,tcomp
