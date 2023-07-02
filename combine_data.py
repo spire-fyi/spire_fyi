@@ -261,7 +261,7 @@ if __name__ == "__main__":
     do_xnft = True
     do_fees = True
     do_madlad_metadata = True
-    do_staking_report = True
+    do_staking_report = False
 
     if do_main:
         dfs = []

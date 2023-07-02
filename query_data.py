@@ -301,7 +301,7 @@ if __name__ == "__main__":
     do_nft_mints = False
     do_nft_metadata = False
     do_xnft = True
-    do_lst = True
+    do_lst = False
     # main routines
     do_pull_flipside_data = True
     do_pool = True
