@@ -700,7 +700,7 @@ if __name__ == "__main__":
         # max_date = lst_delta_df.DATE.max()
         max_date = labeled_stakers.DATE.max()
         lst_delta_df = lst_delta_df[lst_delta_df.DATE <= max_date].reset_index(drop=True)
-        #---
+        # ---
         results = []
         for x in lst_delta_df.ADDRESS.unique():
             df = lst_delta_df[lst_delta_df.ADDRESS == x]
