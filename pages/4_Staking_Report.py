@@ -50,10 +50,31 @@ Analysis performed by [@h4wk10](https://twitter.com/h4wk10), [@banbannard](https
     """
 )
 
+with st.expander("Instructions"):
+    st.write(
+        """
+- Liquid Staking Tokens are abbreviated as LSTs. These include popular tokens which represent staked SOL, such as mSOL, stSOL, bSOL and others.
+- Use the [Settings](#settings) to filter the data used to chart Top Stakers and Liquid Staking Token Holders.
+  - Date range: The date range to use for the charts.
+  - Number of top addresses per day: The top addresses each day will be shown; there may be more addresses shown in the chart than this number, as the union of all top addresses is used.
+  - Exclude Solana Foundation delegation: The Solana Foundation has a large delegation which can be ignored for this analysis.
+  - Exclude labeled addresses: this removes known addresses, such as exchanges, from the analysis.
+  - Log Scale: Use a log scale for the y-axis.
+  - Choose a Liquid Staking Token: Choose which LST to focus anakys
+- Data Description:
+    - Data was queried using the [Flipside Crypto](https://flipsidecrypto.xyz/) API with these queries:
+        - [Top SOL stakers](https://github.com/spire-fyi/spire_fyi/tree/main/sql/sdk_top_stakers_by_date_sol.sql)
+        - [LST holdings ampng top stakers](https://github.com/spire-fyi/spire_fyi/tree/main/sql/sdk_top_liquid_staking_token_holders_delta.sql)
+        - [Program interactions by top stakers](https://flipsidecrypto.xyz/edit/queries/2cc62d89-4f67-4197-82cf-8daf9b69ff45)
+"""
+    )
+
 staker_df = utils.load_staker_data()
 staker_interaction_df = utils.load_staker_interaction_data()
 token_name_dict = {x[1]: x[0] for x in utils.liquid_staking_tokens.values()}
 
+st.subheader("Settings")
+st.write("Use the settings below to filter the data for Top Stakers and Liquid Staking Token Holders.")
 c1, c2, c3 = st.columns([3, 2, 2])
 date_range = c1.radio(
     "Choose a date range:",
@@ -82,12 +103,12 @@ user_type_dict = {
     "top_stakers": f"Holdings by top {n_addresses} stakers",
     "top_holders": f"Top {n_addresses} liquid staking token holders",
 }
-lst_user_type = c1.radio(
-    "Liquid Staking Token User Type",
-    user_type_dict.keys(),
-    format_func=lambda x: user_type_dict[x],
-    key="lst_user_type",
-)
+# lst_user_type = c1.radio(
+#     "Liquid Staking Token User Type",
+#     user_type_dict.keys(),
+#     format_func=lambda x: user_type_dict[x],
+#     key="lst_user_type",
+# )
 lst = c2.selectbox(
     "Choose a Liquid Staking Token",
     token_name_dict.keys(),
@@ -95,9 +116,11 @@ lst = c2.selectbox(
     key="lst_token_select",
 )
 
-staker_chart_df, token_chart_df = utils.get_stakers_chart_data(
-    staker_df, date_range, exclude_foundation, exclude_labeled, n_addresses, lst_user_type, lst
+staker_chart_df, token_top_stakers_df, token_top_holders_df = utils.get_stakers_chart_data(
+    staker_df, date_range, exclude_foundation, exclude_labeled, n_addresses, lst
 )
+
+st.subheader("Top Stakers")
 chart = charts.alt_line_chart(
     staker_chart_df,
     "Total Stake",
@@ -107,25 +130,35 @@ chart = charts.alt_line_chart(
     log_scale=log_scale,
 )
 st.altair_chart(chart, use_container_width=True)
-if len(token_chart_df) == 0:
-    st.write("**Liquid Staking Token Holdings**: Selected addresses do not hold LSTs in this date range")
+
+st.subheader(f"Liquid Staking Token Holders from Top SOL Stakers")
+if len(token_top_stakers_df) == 0:
+    st.write(f"**Liquid Staking Token Holdings**: The selected addresses do not hold {lst} in this date range")
 else:
-    if lst_user_type == "top_stakers":
-        chart_title = f"Holdings by top {n_addresses} stakers: {lst}"
-    elif lst_user_type == "top_holders":
-        chart_title = f"Top {n_addresses} liquid staking token holders among all top stakers: {lst}"
+    chart_title_top_stakers = f"Holdings by top {n_addresses} stakers: {lst}"
     chart = charts.alt_line_chart(
-        token_chart_df,
+        token_top_stakers_df,
         "Amount",
         legend_title="Holder address",
         interactive=False,
-        chart_title=chart_title,
+        chart_title=chart_title_top_stakers,
         log_scale=log_scale,
         unique_column_name="Name",
     )
     st.altair_chart(chart, use_container_width=True)
-
-
+st.write("---")
+st.subheader(f"Top LST Holders among Top SOL Stakers")
+chart_title_top_holders = f"Top {n_addresses} liquid staking token holders among all top stakers: {lst}"
+chart = charts.alt_line_chart(
+    token_top_holders_df,
+    "Amount",
+    legend_title="Holder address",
+    interactive=False,
+    chart_title=chart_title_top_holders,
+    log_scale=log_scale,
+    unique_column_name="Name",
+)
+st.altair_chart(chart, use_container_width=True)
 # #TODO: look at Delta, add some overviews
 # lst_delta_df = utils.load_lst(filled=False)
 # c1,c2 = st.columns(2)
@@ -205,11 +238,13 @@ else:
 # st.altair_chart(chart, use_container_width=True)
 
 # Guest analysis by h4wk
+st.subheader("Summary")
+st.write("The [Settings](#settings) do **not** apply to the charts below.")
 # TOTAL STAKE OVER TIME
 c1, c2 = st.columns(2)
 daily_stake = staker_df.drop_duplicates(subset=["Date", "Address"], keep="first")
 daily_stake["Address Name"] = daily_stake["Address Name"].fillna("Other")
-daily_stake = daily_stake.groupby(["Date", "Address Name"]).sum("Total Stake").reset_index()
+daily_stake = daily_stake.groupby(["Date", "Address Name"])["Total Stake"].sum().reset_index()
 daily_stake = daily_stake[(daily_stake["Date"] >= "2022-11-24")]
 fig2 = px.area(
     daily_stake,
@@ -221,10 +256,10 @@ fig2 = px.area(
 )
 fig2.update_xaxes(title_text="Date", showgrid=False)
 fig2.update_yaxes(title_text="Total Stake (SOL)", showgrid=True)
-c1.plotly_chart(fig2, use_container_width=True)
+st.plotly_chart(fig2, use_container_width=True)
 # END --- TOTAL STAKE OVER TIME
 # LSTs Holding Over time
-LST_df = staker_df.groupby(["Date", "Symbol"]).sum("amount").reset_index()
+LST_df = staker_df.groupby(["Date", "Symbol"])["Amount"].sum().reset_index()
 fig2 = px.area(
     LST_df,
     x="Date",
@@ -235,7 +270,7 @@ fig2 = px.area(
 )
 fig2.update_xaxes(title_text="Date", showgrid=False)
 fig2.update_yaxes(title_text="Total LST Balance", showgrid=True)
-c2.plotly_chart(fig2, use_container_width=True)
+st.plotly_chart(fig2, use_container_width=True)
 # END --- LSTs Holding Over timeload_staker
 
 
@@ -263,6 +298,7 @@ fig2.update_xaxes(showgrid=False)
 fig2.update_yaxes(showgrid=True)
 st.plotly_chart(fig2, use_container_width=True)
 # END --- TOP 15 STAKERS
+
 
 # STAKE VOLUME CATEGORY
 def get_stake_volume_category(stake_volume):
@@ -379,7 +415,8 @@ st.caption("Note: Only interactions with a subset of labeled program addresses a
 
 # view and download data tables
 with st.expander("View and Download Data Table"):
-    st.subheader("Staker info")
+    st.subheader("Top Staker info")
+    st.write("View the data shown in the [Top Stakers](#top-stakers) chart above.")
     st.write(staker_chart_df)
     slug = f"top_stakers"
     st.download_button(
@@ -390,19 +427,36 @@ with st.expander("View and Download Data Table"):
         key=f"download-{slug}",
     )
     st.write("---")
-    st.subheader("Liquid staking token holder info")
-    st.write(token_chart_df)
-    slug = f"lst_holders"
+    st.subheader("Liquid Staking Token Holders from Top SOL Stakers")
+    if len(token_top_stakers_df) == 0:
+        st.write(f"**Liquid Staking Token Holdings**: The selected addresses do not hold {lst} in this date range")
+    else:
+        st.write(token_top_stakers_df)
+        st.write("View the data shown in the [Liquid Staking Token Holders from Top SOL Stakers](#liquid-staking-token-holders-from-top-sol-stakers) chart above.")
+        slug = f"lst_holders_top_stakers"
+        st.download_button(
+            "Click to Download",
+            token_top_stakers_df.to_csv(index=False).encode("utf-8"),
+            f"{slug}.csv",
+            "text/csv",
+            key=f"download-{slug}",
+        )
+    st.write("---")
+    st.subheader("Top LST Holders among Top SOL Stakers")
+    st.write("View the data shown in the [Top LST Holders among Top SOL Stakers](#top-lst-holders-among-top-sol-stakers) chart above.")
+    st.write(token_top_holders_df)
+    slug = f"lst_holders_top_holders"
     st.download_button(
         "Click to Download",
-        token_chart_df.to_csv(index=False).encode("utf-8"),
+        token_top_holders_df.to_csv(index=False).encode("utf-8"),
         f"{slug}.csv",
         "text/csv",
         key=f"download-{slug}",
     )
     st.write("---")
     st.subheader("All data")
-    slug = f"all_top_stakers"
+    st.write("Download raw data for Top SOL Stakers (unfiltered by anything selected in [Settings](#settings))")
+    slug=f"all_staker_lst_data"
     st.download_button(
         "Click to Download",
         staker_df.to_csv(index=False).encode("utf-8"),

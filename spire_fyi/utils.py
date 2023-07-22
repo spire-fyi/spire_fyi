@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, Union
+from typing import Dict, Iterable, Optional, Union
 
 import asyncio
 import datetime
@@ -590,22 +590,23 @@ def get_random_image(df):
     return num, image
 
 
-@st.cache_data(ttl=1800)
-def load_defi_data():
-    df = (
-        pd.read_json(f"{api_base}/02d025f0-9eb1-4bff-b317-299c8b251178/data/latest")
-        .sort_values(by=["WEEK", "SWAP_PROGRAM"])
-        .reset_index(drop=True)
-        .rename(
-            columns={
-                "WEEK": "Date",
-                "SWAP_PROGRAM": "Swap Program",
-                "DAILY_TXS": "Transaction Count",
-                "DAILY_BUYERS": "Unique Users",
-            }
-        )
-    )
-    return df
+# #NOTE: old version of defi data, no longer used
+# @st.cache_data(ttl=1800)
+# def load_defi_data():
+#     df = (
+#         pd.read_json(f"{api_base}/02d025f0-9eb1-4bff-b317-299c8b251178/data/latest")
+#         .sort_values(by=["WEEK", "SWAP_PROGRAM"])
+#         .reset_index(drop=True)
+#         .rename(
+#             columns={
+#                 "WEEK": "Date",
+#                 "SWAP_PROGRAM": "Swap Program",
+#                 "DAILY_TXS": "Transaction Count",
+#                 "DAILY_BUYERS": "Unique Users",
+#             }
+#         )
+#     )
+#     return df
 
 
 # #TODO: not used currently
@@ -763,7 +764,7 @@ def get_native_balances(address):
     return bal["nativeBalance"] / LAMPORTS_PER_SOL
 
 
-async def lookup_xnft(xnft: str) -> Xnft:
+async def lookup_xnft(xnft: str) -> Optional[Xnft]:
     conn = AsyncClient(rpc_url)
     xnft_id = solders.pubkey.Pubkey.from_string(xnft)
     return await Xnft.fetch(conn, xnft_id)
@@ -771,8 +772,11 @@ async def lookup_xnft(xnft: str) -> Xnft:
 
 def get_xnft_info(xnfts: Iterable[str]) -> dict:
     data = {}
-    for x in xnfts:
-        data[x] = asyncio.run(lookup_xnft(x)).to_json()
+    if xnfts is not None:
+        for x in xnfts:
+            lookup_value = asyncio.run(lookup_xnft(x))
+            if lookup_value is not None:
+                data[x] = lookup_value.to_json()
     return data
 
 
@@ -974,19 +978,21 @@ def get_backpack_addresses(
 
 @st.cache_data(ttl=3600 * 24)
 def get_backpack_address(username):
+    address = None
     if username == "":
         return ""
-    try:
-        url = "https://xnft-api-server.xnfts.dev/v1/users/fromUsername"
-        r = requests.get(url, params={"username": username})
-        j = r.json()
-        addresses = j["user"]["public_keys"]
-        for x in addresses:
-            if x["blockchain"] == "solana":
-                address = x["public_key"]
-    except KeyError:
-        return None
-    return address
+    else:
+        try:
+            url = "https://xnft-api-server.xnfts.dev/v1/users/fromUsername"
+            r = requests.get(url, params={"username": username})
+            j = r.json()
+            addresses = j["user"]["public_keys"]
+            for x in addresses:
+                if x["blockchain"] == "solana":
+                    address = x["public_key"]
+        except KeyError:
+            pass
+        return address
 
 
 @st.cache_data(ttl=3600 * 24)
@@ -1151,7 +1157,6 @@ def get_stakers_chart_data(
     exclude_foundation,
     exclude_labeled,
     n_addresses,
-    user_type,
     token,
 ):
     chart_df = df.copy()[
@@ -1171,21 +1176,19 @@ def get_stakers_chart_data(
         .sort_values(by=["Date", "Total Stake"], ascending=False)
         .reset_index(drop=True)
     )
-    if user_type == "top_stakers":
-        token_chart_df = staker_chart_df.copy()[staker_chart_df["Token Name"] == token]
-    elif user_type == "top_holders":
-        token_chart_df = (
-            chart_df.copy()[(chart_df.Amount > 10) & (chart_df["Token Name"] == token)]
-            .sort_values("Amount", ascending=False)
-            .groupby(["Date", "Address", "Token"], as_index=False)
-            .head(n_addresses)
-            .sort_values(by=["Address", "Date"], ascending=False)
-            .reset_index(drop=True)
-        )
+    token_top_stakers_df = staker_chart_df.copy()[staker_chart_df["Token Name"] == token]
+    token_top_holders_df = (
+        chart_df.copy()[(chart_df.Amount > 10) & (chart_df["Token Name"] == token)]
+        .sort_values("Amount", ascending=False)
+        .groupby(["Date", "Address", "Token"], as_index=False)
+        .head(n_addresses)
+        .sort_values(by=["Address", "Date"], ascending=False)
+        .reset_index(drop=True)
+    )
     # catch any `:` in Name values, which break altair
-    staker_chart_df["Name"] = staker_chart_df["Name"].apply(lambda x: x.replace(":", "-"))
-    token_chart_df["Name"] = token_chart_df["Name"].apply(lambda x: x.replace(":", "-"))
-    return staker_chart_df, token_chart_df
+    for x in [staker_chart_df, token_top_stakers_df, token_top_holders_df]:
+        x["Name"] = x["Name"].apply(lambda x: x.replace(":", "-"))
+    return staker_chart_df, token_top_stakers_df, token_top_holders_df
 
 
 @st.cache_data(ttl=3600)
