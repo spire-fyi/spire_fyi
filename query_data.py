@@ -322,7 +322,7 @@ if __name__ == "__main__":
             ("sdk_dex", past_180d),
             ("sdk_openbook_users", past_180d),
             # #TODO: figure out issue for data after June 10 before re-running
-            # ("sdk_top_stakers_by_date_sol", past_180d),
+            ("sdk_top_stakers_by_date_sol", past_180d),
         ]
         if do_new_users:
             main_queries.extend(
