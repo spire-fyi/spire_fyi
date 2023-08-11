@@ -294,7 +294,7 @@ with ecosystem:
             fees[
                 fees.Date >= (pd.to_datetime(fees.Date.max(), utc=True) - pd.Timedelta(fee_date_range))
             ].melt(id_vars="Date"),
-            title=f"Total Fees and Fees Burned, Past {fee_date_range}d",
+            title=f"Total Fees and Fees Burned, Past {fee_date_range}",
         )
         .mark_area(
             line={"color": "#4B3D60"},
@@ -344,7 +344,7 @@ with ecosystem:
         f"{fees_in_range.Burn.sum():,.0f} SOL (${fees_in_range.Burn.sum() * most_recent_price:,.0f})",
     )
     c2.caption(
-        "Fees shown here are from both vote and non-vote transactions. Currently, 50% of each transaction fee is burned, while the rest goes to validators. See [here](https://docs.solana.com/transaction_fees) for more details."
+        "Fees shown here are from both **vote and non-vote transactions**. Currently, 50% of each transaction fee is burned, while the rest goes to validators. See [here](https://docs.solana.com/transaction_fees) for more details."
     )
     st.write("---")
     user_type = st.radio(
