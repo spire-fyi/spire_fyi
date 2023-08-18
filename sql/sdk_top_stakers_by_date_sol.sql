@@ -15,12 +15,19 @@ base as (
         *,
         signers [0] as fee_payer,
         post_tx_staked_balance / pow(10, 9) as net_stake,
+        split_part(index :: float, '.', 1) :: int as idx_major,
+        case
+            when contains(index :: float :: string, '.') then split_part(index :: float, '.', 2) :: int
+            else 0
+        end as idx_minor,
         row_number() over (
             partition by stake_account
             order by
                 block_id desc,
-                index desc,
-                tx_id
+                tx_id asc,
+                idx_major desc,
+                idx_minor desc,
+                event_type desc
         ) as rn,
         fact_stake.instruction :parsed :info as info
     from
@@ -32,36 +39,46 @@ base as (
             and event_type = fact_stake.f_event_type
         )
     where
-        SUCCEEDED = TRUE
-        and block_timestamp is not null
+        SUCCEEDED = TRUE -- and block_timestamp is not null
         and event_type not in ('setLockup')
         and not (
-            event_type = 'authorize'
-            and stake_authority is null
+            stake_authority is null
+            and event_type = 'authorize'
         )
         and not (
             stake_authority is null
             and event_type = 'authorizeWithSeed'
             and fact_stake.instruction :parsed :info :authorityType = 'Withdrawer'
         )
-        and block_timestamp :: date <= {{ date }}
+        and (
+            block_timestamp :: date <= {{ date }}
+            or block_timestamp :: date is null
+        )
 ),
 base_with_staker as (
     select
         *,
         case
             when stake_authority is null
-            and event_type = 'withdraw' then lag(stake_authority) ignore nulls over (
+            and (
+                event_type = 'withdraw'
+                or event_type = 'deactivateDelinquent'
+            ) then lag(stake_authority) ignore nulls over (
                 partition by stake_account
                 order by
                     rn desc
-            ) -- when stake_authority is null
-            -- and event_type = 'withdraw' then info :withdrawAuthority
+            )
+            when stake_authority is null
+            and event_type = 'authorizeWithSeed' then info :newAuthorized
             when stake_authority is null
             and event_type = 'authorizeChecked' then info :newAuthority
             when stake_authority is null
             and event_type = 'initializeChecked' then info :staker
             else stake_authority
+        end as staker_raw,
+        case
+            when staker_raw is null then info :withdrawAuthority
+            else staker_raw
         end as staker
     from
         base
