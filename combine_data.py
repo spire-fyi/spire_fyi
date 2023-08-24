@@ -731,7 +731,7 @@ if __name__ == "__main__":
         #    'VoteKey', 'Network', 'Tags', 'LogoURI', 'Flag', 'Name', 'Rank',
         #    'Diff']
         #     )
-        lst_df['LST_Rank'] = lst_df.groupby(["DATE", "SYMBOL"])["AMOUNT"].rank(ascending=False)
+        lst_df["LST_Rank"] = lst_df.groupby(["DATE", "SYMBOL"])["AMOUNT"].rank(ascending=False)
         lst_df.to_csv("data/liquid_staking_token_holders.csv.gz", index=False, compression="gzip")
 
         # Combine the two datasets
