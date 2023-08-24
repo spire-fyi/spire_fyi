@@ -3,11 +3,9 @@ import datetime
 import gc
 import json
 import logging
-import time
 from itertools import combinations
 from pathlib import Path
 
-import networkx as nx
 import numpy as np
 import pandas as pd
 import requests
@@ -261,7 +259,7 @@ if __name__ == "__main__":
     do_xnft = True
     do_fees = True
     do_madlad_metadata = True
-    do_staking_report = False
+    do_staking_report = True
 
     if do_main:
         dfs = []
@@ -660,8 +658,6 @@ if __name__ == "__main__":
         rarity_df.to_csv("data/madlads_rarity.csv", index=False)
 
     if do_staking_report:
-        # #NOTE: there is an issue with the data or query from 6/10 onwards, need to debug
-        # is there an issue in the `base_with_staker` CTW (such as `order by rn desc`)?
         stakers_df = utils.combine_flipside_date_data("data/sdk_top_stakers_by_date_sol", add_date=True)
         all_staker_addresses = stakers_df.rename(columns={"STAKER": "ADDRESS"})
         utils.get_solana_fm_labels(all_staker_addresses, "stakers", "ADDRESS")
@@ -686,7 +682,9 @@ if __name__ == "__main__":
         labeled_stakers.to_csv("data/top_stakers.csv.gz", index=False, compression="gzip")
         # -----
 
-        lst_delta_df = utils.combine_flipside_date_data("data/sdk_top_liquid_staking_token_holders_delta")
+        lst_delta_df = utils.combine_flipside_date_data(
+            "data/sdk_top_liquid_staking_token_holders_delta", raise_error=False
+        )
         lst_delta_df["DATE"] = pd.to_datetime(lst_delta_df["DATE"], utc=True)
         lst_delta_df = lst_delta_df.rename(columns={"WALLET": "ADDRESS"})
         # Add in token labels
@@ -733,7 +731,7 @@ if __name__ == "__main__":
         #    'VoteKey', 'Network', 'Tags', 'LogoURI', 'Flag', 'Name', 'Rank',
         #    'Diff']
         #     )
-
+        lst_df['LST_Rank'] = lst_df.groupby(["DATE", "SYMBOL"])["AMOUNT"].rank(ascending=False)
         lst_df.to_csv("data/liquid_staking_token_holders.csv.gz", index=False, compression="gzip")
 
         # Combine the two datasets

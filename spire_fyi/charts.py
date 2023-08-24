@@ -1,3 +1,4 @@
+import datetime
 import altair as alt
 import pandas as pd
 import streamlit as st
@@ -153,7 +154,6 @@ def alt_weekly_unique_chart(df, title, y, ytitle):
 
 
 def alt_weekly_cumulative_chart(df, title, bar_y, line_y):
-
     base = alt.Chart(df, title=title).encode(
         x=alt.X("yearmonthdate(WEEK):T", title="Date"),
         tooltip=[
@@ -172,7 +172,6 @@ def alt_weekly_cumulative_chart(df, title, bar_y, line_y):
 
 
 def alt_daily_cumulative_chart(df, title, bar_y, line_y, width=3):
-
     base = alt.Chart(df, title=title).encode(
         x=alt.X("yearmonthdate(Date):T", title="Date"),
         tooltip=[
@@ -194,3 +193,138 @@ def alt_daily_cumulative_chart(df, title, bar_y, line_y, width=3):
     )
 
     return chart
+
+
+@st.cache_data(ttl=3600)
+def alt_stakers_chart(df, title, ycol, ytitle, colorcol, colortitle, lst, normalize=False, interactive=None):
+    legend_selection = alt.selection_point(fields=["Name"], bind="legend")
+    rank = df.groupby(colorcol)[ycol].mean().sort_values(ascending=False).rank().to_dict()
+    if "Other" in rank:
+        rank["Other"] = -1
+    rank_str = str({k: int(v) for k, v in rank.items()})
+    chart = (
+        (
+            alt.Chart(df, title=title).transform_calculate(order=f"{rank_str}[datum['{colorcol}']]")
+            # .mark_line(point=True)
+            .mark_area(interpolate="monotone")
+            # .mark_bar(width=3)
+            .encode(
+                x=alt.X("yearmonthdate(Date):T", title="Date"),
+                y=alt.Y(
+                    ycol,
+                    title=ytitle,
+                    stack="normalize" if normalize else True,
+                ),
+                color=alt.Color(
+                    colorcol,
+                    title=colortitle,
+                    scale=alt.Scale(scheme="turbo"),
+                    sort=alt.SortField("order", "descending"),
+                    # sort=alt.EncodingSortField(ycol, op="mean", order="descending"),
+                    legend=alt.Legend(symbolLimit=50),
+                ),
+                tooltip=[
+                    alt.Tooltip("yearmonthdate(Date)", title="Date"),
+                    alt.Tooltip("Address"),
+                    alt.Tooltip("Name"),
+                    alt.Tooltip("Total Stake", format=",.1f"),
+                    alt.Tooltip("Amount", title=f"Amount, {lst}", format=",.1f"),
+                    alt.Tooltip("Rank", title="Staker Rank", format=",.0f"),
+                    alt.Tooltip("Lst Rank", title=f"{lst} Rank", format=",.0f"),
+                ],
+                # href="Explorer Url",
+                opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
+                order="order:O",
+            )
+        )
+        .properties(height=800, width=800)
+        .add_params(legend_selection)
+    )
+    if interactive is not None:
+        bind_x = False if interactive == "y-axis" else True
+        bind_y = False if interactive == "x-axis" else True
+        chart = chart.interactive(bind_x=bind_x, bind_y=bind_y)
+    return chart
+
+
+@st.cache_data(ttl=3600)
+def alt_total_lst(
+    df, date_range, title="Total LST Balance by Top SOL Stakers", normalize=False, interactive=None
+):
+    if date_range == "All dates":
+        chart_df = df.copy()
+    elif date_range == "Past Year":
+        chart_df = df.copy()[
+            df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta("365d"))
+        ]
+    else:
+        chart_df = df.copy()[
+            df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(date_range))
+        ]
+    chart_df["nonzero_lst"] = chart_df.Amount.apply(lambda x: 1 if x > 0 else 0)
+
+    def nonzero_mean(x):
+        return x[x > 0].mean()
+
+    chart_df = (
+        chart_df.groupby(["Date", "Token Name"])
+        .agg(
+            Symbol=("Symbol", "first"),
+            Total_LST_Amount=("Amount", "sum"),
+            Avg_LST_Amount=("Amount", "mean"),
+            Avg_LST_Amount_NonZero=("Amount", nonzero_mean),
+            Total_Holders=("Address", "nunique"),
+            Total_Holders_NonZero=("nonzero_lst", "sum"),
+            Total_SOL_Stake=("Total Stake", "sum"),
+            Avg_Stake_Mean=("Total Stake", "mean"),
+        )
+        .reset_index()
+    )
+    rank = (
+        chart_df.groupby("Token Name")["Total_LST_Amount"]
+        .mean()
+        .sort_values(ascending=False)
+        .rank()
+        .to_dict()
+    )
+    rank_str = str({k: int(v) for k, v in rank.items()})
+    legend_selection = alt.selection_point(fields=["Token Name"], bind="legend")
+    chart = (
+        alt.Chart(chart_df, title=title)
+        .transform_calculate(order=f"{rank_str}[datum['Token Name']]")
+        .mark_area(interpolate="monotone")
+        .encode(
+            x=alt.X("yearmonthdate(Date):T", title="Date"),
+            y=alt.Y(
+                "Total_LST_Amount",
+                title="Total LST Balance",
+                stack="normalize" if normalize else True,
+            ),
+            color=alt.Color(
+                "Token Name",
+                sort=alt.SortField("order", "descending"),
+                scale=alt.Scale(
+                    domain=[x[1] for x in utils.liquid_staking_tokens.values()], scheme="category10"
+                ),
+            ),
+            order="order:O",
+            tooltip=[alt.Tooltip("yearmonthdate(Date):T", title="Date")]
+            + [
+                alt.Tooltip(
+                    x,
+                    title=x.replace("_", " "),
+                    format=",.1f" if x not in ["Token Name", "Symbol"] else "",
+                )
+                for x in chart_df.columns.drop("Date")
+            ],
+            opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
+        )
+        .properties(height=800, width=800)
+        .add_params(legend_selection)
+    )
+    if interactive is not None:
+        bind_x = False if interactive == "y-axis" else True
+        bind_y = False if interactive == "x-axis" else True
+        chart = chart.interactive(bind_x=bind_x, bind_y=bind_y)
+
+    return chart, chart_df

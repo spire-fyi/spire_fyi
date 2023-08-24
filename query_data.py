@@ -301,7 +301,7 @@ if __name__ == "__main__":
     do_nft_mints = False
     do_nft_metadata = False
     do_xnft = True
-    do_lst = False
+    do_lst = True
     # main routines
     do_pull_flipside_data = True
     do_pool = True
@@ -434,19 +434,28 @@ if __name__ == "__main__":
         if lst_force_update:
             top_stakers = pd.read_csv("data/top_stakers.csv.gz")
             top_staker_addresses = sorted(top_stakers.ADDRESS.unique().tolist())
-        else:  # HACK until better way to update data, sticking with original top stakers as of 5/30
+        else:  # HACK until better way to update data, sticking with top stakers as of 2023-08-21
             with open("data/top_stakers.json") as f:
                 d = json.load(f)
-                top_staker_addresses = d["e69df08b7135b93f6f064d13d9a53b0db7390ec1"]["wallets"]
+                top_staker_addresses = d["f0a42a406680dbee54c7219729d542ee26179b83"]["wallets"]
         n_wallets = len(top_staker_addresses)
         wallet_hash = hashlib.sha1("".join(top_staker_addresses).encode("utf-8")).hexdigest()
         date_range = since_marinade_launch
         last_date = date_range[-1]
-        for q, dates in [("sdk_top_liquid_staking_token_holders_delta", date_range)]:
+        for q_top, q_all, dates in [
+            (
+                "sdk_top_liquid_staking_token_holders_delta",
+                "sdk_all_liquid_staking_token_holders_delta",
+                date_range,
+            )
+        ]:
             for date in dates:
                 queries_to_do = get_queries_by_date_and_wallets(
-                    date, q, top_staker_addresses, n_wallets, wallet_hash
+                    date, q_top, top_staker_addresses, n_wallets, wallet_hash
                 )
+                if queries_to_do is not None:
+                    query_info.append(queries_to_do)
+                queries_to_do = get_queries_by_date(date, q_all)
                 if queries_to_do is not None:
                     query_info.append(queries_to_do)
         with open("data/top_stakers.json") as f:

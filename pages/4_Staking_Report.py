@@ -1,14 +1,10 @@
-import datetime
-
 import altair as alt
 import numpy as np
 import pandas as pd
 import plotly.express as px
-import plotly.figure_factory as ff
 import plotly.graph_objects as go
 import streamlit as st
 from PIL import Image
-from plotly.subplots import make_subplots
 from st_pages import _get_page_hiding_code
 
 import spire_fyi.charts as charts
@@ -31,9 +27,12 @@ c1, c2 = st.columns([1, 3])
 c2.header("Spire")
 c2.caption(
     """
-    A viewpoint above Solana data. Insights and on-chain data analytics, inspired by the community and accessible to all. Powered by [Flipside Crypto](https://flipsidecrypto.xyz/), [Helius](https://helius.xyz/), [SolanaFM](https://docs.solana.fm/) and [HowRare](https://howrare.is/api).
+    A viewpoint above Solana data. Insights and on-chain data analytics, inspired by the community and accessible to all.
+    Powered by [Flipside Crypto](https://flipsidecrypto.xyz/), [Helius](https://helius.xyz/),
+    [SolanaFM](https://docs.solana.fm/) and [HowRare](https://howrare.is/api).
 
-    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) | Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5 , or contribute on [Stockpile](https://www.stockpile.pro/projects/fMqAvbsrWseJji8QyNOf)
+    [@spire_fyi](https://twitter.com/spire_fyi) | [spire-fyi/spire_fyi](https://github.com/spire-fyi/spire_fyi) |
+    Donations: GvvrKbq21eTkknHRt9FGVFN54pLWXSSo4D4hz2i1JCn5 , or contribute on [Stockpile](https://www.stockpile.pro/projects/fMqAvbsrWseJji8QyNOf)
     """
 )
 c1.image(
@@ -45,7 +44,7 @@ st.header("Staking Report (Guest Analysis)")
 st.write(
     """
 Exploring SOL stakers and liquid staking token holders.
-    
+
 Analysis performed by [@h4wk10](https://twitter.com/h4wk10), [@banbannard](https://twitter.com/banbannard) and the Spire Team.
     """
 )
@@ -56,7 +55,8 @@ with st.expander("Instructions"):
 - Liquid Staking Tokens are abbreviated as LSTs. These include popular tokens which represent staked SOL, such as mSOL, stSOL, bSOL and others.
 - Use the [Settings](#settings) to filter the data used to chart Top Stakers and Liquid Staking Token Holders.
   - Date range: The date range to use for the charts.
-  - Number of top addresses per day: The top addresses each day will be shown; there may be more addresses shown in the chart than this number, as the union of all top addresses is used.
+  - Number of top addresses per day: The top addresses each day will be shown; there may be more addresses shown in the chart than this number,
+  as the union of all top addresses is used.
   - Exclude Solana Foundation delegation: The Solana Foundation has a large delegation which can be ignored for this analysis.
   - Exclude labeled addresses: this removes known addresses, such as exchanges, from the analysis.
   - Log Scale: Use a log scale for the y-axis.
@@ -64,7 +64,7 @@ with st.expander("Instructions"):
 - Data Description:
     - Data was queried using the [Flipside Crypto](https://flipsidecrypto.xyz/) API with these queries:
         - [Top SOL stakers](https://github.com/spire-fyi/spire_fyi/tree/main/sql/sdk_top_stakers_by_date_sol.sql)
-        - [LST holdings ampng top stakers](https://github.com/spire-fyi/spire_fyi/tree/main/sql/sdk_top_liquid_staking_token_holders_delta.sql)
+        - [LST holdings among top stakers](https://github.com/spire-fyi/spire_fyi/tree/main/sql/sdk_top_liquid_staking_token_holders_delta.sql)
         - [Program interactions by top stakers](https://flipsidecrypto.xyz/edit/queries/2cc62d89-4f67-4197-82cf-8daf9b69ff45)
 """
     )
@@ -92,12 +92,25 @@ date_range = c1.radio(
     index=1,
     key="stakers_date_range",
 )
-n_addresses = c2.slider("Number of top addresses per day", 1, 50, 15, key="stakers_slider")
-exclude_foundation = c3.checkbox(
-    "Exclude Solana Foundation delegation", value=True, key="stakers_foundation_check"
+n_addresses = c1.slider("Number of top addresses per day", 1, 50, 15, key="stakers_slider")
+lst = c2.selectbox(
+    "Choose a Liquid Staking Token",
+    token_name_dict.keys(),
+    # format_func=lambda x: f"{x} ({token_name_dict[x]})", # Not really useful
+    key="lst_token_select",
 )
+interactive = c2.selectbox(
+    "Turn on chart zooming/panning", [None, "both", "x-axis", "y-axis"], key="stakers_interactive"
+)
+normalize = c3.checkbox("Show proportions instead of Amounts", key="stakers_normalize")
+keep_others = c3.checkbox(
+    "Include `Other` addresses",
+    value=True,
+    key="stakers_keep_others",
+)
+exclude_foundation = c3.checkbox("Exclude Solana Foundation delegation", key="stakers_foundation_check")
 exclude_labeled = c3.checkbox("Exclude labeled addresses", key="stakers_labeled_check")
-log_scale = c3.checkbox("Log Scale", key="stakers_log_scale")
+
 
 user_type_dict = {
     "top_stakers": f"Holdings by top {n_addresses} stakers",
@@ -109,56 +122,61 @@ user_type_dict = {
 #     format_func=lambda x: user_type_dict[x],
 #     key="lst_user_type",
 # )
-lst = c2.selectbox(
-    "Choose a Liquid Staking Token",
-    token_name_dict.keys(),
-    # format_func=lambda x: f"{x} ({token_name_dict[x]})", # Not really useful
-    key="lst_token_select",
-)
 
+lst_symbol = token_name_dict[lst]
 staker_chart_df, token_top_stakers_df, token_top_holders_df = utils.get_stakers_chart_data(
-    staker_df, date_range, exclude_foundation, exclude_labeled, n_addresses, lst
+    staker_df, date_range, exclude_foundation, exclude_labeled, n_addresses, lst, keep_others=keep_others
 )
 
 st.subheader("Top Stakers")
-chart = charts.alt_line_chart(
+chart = charts.alt_stakers_chart(
     staker_chart_df,
     "Total Stake",
-    legend_title="Staker Address",
-    interactive=False,
-    chart_title="Top stakers",
-    log_scale=log_scale,
+    "Total Stake",
+    "Total Stake (SOL)",
+    "Name",
+    "Staker",
+    lst_symbol,
+    normalize=normalize,
+    interactive=interactive,
 )
 st.altair_chart(chart, use_container_width=True)
 
-st.subheader(f"Liquid Staking Token Holders from Top SOL Stakers")
+st.subheader("Liquid Staking Token Holders from Top SOL Stakers")
 if len(token_top_stakers_df) == 0:
-    st.write(f"**Liquid Staking Token Holdings**: The selected addresses do not hold {lst} in this date range")
+    st.write(f"The selected addresses do not hold `{lst}` in this date range.")
 else:
     chart_title_top_stakers = f"Holdings by top {n_addresses} stakers: {lst}"
-    chart = charts.alt_line_chart(
-        token_top_stakers_df,
+    chart = charts.alt_stakers_chart(
+        staker_chart_df,
+        chart_title_top_stakers,
         "Amount",
-        legend_title="Holder address",
-        interactive=False,
-        chart_title=chart_title_top_stakers,
-        log_scale=log_scale,
-        unique_column_name="Name",
+        f"Amount: {lst}",
+        "Name",
+        "Holder address",
+        lst_symbol,
+        normalize=normalize,
+        interactive=interactive,
     )
     st.altair_chart(chart, use_container_width=True)
 st.write("---")
-st.subheader(f"Top LST Holders among Top SOL Stakers")
-chart_title_top_holders = f"Top {n_addresses} liquid staking token holders among all top stakers: {lst}"
-chart = charts.alt_line_chart(
-    token_top_holders_df,
-    "Amount",
-    legend_title="Holder address",
-    interactive=False,
-    chart_title=chart_title_top_holders,
-    log_scale=log_scale,
-    unique_column_name="Name",
-)
-st.altair_chart(chart, use_container_width=True)
+st.subheader("Top LST Holders among Top SOL Stakers")
+if len(token_top_holders_df) == 0:
+    st.write(f"None of the top SOL Stakers hold `{lst}` in this date range.")
+else:
+    chart_title_top_holders = f"Top {n_addresses} liquid staking token holders among all top stakers: {lst}"
+    chart = charts.alt_stakers_chart(
+        token_top_holders_df,
+        chart_title_top_holders,
+        "Amount",
+        f"Amount: {lst}",
+        "Name",
+        "Holder address",
+        lst_symbol,
+        normalize=normalize,
+        interactive=interactive,
+    )
+    st.altair_chart(chart, use_container_width=True)
 # #TODO: look at Delta, add some overviews
 # lst_delta_df = utils.load_lst(filled=False)
 # c1,c2 = st.columns(2)
@@ -239,79 +257,24 @@ st.altair_chart(chart, use_container_width=True)
 
 # Guest analysis by h4wk
 st.subheader("Summary")
-st.write("The [Settings](#settings) do **not** apply to the charts below.")
-# TOTAL STAKE OVER TIME
-c1, c2 = st.columns(2)
-daily_stake = staker_df.drop_duplicates(subset=["Date", "Address"], keep="first")
-daily_stake["Address Name"] = daily_stake["Address Name"].fillna("Other")
-daily_stake = daily_stake.groupby(["Date", "Address Name"])["Total Stake"].sum().reset_index()
-daily_stake = daily_stake[(daily_stake["Date"] >= "2022-11-24")]
-fig2 = px.area(
-    daily_stake,
-    x="Date",
-    y="Total Stake",
-    color="Address Name",
-    title="Total Stake Over time",
-    color_discrete_sequence=px.colors.qualitative.Prism,
-)
-fig2.update_xaxes(title_text="Date", showgrid=False)
-fig2.update_yaxes(title_text="Total Stake (SOL)", showgrid=True)
-st.plotly_chart(fig2, use_container_width=True)
-# END --- TOTAL STAKE OVER TIME
-# LSTs Holding Over time
-LST_df = staker_df.groupby(["Date", "Symbol"])["Amount"].sum().reset_index()
-fig2 = px.area(
-    LST_df,
-    x="Date",
-    y="Amount",
-    color="Symbol",
-    title="Total LST Balance by Top SOL Stakers",
-    color_discrete_sequence=px.colors.qualitative.Prism_r,
-)
-fig2.update_xaxes(title_text="Date", showgrid=False)
-fig2.update_yaxes(title_text="Total LST Balance", showgrid=True)
-st.plotly_chart(fig2, use_container_width=True)
-# END --- LSTs Holding Over timeload_staker
-
-
-# TOP 15 STAKERS
-filter = staker_df["Date"] == staker_df["Date"].max()
-top_staker = staker_df.where(filter).dropna(subset=["Date"])
-top_staker = top_staker.drop_duplicates(subset=["Date", "Address"], keep="first")
-if exclude_foundation:
-    top_staker = top_staker[top_staker["Address Name"] != "Solana Foundation Delegation Account"]
-if exclude_labeled:
-    top_staker = top_staker[(top_staker["Address Name"].isna()) & (top_staker["Friendlyname"].isna())]
-top_staker = top_staker.nlargest(n_addresses, "Total Stake")
-# st.write(top_staker)
-fig2 = px.histogram(
-    top_staker,
-    x="Address",
-    y="Total Stake",
-    title=f"Top {n_addresses} Stakers by Stake Amount",
-    color="Address",
-    color_discrete_sequence=px.colors.qualitative.Prism,
-)
-fig2.update_layout(xaxis_title="Address", yaxis_title="Total Stake (SOL)")
-
-fig2.update_xaxes(showgrid=False)
-fig2.update_yaxes(showgrid=True)
-st.plotly_chart(fig2, use_container_width=True)
-# END --- TOP 15 STAKERS
 
 
 # STAKE VOLUME CATEGORY
 def get_stake_volume_category(stake_volume):
-    if stake_volume < 1000:
-        return "Stake < 1k SOL"
+    if stake_volume < 5000:
+        return "Stake < 5k SOL"
     elif stake_volume < 10000:
-        return "a. 1k < Stake < 10k SOL"
+        return "a. 5k < Stake < 10k SOL"
+    elif stake_volume < 50000:
+        return "b. 10k < Stake < 50k SOL"
     elif stake_volume < 100000:
-        return "b. 10k < Stake < 100k SOL"
+        return "c. 50k < Stake < 100k SOL"
     elif stake_volume < 1000000:
-        return "c. 100k < Stake < 1m SOL"
+        return "d. 100k < Stake < 1m SOL"
+    elif stake_volume < 10000000:
+        return "e. 1m < Stake < 10m SOL"
     else:
-        return "d. Stake > 1m SOL"
+        return "f. Stake > 10m SOL"
 
 
 filter = staker_df["Date"] == staker_df["Date"].max()
@@ -326,7 +289,7 @@ fig2 = px.histogram(
     x="Stake Category",
     y="TOTAL_ADDRESS",
     log_y=False,
-    title="Top Stakers by Staking Amount Category",
+    title="Number of Stakers by Amount Staked",
     color="Stake Category",
     color_discrete_sequence=px.colors.qualitative.Prism,
 )
@@ -336,39 +299,242 @@ fig2.update_xaxes(showgrid=False)
 fig2.update_yaxes(showgrid=True)
 st.plotly_chart(fig2, use_container_width=True)
 # END --- STAKE VOLUME CATEGORY
+st.write("---")
 
-# LSTs Current Balance and Holders
-filter = staker_df["Date"] == staker_df["Date"].max()
-LSTs_curr = staker_df.where(filter).dropna(subset=["Date"])
-LSTs_curr = LSTs_curr.where(LSTs_curr["Amount"] > 0)
-LSTs_curr = LSTs_curr.groupby("Symbol").agg({"Amount": np.sum, "Address": pd.Series.nunique}).reset_index()
-LSTs_curr = LSTs_curr.sort_values(by=["Amount"], ascending=False)
-fig = go.Figure(
-    data=go.Bar(x=LSTs_curr["Symbol"], y=LSTs_curr["Amount"], name="LST Balance", marker=dict(color="teal"))
+c1, c2 = st.columns(2)
+n_addresses = c1.slider("Number of top addresses", 1, 100, 25, key="summary_slider")
+lst = c2.selectbox(
+    "Choose a Liquid Staking Token",
+    ["All LSTs"] + list(token_name_dict.keys()),
+    # format_func=lambda x: f"{x} ({token_name_dict[x]})", # Not really useful
+    key="summary_token_select",
 )
-fig.add_trace(
-    go.Scatter(
-        x=LSTs_curr["Symbol"],
-        y=LSTs_curr["Address"],
-        yaxis="y2",
-        name="Holder",
-        marker=dict(color="crimson"),
+exclude_foundation = c1.checkbox("Exclude Solana Foundation delegation", key="summary_foundation_check")
+exclude_labeled = c2.checkbox("Exclude labeled addresses", key="summary_labeled_check")
+
+top_stakers = staker_df[staker_df["Date"] == staker_df["Date"].max()]
+if exclude_foundation:
+    top_stakers = top_stakers[top_stakers["Name"] != "Solana Foundation Delegation Account"]
+if exclude_labeled:
+    top_stakers = top_stakers[(top_stakers["Address Name"].isna()) & (top_stakers["Friendlyname"].isna())]
+
+
+def holds_lst(x):
+    if pd.isna(x):
+        return 0
+    elif x == 0:
+        return 0
+    else:
+        return 1
+
+
+def lsts_held(x):
+    if x.Amount == 0 or pd.isna(x.Amount):
+        return ""
+    else:
+        return x["Token Name"]
+
+
+def lst_amount(x):
+    if x.Amount == 0 or pd.isna(x.Amount):
+        return ""
+    else:
+        return x["Amount"]
+
+
+top_stakers["Holds LST"] = top_stakers.Amount.apply(holds_lst)
+top_stakers["LST Tokens"] = top_stakers.apply(lsts_held, axis=1)
+top_stakers["LST Amounts"] = top_stakers.apply(lst_amount, axis=1)
+top_stakers = top_stakers.merge(
+    (
+        top_stakers.groupby("Address")
+        .agg(
+            LSTs_Held=("Holds LST", "sum"),
+            LST_Tokens=(
+                "LST Tokens",
+                lambda x: "" if all(pd.isna(y) for y in x) else ",".join(z for z in x if z != ""),
+            ),
+            LST_Amounts=(
+                "LST Amounts",
+                lambda x: ""
+                if all((pd.isna(y) or y == 0.0) for y in x)
+                else ",".join(f"{z:.0f}" for z in x if z != ""),
+            ),
+        )
+        .reset_index()
+    ),
+    on="Address",
+    how="left",
+)
+
+top_stakers = (
+    top_stakers.drop_duplicates(subset=["Date", "Address"], keep="first")
+    .sort_values(by="Total Stake", ascending=False)
+    .drop(
+        columns=[
+            "Token Name",
+            "Amount",
+            "Token",
+            "Symbol",
+            "Amount Usd",
+            "Lst Rank",
+            "Holds LST",
+            "LST Tokens",
+            "LST Amounts",
+            "Token",
+        ]
     )
 )
-fig.update_layout(
-    title="Current LST Holding Balance and Holders from Top SOL Stakers",
-    legend=dict(orientation="h"),
-    yaxis=dict(title=dict(text="LST Balance"), side="left"),
-    yaxis2=dict(
-        title=dict(text="Holder"),
-        side="right",
-        overlaying="y",
-        # tickmode="sync",
+
+top_lsts = top_stakers.copy()
+top_lsts["Total LST Amount"] = top_lsts["LST_Amounts"].apply(
+    lambda x: sum([float(y) for y in x.split(",") if y != ""])
+)
+if lst == "All LSTs":
+    top_lsts = (
+        top_lsts[top_lsts.LST_Tokens != ""]
+        .sort_values(by="Total LST Amount", ascending=False)
+        .reset_index(drop=True)
+    )
+else:
+    top_lsts = (
+        top_lsts[top_lsts.LST_Tokens.str.contains(lst.split("(")[0].strip(" "))]
+        .assign(
+            LST=top_lsts["LST_Tokens"].str.split(","),
+            Amount=top_lsts["LST_Amounts"].str.split(","),
+        )
+        .explode(["LST", "Amount"])
+    )
+    top_lsts["Amount"] = top_lsts["Amount"].astype(float)
+    top_lsts = top_lsts[top_lsts.LST == lst].sort_values(by="Amount", ascending=False).reset_index(drop=True)
+
+
+chart = (
+    alt.Chart(
+        top_stakers.sort_values(by="Total Stake", ascending=False).iloc[:n_addresses],
+        title=f"Top {n_addresses} Stakers by Stake Amount",
+    )
+    .mark_bar()
+    .encode(
+        x=alt.X("Name", title="Address Name", sort="-y", axis=alt.Axis(labelAngle=-70)),
+        y=alt.Y("Total Stake", title="Total Stake (SOL)"),
+        tooltip=[
+            alt.Tooltip("Name", title="Address Name"),
+            alt.Tooltip("Address"),
+            alt.Tooltip("Total Stake", title="Total Stake (SOL)", format=",.0f"),
+            alt.Tooltip("Rank", title="Rank among SOL Stakers"),
+            alt.Tooltip("LSTs_Held", title="Number of LSTs held"),
+            alt.Tooltip("LST_Tokens", title="LSTs held"),
+            alt.Tooltip("LST_Amounts", title="LST Amounts"),
+        ],
+        href="Explorer Url",
+        color=alt.Color(
+            "Name",
+            sort=alt.EncodingSortField(field="Total Stake", op="max", order="descending"),
+            scale=alt.Scale(scheme="turbo"),
+            legend=None,
+        ),
+    )
+).properties(height=600, width=600)
+st.altair_chart(chart, use_container_width=True)
+
+
+ycol = "Total LST Amount" if lst == "All LSTs" else "Amount"
+chart = (
+    alt.Chart(
+        top_lsts.iloc[:n_addresses],
+        title=f"Top {n_addresses} Liquid Staking Token Holders among Top Stakers, {lst}",
+    )
+    .mark_bar()
+    .encode(
+        x=alt.X("Name", title="Address Name", sort="-y", axis=alt.Axis(labelAngle=-70)),
+        y=alt.Y(ycol, title="Amount"),
+        tooltip=[
+            alt.Tooltip("Name", title="Address Name"),
+            alt.Tooltip("Address"),
+            alt.Tooltip(ycol, title=f"Amount, {lst}", format=",.0f"),
+            alt.Tooltip("Rank", title="Rank among SOL Stakers"),
+            alt.Tooltip("LSTs_Held", title="Number of LSTs held"),
+            alt.Tooltip("LST_Tokens", title="LSTs held"),
+            alt.Tooltip("LST_Amounts", title="LST Amounts"),
+        ],
+        href="Explorer Url",
+        color=alt.Color(
+            "Name",
+            sort=alt.EncodingSortField(field=ycol, op="max", order="descending"),
+            scale=alt.Scale(scheme="turbo"),
+            legend=None,
+        ),
+    )
+).properties(height=600, width=600)
+st.altair_chart(chart, use_container_width=True)
+st.write("---")
+
+st.subheader("Total LST Holdings by Top Stakers")
+c1, c2 = st.columns([3, 2])
+date_range = c1.radio(
+    "Choose a date range:",
+    [  # #TODO: not doing more dates until more data is queried
+        "All dates",
+        "Past Year",
+        "180d",
+        "90d",
+        "60d",
+        "30d",
+        "14d",
+        "7d",
+    ],
+    horizontal=True,
+    index=2,
+    key="summary_date_range",
+)
+normalize = c2.checkbox("Show proportions instead of Amounts", key="summary_normalize")
+interactive = c2.selectbox(
+    "Turn on chart zooming/panning", [None, "both", "x-axis", "y-axis"], key="summary_interactive"
+)
+chart, lst_summary_df = charts.alt_total_lst(
+    staker_df, date_range, normalize=normalize, interactive=interactive
+)
+st.altair_chart(chart, use_container_width=True)
+st.write("---")
+
+base = alt.Chart(
+    lst_summary_df[
+        (lst_summary_df["Date"] == lst_summary_df["Date"].max()) & (lst_summary_df["Total_LST_Amount"] > 0.1)
+    ],
+    title="Current LST Holdings by Top Stakers",
+).encode(
+    x=alt.X(
+        "Token Name",
+        title=None,
+        sort=alt.EncodingSortField(field="Total_LST_Amount", op="max", order="descending"),
+        axis=alt.Axis(labelAngle=-70),
+    ),
+    tooltip=[alt.Tooltip("yearmonthdate(Date):T", title="Date")]
+    + [
+        alt.Tooltip(
+            x,
+            title=x.replace("_", " "),
+            format=",.1f" if x not in ["Token Name", "Symbol"] else "",
+        )
+        for x in lst_summary_df.columns.drop("Date")
+    ],
+)
+bar = base.mark_bar().encode(
+    y=alt.Y("Total_LST_Amount", title="Total LST Balance"),
+    color=alt.Color(
+        "Token Name",
+        sort=alt.EncodingSortField(field="Total_LST_Amount", op="max", order="descending"),
+        scale=alt.Scale(scheme="turbo"),
+        legend=None,
     ),
 )
-fig.update_yaxes(showgrid=False)
-st.plotly_chart(fig, use_container_width=True)
-# END --- LSTs Current Balance and Holders
+line = base.mark_line(
+    color="#983832", point=alt.OverlayMarkDef(fill="#983832", color="#FD5E53", size=50)
+).encode(y=alt.Y("Total_Holders_NonZero", title="Holders"))
+chart = alt.layer(bar, line).resolve_scale(y="independent").properties(height=600, width=600)
+st.altair_chart(chart, use_container_width=True)
+st.write("---")
 
 # Protocol Interaction Total
 staker_interaction_df = staker_interaction_df.rename(columns={"Cap Label": "Protocol"})
@@ -418,7 +584,7 @@ with st.expander("View and Download Data Table"):
     st.subheader("Top Staker info")
     st.write("View the data shown in the [Top Stakers](#top-stakers) chart above.")
     st.write(staker_chart_df)
-    slug = f"top_stakers"
+    slug = "top_stakers"
     st.download_button(
         "Click to Download",
         staker_chart_df.to_csv(index=False).encode("utf-8"),
@@ -429,11 +595,15 @@ with st.expander("View and Download Data Table"):
     st.write("---")
     st.subheader("Liquid Staking Token Holders from Top SOL Stakers")
     if len(token_top_stakers_df) == 0:
-        st.write(f"**Liquid Staking Token Holdings**: The selected addresses do not hold {lst} in this date range")
+        st.write(
+            f"**Liquid Staking Token Holdings**: The selected addresses do not hold {lst} in this date range"
+        )
     else:
         st.write(token_top_stakers_df)
-        st.write("View the data shown in the [Liquid Staking Token Holders from Top SOL Stakers](#liquid-staking-token-holders-from-top-sol-stakers) chart above.")
-        slug = f"lst_holders_top_stakers"
+        st.write(
+            "View the data shown in the [Liquid Staking Token Holders from Top SOL Stakers](#liquid-staking-token-holders-from-top-sol-stakers) chart above."
+        )
+        slug = "lst_holders_top_stakers"
         st.download_button(
             "Click to Download",
             token_top_stakers_df.to_csv(index=False).encode("utf-8"),
@@ -443,9 +613,11 @@ with st.expander("View and Download Data Table"):
         )
     st.write("---")
     st.subheader("Top LST Holders among Top SOL Stakers")
-    st.write("View the data shown in the [Top LST Holders among Top SOL Stakers](#top-lst-holders-among-top-sol-stakers) chart above.")
+    st.write(
+        "View the data shown in the [Top LST Holders among Top SOL Stakers](#top-lst-holders-among-top-sol-stakers) chart above."
+    )
     st.write(token_top_holders_df)
-    slug = f"lst_holders_top_holders"
+    slug = "lst_holders_top_holders"
     st.download_button(
         "Click to Download",
         token_top_holders_df.to_csv(index=False).encode("utf-8"),
@@ -455,8 +627,10 @@ with st.expander("View and Download Data Table"):
     )
     st.write("---")
     st.subheader("All data")
-    st.write("Download raw data for Top SOL Stakers (unfiltered by anything selected in [Settings](#settings))")
-    slug=f"all_staker_lst_data"
+    st.write(
+        "Download raw data for Top SOL Stakers (unfiltered by anything selected in [Settings](#settings))"
+    )
+    slug = "all_staker_lst_data"
     st.download_button(
         "Click to Download",
         staker_df.to_csv(index=False).encode("utf-8"),

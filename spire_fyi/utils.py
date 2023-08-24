@@ -156,19 +156,19 @@ dex_programs = {
 liquid_staking_tokens = {
     "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So": ("mSOL", "Marinade staked SOL (mSOL)"),
     "7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj": ("stSOL", "Lido Staked SOL"),
-    "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn": ("JitoSOL", "Jito Staked SOL"),  #
-    "7Q2afV64in6N6SeZsAAB81TJzwDoD6zpqmHkzi9Dcavn": ("jSOL", "JPOOL Solana Token"),
-    "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm": ("scnSOL", "Socean staked SOL"),
-    "CgnTSoL3DgY9SFHxcLj6CgCgKKoTBr6tp4CPAEWy25DE": ("cgntSOL", "Cogent SOL"),  #
-    "LAinEtNLgpmCP9Rvsf5Hn8W6EhNiKLZQti1xfWMLy6X": ("laineSOL", "Laine Stake"),  #
+    "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn": ("JitoSOL", "Jito Staked SOL"),
     "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1": ("bSOL", "BlazeStake Staked SOL (bSOL)"),
+    "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm": ("scnSOL", "Socean staked SOL"),
+    "7Q2afV64in6N6SeZsAAB81TJzwDoD6zpqmHkzi9Dcavn": ("jSOL", "JPOOL Solana Token"),
+    "LAinEtNLgpmCP9Rvsf5Hn8W6EhNiKLZQti1xfWMLy6X": ("laineSOL", "Laine Stake"),
+    "CgnTSoL3DgY9SFHxcLj6CgCgKKoTBr6tp4CPAEWy25DE": ("cgntSOL", "Cogent SOL"),
     "GEJpt3Wjmr628FqXxTgxMce1pLntcPV4uFi8ksxMyPQh": ("daoSOL", "daoSOL Token"),
-    "BdZPG9xWrG3uFrx2KrUW1jT4tZ9VKPDWknYihzoPRJS3": ("prtSOL", "prtSOL (Parrot Staked SOL)"),  #
+    "BdZPG9xWrG3uFrx2KrUW1jT4tZ9VKPDWknYihzoPRJS3": ("prtSOL", "prtSOL (Parrot Staked SOL)"),
 }
 
 
 def combine_flipside_date_data(
-    data_dir, add_date=False, with_program=False, nft_royalty=False, rename_columns=None
+    data_dir, add_date=False, with_program=False, nft_royalty=False, rename_columns=None, raise_error=True
 ):
     d = Path(data_dir)
     data_files = d.glob("*.csv")
@@ -177,7 +177,12 @@ def combine_flipside_date_data(
         # TODO: get the most recent / highest mints for each nft collection
     dfs = []
     for x in data_files:
-        df = pd.read_csv(x)
+        try:
+            df = pd.read_csv(x)
+        except:
+            print(f"Missing data: {x}")
+            if raise_error:
+                raise
         # restore old flipside behavior
         df.columns = [x.upper() for x in df.columns]
         if rename_columns is not None:
@@ -1152,39 +1157,99 @@ def load_staker_interaction_data():
 
 @st.cache_data(ttl=3600)
 def get_stakers_chart_data(
-    df,
-    date_range,
-    exclude_foundation,
-    exclude_labeled,
-    n_addresses,
-    token,
+    df, date_range, exclude_foundation, exclude_labeled, n_addresses, token, keep_others=False
 ):
     chart_df = df.copy()[
         df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(date_range))
     ]
-
     if exclude_foundation:
         chart_df = chart_df[chart_df["Address Name"] != "Solana Foundation Delegation Account"]
     if exclude_labeled:
         chart_df = chart_df[(chart_df["Address Name"].isna()) & (chart_df["Friendlyname"].isna())]
-
-    staker_chart_df = (
-        chart_df.copy()
-        .sort_values("Total Stake", ascending=False)
+    top_addresses = (
+        chart_df.sort_values("Total Stake", ascending=False)
         .groupby("Date", as_index=False)
         .head(n_addresses)
+        .Name.unique()
+        .tolist()
+    )
+    nunique_addresses = chart_df.Name.nunique()
+
+    token_top_holders_df = (
+        chart_df.copy()[
+            (chart_df.Amount > 0) & (chart_df["Token Name"] == token) & (chart_df["Lst Rank"] <= n_addresses)
+        ]
+        .sort_values(by=["Date", "Amount"], ascending=False)
+        .reset_index(drop=True)
+    )
+
+    if keep_others:
+        description_cols = [
+            "Address",
+            "Address Name",
+            "Label",
+            "Label Subtype",
+            "Label Type",
+            "Friendlyname",
+            "Abbreviation",
+            "Category",
+            "Votekey",
+            "Network",
+            "Tags",
+            "Logouri",
+            "Flag",
+            "Diff",
+        ]
+        chart_df["Name"] = chart_df["Name"].apply(lambda x: x if x in top_addresses else "Other")
+        chart_df[description_cols] = chart_df.apply(
+            lambda x: f"Aggregate of {nunique_addresses - n_addresses} Addresses"
+            if x.Name == "Other"
+            else x[description_cols],
+            axis=1,
+        )
+        chart_df["Explorer Url"] = chart_df.apply(
+            lambda x: x["Explorer Url"] if x.Name in top_addresses else "", axis=1
+        )
+        chart_df = (
+            chart_df.groupby(
+                [
+                    "Date",
+                    "Name",
+                    *description_cols,
+                    "Explorer Url",
+                ],
+                dropna=False,
+            )
+            .agg(
+                {
+                    "Token": "first",
+                    "Token Name": "first",
+                    "Symbol": "first",
+                    "Amount": "sum",
+                    "Amount Usd": "sum",
+                    "Lst Rank": "mean",
+                    "Total Stake": "sum",
+                    "Rank": "mean",
+                }
+            )
+            .reset_index()
+        )
+
+        token_top_holders_df = (
+            pd.concat([token_top_holders_df, chart_df[chart_df.Name == "Other"]])
+            .sort_values(by=["Date", "Amount"], ascending=False)
+            .reset_index(drop=True)
+        )
+
+    staker_chart_df = (
+        chart_df.copy()[chart_df.Name.isin(top_addresses + ["Other"])]
         .sort_values(by=["Date", "Total Stake"], ascending=False)
         .reset_index(drop=True)
     )
-    token_top_stakers_df = staker_chart_df.copy()[staker_chart_df["Token Name"] == token]
-    token_top_holders_df = (
-        chart_df.copy()[(chart_df.Amount > 10) & (chart_df["Token Name"] == token)]
-        .sort_values("Amount", ascending=False)
-        .groupby(["Date", "Address", "Token"], as_index=False)
-        .head(n_addresses)
-        .sort_values(by=["Address", "Date"], ascending=False)
-        .reset_index(drop=True)
-    )
+    token_top_stakers_df = staker_chart_df.copy()[
+        (staker_chart_df["Token Name"] == token) & (staker_chart_df.Name != "Other")
+    ]
+
     # catch any `:` in Name values, which break altair
     for x in [staker_chart_df, token_top_stakers_df, token_top_holders_df]:
         x["Name"] = x["Name"].apply(lambda x: x.replace(":", "-"))

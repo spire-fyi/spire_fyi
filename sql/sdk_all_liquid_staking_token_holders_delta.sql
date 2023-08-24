@@ -34,13 +34,6 @@ WITH token_holdings AS (
       'BdZPG9xWrG3uFrx2KrUW1jT4tZ9VKPDWknYihzoPRJS3' --prtSOL
     )
     AND block_timestamp::date = {{ date }}
-    AND wallet IN ({% for item in wallets -%}
-        {% if loop.last -%}
-            '{{ item }}'
-        {% else %}
-            '{{ item }}',
-        {%- endif %}
-    {%- endfor %})
 ),
 token_holdings_with_prices as (
   select
@@ -59,8 +52,24 @@ token_holdings_with_prices as (
     )
   WHERE
     rn = 1
+),
+ranked as (
+  select
+    *,
+    ROW_NUMBER() OVER (
+      PARTITION BY "Date",
+      token
+      ORDER BY
+        amount desc
+    ) AS lst_rank
+  from
+    token_holdings_with_prices
 )
 SELECT
   *
 FROM 
-  token_holdings_with_prices
+  ranked
+order by
+  "Date" desc,
+  token,
+  lst_rank asc
