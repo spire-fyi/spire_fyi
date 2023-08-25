@@ -238,8 +238,22 @@ with st.expander("LST Holdings: All Top SOL Stakers", expanded=True):
         st.altair_chart(chart, use_container_width=True)
 with st.expander("LST Holdings: Total", expanded=True):
     st.subheader("Total LST Holdings among Top SOL Stakers")
+    include_total_stake = st.radio(
+        "Include the Total SOL Stake of all Top Stakers",
+        [None, "Total stake value", "Change from previous day"],
+        index=0,
+        format_func=lambda x: "Do not include" if x is None else x,
+        horizontal=True,
+        key="lst_total_stake",
+    )
     chart, lst_summary_df = charts.alt_total_lst(
-        staker_df, date_range, normalize=normalize, interactive=interactive, lst=lst, chart_type=chart_type
+        staker_df,
+        date_range,
+        normalize=normalize,
+        interactive=interactive,
+        lst=lst,
+        chart_type=chart_type,
+        include_total_stake=include_total_stake,
     )
     st.altair_chart(chart, use_container_width=True)
 st.write("---")

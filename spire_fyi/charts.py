@@ -271,6 +271,7 @@ def alt_total_lst(
     date_range,
     title="Total LST Balance by Top SOL Stakers",
     chart_type="Area",
+    include_total_stake="",
     normalize=False,
     interactive=None,
     lst=None,
@@ -290,6 +291,10 @@ def alt_total_lst(
         chart_df = df.copy()[
             df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(date_range))
         ]
+
+    total_df = chart_df.copy().groupby("Date")["Total Stake"].sum().reset_index()
+    total_df["Change in Stake"] = total_df["Total Stake"].diff()
+
     chart_df["nonzero_lst"] = chart_df.Amount.apply(lambda x: 1 if x > 0 else 0)
     chart_df = (
         chart_df[chart_df["Amount"] >= 0.1]
@@ -318,6 +323,7 @@ def alt_total_lst(
         chart_df_ = chart_df[chart_df["Token Name"] == lst]
     else:
         chart_df_ = chart_df
+
     rank_str = str({k: int(v) for k, v in rank.items()})
     legend_selection = alt.selection_point(fields=["Token Name"], bind="legend")
     stack = "normalize" if normalize else True
@@ -334,47 +340,62 @@ def alt_total_lst(
             .mark_line(point=True)
         )
         stack = False if not normalize else "normalize"
-    chart = (
-        base.encode(
-            x=alt.X("yearmonthdate(Date):T", title="Date"),
-            y=alt.Y(
-                "Total_LST_Amount",
-                title="Total LST Balance",
-                stack=stack,
-            ),
-            color=alt.Color(
-                "Token Name",
-                sort=alt.SortField("order", "descending"),
-                scale=alt.Scale(
-                    domain=[x[1] for x in utils.liquid_staking_tokens.values()], scheme="category10"
-                ),
-            ),
-            order="order:O",
-            tooltip=[alt.Tooltip("yearmonthdate(Date):T", title="Date")]
-            + [
-                alt.Tooltip(
-                    x,
-                    title=x.replace("_", " "),
-                    format=",.1f"
-                    if x
-                    not in [
-                        "Token Name",
-                        "Symbol",
-                        "Total_Holders",
-                        # "Total_Holders_NonZero",
-                    ]
-                    else "",
-                )
-                for x in chart_df_.columns.drop("Date")
-            ],
-            opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
+    chart = base.encode(
+        x=alt.X("yearmonthdate(Date):T", title="Date"),
+        y=alt.Y(
+            "Total_LST_Amount",
+            title="Total LST Balance",
+            stack=stack,
+        ),
+        color=alt.Color(
+            "Token Name",
+            sort=alt.SortField("order", "descending"),
+            scale=alt.Scale(domain=[x[1] for x in utils.liquid_staking_tokens.values()], scheme="category10"),
+        ),
+        order="order:O",
+        tooltip=[alt.Tooltip("yearmonthdate(Date):T", title="Date")]
+        + [
+            alt.Tooltip(
+                x,
+                title=x.replace("_", " "),
+                format=",.1f"
+                if x
+                not in [
+                    "Token Name",
+                    "Symbol",
+                    "Total_Holders",
+                    # "Total_Holders_NonZero",
+                ]
+                else "",
+            )
+            for x in chart_df_.columns.drop("Date")
+        ],
+        opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
+    ).add_params(legend_selection)
+    if include_total_stake:
+        if include_total_stake == "Change from previous day":
+            yval = alt.Y(
+                "Change in Stake", title="Daily Change in Total Stake (SOL)", scale=alt.Scale(zero=False)
+            )
+        else:
+            yval = alt.Y("Total Stake", title="Stake by all Top Stakers (SOL)", scale=alt.Scale(zero=False))
+        total = (
+            alt.Chart(total_df)
+            .mark_line(color="#983832", point=alt.OverlayMarkDef(fill="#983832", color="#FD5E53", size=50))
+            .encode(
+                x=alt.X("yearmonthdate(Date):T", title="Date"),
+                y=yval,
+                tooltip=[
+                    alt.Tooltip("yearmonthdate(Date):T", title="Date"),
+                    alt.Tooltip("Total Stake", title="Total Stake (SOL)", format=",.0f"),
+                    alt.Tooltip("Change in Stake", title="Daily Change in Total Stake (SOL)", format=",.0f"),
+                ],
+            )
         )
-        .properties(height=800, width=800)
-        .add_params(legend_selection)
-    )
+        chart = alt.layer(chart, total).resolve_scale(y="independent")
     if interactive is not None:
         bind_x = False if interactive == "y-axis" else True
         bind_y = False if interactive == "x-axis" else True
         chart = chart.interactive(bind_x=bind_x, bind_y=bind_y)
-
+    chart = chart.properties(height=800, width=800)
     return chart, chart_df
