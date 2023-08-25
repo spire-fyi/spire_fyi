@@ -267,7 +267,13 @@ def alt_stakers_chart(
 
 @st.cache_data(ttl=3600 * 6)
 def alt_total_lst(
-    df, date_range, title="Total LST Balance by Top SOL Stakers", normalize=False, interactive=None, lst=None
+    df,
+    date_range,
+    title="Total LST Balance by Top SOL Stakers",
+    chart_type="Area",
+    normalize=False,
+    interactive=None,
+    lst=None,
 ):
     # def nonzero_mean(x):
     #     return x[x > 0].mean()
@@ -314,16 +320,27 @@ def alt_total_lst(
         chart_df_ = chart_df
     rank_str = str({k: int(v) for k, v in rank.items()})
     legend_selection = alt.selection_point(fields=["Token Name"], bind="legend")
+    stack = "normalize" if normalize else True
+    if chart_type == "Area":
+        base = (
+            alt.Chart(chart_df_, title=title)
+            .transform_calculate(order=f"{rank_str}[datum['Token Name']]")
+            .mark_area(interpolate="monotone")
+        )
+    elif chart_type == "Line":
+        base = (
+            alt.Chart(chart_df_, title=title)
+            .transform_calculate(order=f"{rank_str}[datum['Token Name']]")
+            .mark_line(point=True)
+        )
+        stack = False if not normalize else "normalize"
     chart = (
-        alt.Chart(chart_df_, title=title)
-        .transform_calculate(order=f"{rank_str}[datum['Token Name']]")
-        .mark_area(interpolate="monotone")
-        .encode(
+        base.encode(
             x=alt.X("yearmonthdate(Date):T", title="Date"),
             y=alt.Y(
                 "Total_LST_Amount",
                 title="Total LST Balance",
-                stack="normalize" if normalize else True,
+                stack=stack,
             ),
             color=alt.Color(
                 "Token Name",

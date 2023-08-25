@@ -239,7 +239,7 @@ with st.expander("LST Holdings: All Top SOL Stakers", expanded=True):
 with st.expander("LST Holdings: Total", expanded=True):
     st.subheader("Total LST Holdings among Top SOL Stakers")
     chart, lst_summary_df = charts.alt_total_lst(
-        staker_df, date_range, normalize=normalize, interactive=interactive, lst=lst
+        staker_df, date_range, normalize=normalize, interactive=interactive, lst=lst, chart_type=chart_type
     )
     st.altair_chart(chart, use_container_width=True)
 st.write("---")
