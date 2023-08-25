@@ -196,25 +196,50 @@ def alt_daily_cumulative_chart(df, title, bar_y, line_y, width=3):
     return chart
 
 
-@st.cache_data(ttl=3600)
-def alt_stakers_chart(df, title, ycol, ytitle, colorcol, colortitle, lst, normalize=False, interactive=None):
+@st.cache_data(ttl=3600 * 6)
+def alt_stakers_chart(
+    df, title, ycol, ytitle, colorcol, colortitle, lst, chart_type="Area", normalize=False, interactive=None
+):
+    stack = "normalize" if normalize else True
     legend_selection = alt.selection_point(fields=["Name"], bind="legend")
     rank = df.groupby(colorcol)[ycol].mean().sort_values(ascending=False).rank().to_dict()
     if "Other" in rank:
         rank["Other"] = -1
     rank_str = str({k: int(v) for k, v in rank.items()})
+
+    tooltips = [
+        alt.Tooltip("yearmonthdate(Date)", title="Date"),
+        alt.Tooltip("Name"),
+        alt.Tooltip("Address"),
+        alt.Tooltip("Total Stake", format=",.1f"),
+        alt.Tooltip("Rank", title="Staker Rank", format=",.0f"),
+    ]
+    if lst is not None:
+        tooltips += [
+            alt.Tooltip("Amount", title=f"Amount, {lst}", format=",.1f"),
+            alt.Tooltip("Lst Rank", title=f"{lst} Rank", format=",.0f"),
+        ]
+    if chart_type == "Area":
+        base = (
+            alt.Chart(df, title=title)
+            .transform_calculate(order=f"{rank_str}[datum['{colorcol}']]")
+            .mark_area(interpolate="monotone")
+        )
+    elif chart_type == "Line":
+        base = (
+            alt.Chart(df, title=title)
+            .transform_calculate(order=f"{rank_str}[datum['{colorcol}']]")
+            .mark_line(point=True)
+        )
+        stack = False if not normalize else "normalize"
     chart = (
         (
-            alt.Chart(df, title=title).transform_calculate(order=f"{rank_str}[datum['{colorcol}']]")
-            # .mark_line(point=True)
-            .mark_area(interpolate="monotone")
-            # .mark_bar(width=3)
-            .encode(
+            base.encode(
                 x=alt.X("yearmonthdate(Date):T", title="Date"),
                 y=alt.Y(
                     ycol,
                     title=ytitle,
-                    stack="normalize" if normalize else True,
+                    stack=stack,
                 ),
                 color=alt.Color(
                     colorcol,
@@ -224,15 +249,7 @@ def alt_stakers_chart(df, title, ycol, ytitle, colorcol, colortitle, lst, normal
                     # sort=alt.EncodingSortField(ycol, op="mean", order="descending"),
                     legend=alt.Legend(symbolLimit=50),
                 ),
-                tooltip=[
-                    alt.Tooltip("yearmonthdate(Date)", title="Date"),
-                    alt.Tooltip("Address"),
-                    alt.Tooltip("Name"),
-                    alt.Tooltip("Total Stake", format=",.1f"),
-                    alt.Tooltip("Amount", title=f"Amount, {lst}", format=",.1f"),
-                    alt.Tooltip("Rank", title="Staker Rank", format=",.0f"),
-                    alt.Tooltip("Lst Rank", title=f"{lst} Rank", format=",.0f"),
-                ],
+                tooltip=tooltips,
                 # href="Explorer Url",
                 opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
                 order="order:O",
@@ -248,36 +265,38 @@ def alt_stakers_chart(df, title, ycol, ytitle, colorcol, colortitle, lst, normal
     return chart
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600 * 6)
 def alt_total_lst(
-    df, date_range, title="Total LST Balance by Top SOL Stakers", normalize=False, interactive=None
+    df, date_range, title="Total LST Balance by Top SOL Stakers", normalize=False, interactive=None, lst=None
 ):
+    # def nonzero_mean(x):
+    #     return x[x > 0].mean()
+    min_stake_date = df[df["Amount"].notna()].Date.min()
     if date_range == "All dates":
-        chart_df = df.copy()
+        chart_df = df.copy()[df.Date >= min_stake_date]
     elif date_range == "Past Year":
-        chart_df = df.copy()[
-            df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta("365d"))
-        ]
+        past_year = pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta("365d")
+        if past_year > min_stake_date:
+            chart_df = df.copy()[df.Date >= (past_year)]
+        else:
+            chart_df = df.copy()[df.Date >= (min_stake_date)]
     else:
         chart_df = df.copy()[
             df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(date_range))
         ]
     chart_df["nonzero_lst"] = chart_df.Amount.apply(lambda x: 1 if x > 0 else 0)
-
-    def nonzero_mean(x):
-        return x[x > 0].mean()
-
     chart_df = (
-        chart_df.groupby(["Date", "Token Name"])
+        chart_df[chart_df["Amount"] >= 0.1]
+        .groupby(["Date", "Token Name"])
         .agg(
             Symbol=("Symbol", "first"),
             Total_LST_Amount=("Amount", "sum"),
             Avg_LST_Amount=("Amount", "mean"),
-            Avg_LST_Amount_NonZero=("Amount", nonzero_mean),
+            # Avg_LST_Amount_NonZero=("Amount", nonzero_mean),
             Total_Holders=("Address", "nunique"),
-            Total_Holders_NonZero=("nonzero_lst", "sum"),
+            # Total_Holders_NonZero=("nonzero_lst", "sum"),
             Total_SOL_Stake=("Total Stake", "sum"),
-            Avg_Stake_Mean=("Total Stake", "mean"),
+            Avg_SOL_Stake=("Total Stake", "mean"),
         )
         .reset_index()
     )
@@ -288,10 +307,15 @@ def alt_total_lst(
         .rank()
         .to_dict()
     )
+
+    if lst != "All LSTs":
+        chart_df_ = chart_df[chart_df["Token Name"] == lst]
+    else:
+        chart_df_ = chart_df
     rank_str = str({k: int(v) for k, v in rank.items()})
     legend_selection = alt.selection_point(fields=["Token Name"], bind="legend")
     chart = (
-        alt.Chart(chart_df, title=title)
+        alt.Chart(chart_df_, title=title)
         .transform_calculate(order=f"{rank_str}[datum['Token Name']]")
         .mark_area(interpolate="monotone")
         .encode(
@@ -314,9 +338,17 @@ def alt_total_lst(
                 alt.Tooltip(
                     x,
                     title=x.replace("_", " "),
-                    format=",.1f" if x not in ["Token Name", "Symbol"] else "",
+                    format=",.1f"
+                    if x
+                    not in [
+                        "Token Name",
+                        "Symbol",
+                        "Total_Holders",
+                        # "Total_Holders_NonZero",
+                    ]
+                    else "",
                 )
-                for x in chart_df.columns.drop("Date")
+                for x in chart_df_.columns.drop("Date")
             ],
             opacity=alt.condition(legend_selection, alt.value(1), alt.value(0.1)),
         )

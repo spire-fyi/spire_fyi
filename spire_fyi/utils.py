@@ -1155,100 +1155,167 @@ def load_staker_interaction_data():
     return df
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600 * 12)
 def get_stakers_chart_data(
     df, date_range, exclude_foundation, exclude_labeled, n_addresses, token, keep_others=False
 ):
-    chart_df = df.copy()[
-        df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(date_range))
-    ]
+    min_stake_date = df[df["Total Stake"].notna()].Date.min()
+    if date_range == "All dates":
+        chart_df = df.copy()[df.Date >= min_stake_date]
+    elif date_range == "Past Year":
+        past_year = pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta("365d")
+        if past_year > min_stake_date:
+            chart_df = df.copy()[df.Date >= (past_year)]
+        else:
+            chart_df = df.copy()[df.Date >= (min_stake_date)]
+    else:
+        chart_df = df.copy()[
+            df.Date >= (pd.to_datetime(datetime.datetime.today(), utc=True) - pd.Timedelta(date_range))
+        ]
     if exclude_foundation:
         chart_df = chart_df[chart_df["Address Name"] != "Solana Foundation Delegation Account"]
     if exclude_labeled:
         chart_df = chart_df[(chart_df["Address Name"].isna()) & (chart_df["Friendlyname"].isna())]
+    chart_df = chart_df[
+        [
+            "Date",
+            "Name",
+            "Address",
+            "Total Stake",
+            "Rank",
+            "Token Name",
+            "Symbol",
+            "Amount",
+            "Amount Usd",
+            "Lst Rank",
+            "Token",
+            "Explorer Url",
+        ]
+    ].reset_index(drop=True)
+
+    if token == "All LSTs":
+        chart_df["Token Name"] = "All LSTs"
+        chart_df["Symbol"] = "All LSTs"
+        chart_df["Token"] = "All LSTs"
+        chart_df = (
+            (
+                chart_df.groupby(
+                    ["Date", "Name", "Address", "Explorer Url", "Token", "Token Name", "Symbol"],
+                    dropna=False,
+                )
+                .agg(
+                    {
+                        "Amount": "sum",
+                        "Amount Usd": "sum",
+                        "Total Stake": "mean",
+                        "Rank": "mean",
+                    }
+                )
+                .reset_index()
+            )
+            .sort_values(by=["Date", "Amount"], ascending=False)
+            .reset_index(drop=True)
+        )
+        chart_df["Lst Rank"] = chart_df.groupby(["Date", "Symbol"])["Amount"].rank(ascending=False)
+
     top_addresses = (
-        chart_df.sort_values("Total Stake", ascending=False)
+        chart_df.drop_duplicates(subset=["Date", "Name"])
+        .sort_values("Total Stake", ascending=False)
         .groupby("Date", as_index=False)
         .head(n_addresses)
         .Name.unique()
         .tolist()
     )
-    nunique_addresses = chart_df.Name.nunique()
 
-    token_top_holders_df = (
-        chart_df.copy()[
-            (chart_df.Amount > 0) & (chart_df["Token Name"] == token) & (chart_df["Lst Rank"] <= n_addresses)
-        ]
-        .sort_values(by=["Date", "Amount"], ascending=False)
+    # Top LST Holders among top stakers
+    token_top_stakers_df = (
+        chart_df.copy()[(chart_df.Name.isin(top_addresses)) & (chart_df["Token Name"] == token)]
+        .sort_values(by=["Date", "Total Stake"], ascending=False)
         .reset_index(drop=True)
     )
 
     if keep_others:
-        description_cols = [
-            "Address",
-            "Address Name",
-            "Label",
-            "Label Subtype",
-            "Label Type",
-            "Friendlyname",
-            "Abbreviation",
-            "Category",
-            "Votekey",
-            "Network",
-            "Tags",
-            "Logouri",
-            "Flag",
-            "Diff",
-        ]
-        chart_df["Name"] = chart_df["Name"].apply(lambda x: x if x in top_addresses else "Other")
-        chart_df[description_cols] = chart_df.apply(
-            lambda x: f"Aggregate of {nunique_addresses - n_addresses} Addresses"
-            if x.Name == "Other"
-            else x[description_cols],
+        # Top Stakers + Others
+        staker_chart_df = chart_df.copy().drop_duplicates(subset=["Date", "Name"])
+        unique_addresses = staker_chart_df.Name.nunique()
+        staker_chart_df["Name"] = staker_chart_df["Name"].apply(
+            lambda x: x if x in top_addresses else "Other"
+        )
+        unique_names = staker_chart_df.Name.nunique()
+        agg_addresses = unique_addresses - unique_names - 1  # all addresses - top addresses - other
+        staker_chart_df["Address"] = staker_chart_df.apply(
+            lambda x: f"Aggregate of {agg_addresses} Addresses" if x.Name == "Other" else x["Address"],
             axis=1,
         )
-        chart_df["Explorer Url"] = chart_df.apply(
-            lambda x: x["Explorer Url"] if x.Name in top_addresses else "", axis=1
+        staker_chart_df["Explorer Url"] = staker_chart_df.apply(
+            lambda x: "" if x.Name == "Other" else x["Explorer Url"], axis=1
         )
-        chart_df = (
-            chart_df.groupby(
-                [
-                    "Date",
-                    "Name",
-                    *description_cols,
-                    "Explorer Url",
-                ],
-                dropna=False,
+        staker_chart_df = (
+            (
+                staker_chart_df.groupby(
+                    ["Date", "Name", "Address", "Explorer Url"],
+                    dropna=False,
+                )
+                .agg({"Total Stake": "sum", "Rank": "mean"})
+                .reset_index()
             )
-            .agg(
-                {
-                    "Token": "first",
-                    "Token Name": "first",
-                    "Symbol": "first",
-                    "Amount": "sum",
-                    "Amount Usd": "sum",
-                    "Lst Rank": "mean",
-                    "Total Stake": "sum",
-                    "Rank": "mean",
-                }
-            )
-            .reset_index()
+            .sort_values(by=["Date", "Total Stake"], ascending=False)
+            .reset_index(drop=True)
         )
 
+        # Top LST Holders + Others
+        token_top_holders_df = chart_df.copy()[(chart_df.Amount > 0) & (chart_df["Token Name"] == token)]
+        token_holder_count = token_top_holders_df.Address.nunique()
+        token_top_holders_df["Name"] = token_top_holders_df.apply(
+            lambda x: x["Name"] if x["Lst Rank"] <= n_addresses else "Other", axis=1
+        )
+        top_holder_names = token_top_holders_df.Name.nunique()
+        agg_addresses = token_holder_count - top_holder_names - 1  # all addresses - top addresses - other
+        token_top_holders_df["Address"] = token_top_holders_df.apply(
+            lambda x: f"Aggregate of {agg_addresses} Addresses" if x.Name == "Other" else x["Address"],
+            axis=1,
+        )
+        token_top_holders_df["Explorer Url"] = token_top_holders_df.apply(
+            lambda x: "" if x.Name == "Other" else x["Explorer Url"], axis=1
+        )
         token_top_holders_df = (
-            pd.concat([token_top_holders_df, chart_df[chart_df.Name == "Other"]])
+            (
+                token_top_holders_df.groupby(
+                    ["Date", "Name", "Address", "Explorer Url", "Token", "Token Name", "Symbol"],
+                    dropna=False,
+                )
+                .agg(
+                    {
+                        "Amount": "sum",
+                        "Amount Usd": "sum",
+                        "Lst Rank": "mean",
+                        "Total Stake": "sum",
+                        "Rank": "mean",
+                    }
+                )
+                .reset_index()
+            )
             .sort_values(by=["Date", "Amount"], ascending=False)
             .reset_index(drop=True)
         )
 
-    staker_chart_df = (
-        chart_df.copy()[chart_df.Name.isin(top_addresses + ["Other"])]
-        .sort_values(by=["Date", "Total Stake"], ascending=False)
-        .reset_index(drop=True)
-    )
-    token_top_stakers_df = staker_chart_df.copy()[
-        (staker_chart_df["Token Name"] == token) & (staker_chart_df.Name != "Other")
-    ]
+    else:
+        staker_chart_df = (
+            chart_df.copy()[chart_df.Name.isin(top_addresses)]
+            .drop_duplicates(subset=["Date", "Name"])
+            .sort_values(by=["Date", "Total Stake"], ascending=False)
+            .reset_index(drop=True)
+        )
+
+        token_top_holders_df = (
+            chart_df.copy()[
+                (chart_df.Amount > 0)
+                & (chart_df["Token Name"] == token)
+                & (chart_df["Lst Rank"] <= n_addresses)
+            ]
+            .sort_values(by=["Date", "Amount"], ascending=False)
+            .reset_index(drop=True)
+        )
 
     # catch any `:` in Name values, which break altair
     for x in [staker_chart_df, token_top_stakers_df, token_top_holders_df]:
@@ -1256,7 +1323,7 @@ def get_stakers_chart_data(
     return staker_chart_df, token_top_stakers_df, token_top_holders_df
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600 * 24)
 def load_lst(filled=True):
     if filled:
         df = pd.read_csv("data/liquid_staking_token_holders.csv.gz")
@@ -1265,3 +1332,22 @@ def load_lst(filled=True):
     df = reformat_columns(df, ["DATE"])
     df = df.sort_values(by=["Address", "Token", "Date"])
     return df
+
+
+@st.cache_data(ttl=3600 * 2)
+def prepare_downloadable_data(df: pd.DataFrame) -> bytes:
+    return df.to_csv(index=False).encode("utf-8")
+
+
+def data_downloader(df: pd.DataFrame, slug: str, comment: str, write=True) -> None:
+    st.write(comment)
+    if write:
+        st.write(df)
+    st.download_button(
+        "Click to Download",
+        prepare_downloadable_data(df),
+        f"{slug}.csv",
+        "text/csv",
+        key=f"download-{slug}",
+    )
+    st.write("---")
