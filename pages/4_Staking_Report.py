@@ -393,18 +393,22 @@ with st.expander("Summary", expanded=True):
             .reset_index(drop=True)
         )
     else:
-        top_lsts = (
-            top_lsts[top_lsts.LST_Tokens.str.contains(lst.split("(")[0].strip(" "))]
-            .assign(
-                LST=top_lsts["LST_Tokens"].str.split(","),
-                Amount=top_lsts["LST_Amounts"].str.split(","),
+        try:
+            top_lsts = (
+                top_lsts[top_lsts.LST_Tokens.str.contains(lst.split("(")[0].strip(" "))]
+                .assign(
+                    LST=top_lsts["LST_Tokens"].str.split(","),
+                    Amount=top_lsts["LST_Amounts"].str.split(","),
+                )
+                .explode(["LST", "Amount"])
             )
-            .explode(["LST", "Amount"])
-        )
-        top_lsts["Amount"] = top_lsts["Amount"].astype(float)
-        top_lsts = (
-            top_lsts[top_lsts.LST == lst].sort_values(by="Amount", ascending=False).reset_index(drop=True)
-        )
+            top_lsts["Amount"] = top_lsts["Amount"].astype(float)
+            top_lsts = (
+                top_lsts[top_lsts.LST == lst].sort_values(by="Amount", ascending=False).reset_index(drop=True)
+            )
+            top_lsts = top_lsts[top_lsts.Amount > 0]
+        except ValueError:
+            top_lsts = None
 
     chart = (
         alt.Chart(
@@ -433,37 +437,40 @@ with st.expander("Summary", expanded=True):
             ),
         )
     ).properties(height=600, width=600)
-    st.altair_chart(chart, use_container_width=True)
+    c1.altair_chart(chart, use_container_width=True)
 
     ycol = "Total LST Amount" if lst == "All LSTs" else "Amount"
-    chart = (
-        alt.Chart(
-            top_lsts.iloc[:n_addresses],
-            title=f"Top {n_addresses} Liquid Staking Token Holders among Top Stakers, {lst}",
-        )
-        .mark_bar()
-        .encode(
-            x=alt.X("Name", title="Address Name", sort="-y", axis=alt.Axis(labelAngle=-70)),
-            y=alt.Y(ycol, title="Amount"),
-            tooltip=[
-                alt.Tooltip("Name", title="Address Name"),
-                alt.Tooltip("Address"),
-                alt.Tooltip(ycol, title=f"Amount, {lst}", format=",.0f"),
-                alt.Tooltip("Rank", title="Rank among SOL Stakers"),
-                alt.Tooltip("LSTs_Held", title="Number of LSTs held"),
-                alt.Tooltip("LST_Tokens", title="LSTs held"),
-                alt.Tooltip("LST_Amounts", title="LST Amounts"),
-            ],
-            href="Explorer Url",
-            color=alt.Color(
-                "Name",
-                sort=alt.EncodingSortField(field=ycol, op="max", order="descending"),
-                scale=alt.Scale(scheme="turbo"),
-                legend=None,
-            ),
-        )
-    ).properties(height=600, width=600)
-    st.altair_chart(chart, use_container_width=True)
+    if top_lsts is not None and len(top_lsts) > 0:
+        chart = (
+            alt.Chart(
+                top_lsts.iloc[:n_addresses],
+                title=f"Top {n_addresses} LST Holders among Top Stakers, {lst}",
+            )
+            .mark_bar()
+            .encode(
+                x=alt.X("Name", title="Address Name", sort="-y", axis=alt.Axis(labelAngle=-70)),
+                y=alt.Y(ycol, title="Amount"),
+                tooltip=[
+                    alt.Tooltip("Name", title="Address Name"),
+                    alt.Tooltip("Address"),
+                    alt.Tooltip(ycol, title=f"Amount, {lst}", format=",.0f"),
+                    alt.Tooltip("Rank", title="Rank among SOL Stakers"),
+                    alt.Tooltip("LSTs_Held", title="Number of LSTs held"),
+                    alt.Tooltip("LST_Tokens", title="LSTs held"),
+                    alt.Tooltip("LST_Amounts", title="LST Amounts"),
+                ],
+                href="Explorer Url",
+                color=alt.Color(
+                    "Name",
+                    sort=alt.EncodingSortField(field=ycol, op="max", order="descending"),
+                    scale=alt.Scale(scheme="turbo"),
+                    legend=None,
+                ),
+            )
+        ).properties(height=600, width=600)
+        c2.altair_chart(chart, use_container_width=True)
+    else:
+        c2.caption(f"No top stakers hold `{lst}` currently.")
     st.write("---")
 
     base = alt.Chart(
