@@ -528,8 +528,10 @@ with st.expander("Summary", expanded=True):
         index=0,
         key="lst_metric_y",
     )
-
-    df_ = lst_summary_df[(lst_summary_df.Total_LST_Amount > 0.1)]
+    st.write(lst_summary_df)
+    df_ = lst_summary_df.copy().fillna(0)
+    df_ = df_[(df_.Total_LST_Amount > 0.1)]
+    st.write(df_)
     legend_selection = alt.selection_point(fields=["Token Name"], bind="legend")
     chart = (
         alt.Chart(
