@@ -6,7 +6,7 @@ select
     mint,
     sales_amount
 from
-    solana.core.fact_nft_sales
+    solana.nft.fact_nft_sales
 where
     PROGRAM_ID = 'M2mx93ekt1fmXSVkTrUL9xVFHkmME8HTUi5Cyc5aF7K'
     and succeeded = 'True'

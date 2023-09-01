@@ -19,7 +19,7 @@ SELECT
         0
     ) AS royalty_amount
 FROM
-    solana.core.fact_nft_sales s
+    solana.nft.fact_nft_sales s
     LEFT JOIN royalty_payments t
     ON (
         s.block_timestamp = t.block_timestamp

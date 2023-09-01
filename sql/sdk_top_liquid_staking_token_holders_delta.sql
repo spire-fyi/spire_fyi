@@ -53,7 +53,7 @@ token_holdings_with_prices as (
     amount * p.close as amount_usd
   FROM
     token_holdings
-    LEFT JOIN solana.core.ez_token_prices_hourly p on (
+    LEFT JOIN solana.price.ez_token_prices_hourly p on (
       token = p.token_address
       and date_trunc('hour', block_timestamp) = p.recorded_hour
     )

@@ -8,7 +8,7 @@ with fact_stake as (
         event_type as f_event_type,
         instruction
     from
-        solana.core.fact_staking_lp_actions
+        solana.gov.fact_staking_lp_actions
 ),
 base as (
     select
@@ -31,7 +31,7 @@ base as (
         ) as rn,
         fact_stake.instruction :parsed :info as info
     from
-        solana.core.ez_staking_lp_actions
+        solana.gov.ez_staking_lp_actions
         left join fact_stake on (
             tx_id = fact_stake.f_tx_id
             and block_timestamp = fact_stake.f_block_timestamp

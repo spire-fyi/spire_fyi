@@ -1,7 +1,7 @@
 select
     *
 from
-    solana.core.fact_nft_mints
+    solana.nft.fact_nft_mints
 where
     mint in ({% for item in mints -%}
         {% if loop.last -%}
