@@ -1130,9 +1130,8 @@ def add_rarity_data(df, rarity_df="data/madlads_rarity.csv", on="Mint", how="inn
     return merged
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=7200)
 def load_staker_data():
-    # TODO: move to combine_data
     df = pd.read_csv("data/staking_combined.csv.gz", low_memory=False)
     df = reformat_columns(df, ["DATE"])
     df = (
@@ -1140,6 +1139,14 @@ def load_staker_data():
         .sort_values(by=["Date", "Total Stake"], ascending=False)
         .reset_index(drop=True)
     )
+    return df
+
+
+@st.cache_data(ttl=3600)
+def filter_staker_data(df, min_stake_value):
+    included_addresses = df.groupby(["Address"])["Total Stake"].max().reset_index()
+    included_addresses = included_addresses[included_addresses["Total Stake"] >= min_stake_value]
+    df = df[df["Address"].isin(included_addresses["Address"])].reset_index(drop=True)
     return df
 
 
@@ -1264,7 +1271,7 @@ def get_stakers_chart_data(
         )
 
         # Top LST Holders + Others
-        token_top_holders_df = chart_df.copy()[(chart_df.Amount > 0) & (chart_df["Token Name"] == token)]
+        token_top_holders_df = chart_df.copy()[(chart_df.Amount > 0.1) & (chart_df["Token Name"] == token)]
         token_holder_count = token_top_holders_df.Address.nunique()
         token_top_holders_df["Name"] = token_top_holders_df.apply(
             lambda x: x["Name"] if x["Lst Rank"] <= n_addresses else "Other", axis=1
@@ -1309,7 +1316,7 @@ def get_stakers_chart_data(
 
         token_top_holders_df = (
             chart_df.copy()[
-                (chart_df.Amount > 0)
+                (chart_df.Amount > 0.1)
                 & (chart_df["Token Name"] == token)
                 & (chart_df["Lst Rank"] <= n_addresses)
             ]

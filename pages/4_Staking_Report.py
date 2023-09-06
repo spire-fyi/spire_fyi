@@ -40,6 +40,7 @@ c1.image(
     width=100,
 )
 st.write("---")
+
 st.header("Staking Report")
 st.write(
     """
@@ -55,6 +56,10 @@ with st.expander("Instructions"):
     st.write(
         """
 - Liquid Staking Tokens are abbreviated as LSTs. These include popular tokens which represent staked SOL, such as mSOL, stSOL, bSOL and others.
+- LST holders are determined with the following methods:
+    - An Address is considered a LST if it has ever held any of the token
+  - Current LST holders have > 0.1 of the token
+- Input the amount below to choose the minimum amount of staked SOL to be included for top stakers (default: more than 50,000 SOL)
 - Use the [Settings](#settings) to filter the data used to for the Top Stakers and the three `LST Holdings` sections.
   - Date range: The date range to use for the charts.
   - Number of top addresses per day: The top addresses each day will be shown; there may be more addresses shown in the chart than this number,
@@ -75,20 +80,38 @@ with st.expander("Instructions"):
 """
     )
 st.write("---")
-staker_df = utils.load_staker_data()
-current_date = staker_df.Date.max()
-min_stake_date = staker_df[staker_df["Total Stake"].notna()].Date.min()
-current_df = staker_df[staker_df.Date == current_date]
 staker_interaction_df = utils.load_staker_interaction_data()
 token_name_dict = {x[1]: x[0] for x in utils.liquid_staking_tokens.values()}
+staker_df_all = utils.load_staker_data()
+current_date = staker_df_all.Date.max()
+min_stake_date = staker_df_all[staker_df_all["Total Stake"].notna()].Date.min()
+
+c1, c2 = st.columns(2)
+max_stake = int(staker_df_all["Total Stake"].max())
+c1.subheader("Choose a minimum stake value for top stakers:")
+min_stake_value = c2.number_input(
+    "Choose a minimum stake value for top stakers",
+    5000,
+    max_stake,
+    value=5000,
+    step=1000,
+    label_visibility="collapsed",
+    key="stakers_input",
+)
+staker_df = utils.filter_staker_data(staker_df_all, min_stake_value)
+current_df = staker_df[staker_df.Date == current_date]
+
+st.write("---")
 
 with st.expander("Overview", expanded=True):
     st.subheader("Overview")
-    st.caption("Top Stakers are addresses which have staked 5000 or more SOL within the past 6 months.")
+    st.caption(
+        f"Top Stakers are addresses which have staked **{min_stake_value}** or more SOL within the past 6 months."
+    )
     all_time_stakers = staker_df.Address.unique()
-    current_stakers = current_df[current_df["Total Stake"] > 0].Address.unique()
+    current_stakers = current_df[current_df["Total Stake"] > 0.1].Address.unique()
     all_time_lst_holders = staker_df[staker_df["Token Name"].notna()]["Address"].unique()
-    current_lst_holders = current_df[(current_df["Token Name"].notna()) & (current_df.Amount > 0)][
+    current_lst_holders = current_df[(current_df["Token Name"].notna()) & (current_df.Amount > 0.1)][
         "Address"
     ].unique()
 
@@ -663,12 +686,17 @@ with st.expander("View and Download Data Table"):
     comment = "**Progam Usage by Top Stakers**"
     utils.data_downloader(staker_interaction_df, slug, comment)
 
-    st.subheader("Raw data")
-    slug = "all_staker_lst_data"
+    st.subheader("Raw data: analysis")
+    slug = f"all_staker_lst_data_min_{min_stake_value}"
     comment = (
         "Download raw data used for this analysis (unfiltered by anything selected in [Settings](#settings))"
     )
-    utils.data_downloader(staker_df, slug, comment, write=False)
+    if min_stake_value != 5000:
+        utils.data_downloader(staker_df, slug, comment, write=False)
+        st.subheader("Raw data: all")
+        slug = "all_staker_lst_data_min_5000"
+        comment = "Download all available raw data (unfiltered by anything selected in [Settings](#settings), and using a minimum stake value of 5000 SOL)"
+        utils.data_downloader(staker_df_all, slug, comment, write=False)
 
 
 # #TODO: look at Delta, add some overviews
