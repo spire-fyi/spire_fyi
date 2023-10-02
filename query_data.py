@@ -470,7 +470,7 @@ if __name__ == "__main__":
 
     if do_pool:
         logging.info(f"Running {len(query_info)} queries...")
-        with Pool() as p:
+        with Pool(8) as p:
             p.map(query_flipside_data, list(enumerate(query_info)))
 
     if do_pull_flipside_data:
