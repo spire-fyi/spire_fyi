@@ -4931,6 +4931,30 @@ Fee Payers,2023-05-04,201,Openbook
 Signers,2023-05-04,19183,Stepn
 Signers,2023-05-04,23,Invariant
 Fee Payers,2023-05-04,1,GooseFX
+Signers,2023-10-26T00:00:00.000Z,3,Step Finance
+Fee Payers,2023-10-26T00:00:00.000Z,6915,Jupiter Aggregator
+Signers,2023-10-26T00:00:00.000Z,190,Serum
+Signers,2023-10-26T00:00:00.000Z,10907,Orca
+Signers,2023-10-26T00:00:00.000Z,3,Lifinity
+Signers,2023-10-26T00:00:00.000Z,7,Invariant
+Signers,2023-10-26T00:00:00.000Z,1571,Openbook
+Signers,2023-10-26T00:00:00.000Z,6931,Jupiter Aggregator
+Fee Payers,2023-10-26T00:00:00.000Z,2025,Orca
+Signers,2023-10-26T00:00:00.000Z,11,Saber
+Fee Payers,2023-10-26T00:00:00.000Z,3,Aldrin
+Fee Payers,2023-10-26T00:00:00.000Z,3,Lifinity
+Signers,2023-10-26T00:00:00.000Z,9359,Raydium
+Signers,2023-10-26T00:00:00.000Z,3,Aldrin
+Fee Payers,2023-10-26T00:00:00.000Z,6,Mercurial
+Signers,2023-10-26T00:00:00.000Z,12445,Stepn
+Signers,2023-10-26T00:00:00.000Z,14,Mercurial
+Fee Payers,2023-10-26T00:00:00.000Z,91,Openbook
+Fee Payers,2023-10-26T00:00:00.000Z,42,Serum
+Fee Payers,2023-10-26T00:00:00.000Z,10,Saber
+Fee Payers,2023-10-26T00:00:00.000Z,3267,Stepn
+Fee Payers,2023-10-26T00:00:00.000Z,1505,Raydium
+Fee Payers,2023-10-26T00:00:00.000Z,6,Invariant
+Fee Payers,2023-10-26T00:00:00.000Z,2,Step Finance
 Signers,2023-09-17T00:00:00.000Z,6783,Orca
 Fee Payers,2023-09-17T00:00:00.000Z,1,Mercurial
 Signers,2023-09-17T00:00:00.000Z,4609,Jupiter Aggregator
@@ -10957,6 +10981,32 @@ Fee Payers,2023-07-18T00:00:00.000Z,1377,Orca
 Fee Payers,2023-07-18T00:00:00.000Z,5,Mercurial
 Fee Payers,2023-07-18T00:00:00.000Z,3,Step Finance
 Signers,2023-07-18T00:00:00.000Z,3,Saber
+Fee Payers,2023-10-25T00:00:00.000Z,1,Mango Markets
+Fee Payers,2023-10-25T00:00:00.000Z,1501,Raydium
+Fee Payers,2023-10-25T00:00:00.000Z,42,Serum
+Fee Payers,2023-10-25T00:00:00.000Z,3,Lifinity
+Fee Payers,2023-10-25T00:00:00.000Z,1,Aldrin
+Signers,2023-10-25T00:00:00.000Z,28,Mercurial
+Signers,2023-10-25T00:00:00.000Z,12599,Stepn
+Fee Payers,2023-10-25T00:00:00.000Z,4,Invariant
+Signers,2023-10-25T00:00:00.000Z,2,Mango Markets
+Signers,2023-10-25T00:00:00.000Z,9,Saber
+Signers,2023-10-25T00:00:00.000Z,13842,Orca
+Signers,2023-10-25T00:00:00.000Z,1,Aldrin
+Fee Payers,2023-10-25T00:00:00.000Z,10,Mercurial
+Fee Payers,2023-10-25T00:00:00.000Z,2114,Orca
+Signers,2023-10-25T00:00:00.000Z,6973,Jupiter Aggregator
+Fee Payers,2023-10-25T00:00:00.000Z,8,Saber
+Signers,2023-10-25T00:00:00.000Z,5,Step Finance
+Fee Payers,2023-10-25T00:00:00.000Z,82,Openbook
+Fee Payers,2023-10-25T00:00:00.000Z,3,Step Finance
+Fee Payers,2023-10-25T00:00:00.000Z,6966,Jupiter Aggregator
+Signers,2023-10-25T00:00:00.000Z,15157,Raydium
+Signers,2023-10-25T00:00:00.000Z,1424,Openbook
+Signers,2023-10-25T00:00:00.000Z,49,Serum
+Signers,2023-10-25T00:00:00.000Z,3,Lifinity
+Signers,2023-10-25T00:00:00.000Z,5,Invariant
+Fee Payers,2023-10-25T00:00:00.000Z,3295,Stepn
 Fee Payers,2023-03-20,10,Mercurial
 Signers,2023-03-20,230,Aldrin
 Fee Payers,2023-03-20,2,GooseFX
