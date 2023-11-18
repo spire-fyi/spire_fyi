@@ -61,7 +61,7 @@ API_KEY = st.secrets["flipside"]["api_key"]
 sdk = Flipside(API_KEY)
 
 helius_key = st.secrets["helius"]["api_key"]
-rpc_url = f"https://rpc.helius.xyz/?api-key={helius_key}"
+rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
 
 RUN_INTERACTIVE_QUERIES = False
 
