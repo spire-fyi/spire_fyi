@@ -300,7 +300,8 @@ if __name__ == "__main__":
     do_network = False
     do_nft_mints = False
     do_nft_metadata = False
-    do_xnft = True
+    # TODO: need to update helius get_mintlist to new API
+    do_xnft = False
     do_lst = True
     # main routines
     do_pull_flipside_data = True
