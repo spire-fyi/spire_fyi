@@ -256,7 +256,8 @@ if __name__ == "__main__":
     do_network = False
     do_nft = False
     combine_nft = False
-    do_xnft = True
+    # TODO: need to update helius get_mintlist to new API
+    do_xnft = False
     do_fees = True
     do_madlad_metadata = True
     do_staking_report = True
