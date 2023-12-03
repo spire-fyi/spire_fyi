@@ -234,28 +234,32 @@ with sales:
         chart_df = volume_spike_total
 
     chart = (
-        alt.Chart(
-            chart_df,
-            title=f"NFT {metric_title}: {date_type}",
+        (
+            alt.Chart(
+                chart_df,
+                title=f"NFT {metric_title}: {date_type}",
+            )
+            .mark_area(binSpacing=0, interpolate="monotone")
+            .encode(
+                x=alt.X("yearmonthdatehours(Datetime)", title="Datetime"),
+                y=alt.Y(metric, title=metric_title, stack=stack),
+                color=alt.Color(
+                    "Label",
+                    scale=alt.Scale(domain=["Other", "MadLads"], range=["#4B3D60", "#FD5E53"]),
+                    sort="-y",
+                ),
+                tooltip=[
+                    alt.Tooltip("yearmonthdatehours(Datetime)", title="Datetime"),
+                    alt.Tooltip("Label"),
+                    alt.Tooltip("Sales Count", format=","),
+                    alt.Tooltip("Total Sales Sol", title="Total Sales (SOL)", format=",.2f"),
+                    alt.Tooltip("Total Sales Usd", title="Total Sales (USD)", format=",.2f"),
+                ],
+            )
         )
-        .mark_area(binSpacing=0, interpolate="monotone")
-        .encode(
-            x=alt.X("yearmonthdatehours(Datetime)", title="Datetime"),
-            y=alt.Y(metric, title=metric_title, stack=stack),
-            color=alt.Color(
-                "Label",
-                scale=alt.Scale(domain=["Other", "MadLads"], range=["#4B3D60", "#FD5E53"]),
-                sort="-y",
-            ),
-            tooltip=[
-                alt.Tooltip("yearmonthdatehours(Datetime)", title="Datetime"),
-                alt.Tooltip("Label"),
-                alt.Tooltip("Sales Count", format=","),
-                alt.Tooltip("Total Sales Sol", title="Total Sales (SOL)", format=",.2f"),
-                alt.Tooltip("Total Sales Usd", title="Total Sales (USD)", format=",.2f"),
-            ],
-        )
-    ).properties(height=600, width=600)
+        .properties(height=600, width=600)
+        .interactive()
+    )
     st.altair_chart(chart, use_container_width=True)
     st.write("---")
 
@@ -384,7 +388,6 @@ with sales:
     c1.altair_chart(chart, use_container_width=True)
 
     with st.expander(f"Proportions of {metric_title} from Mad Lads, per marketplace"):
-
         for x in marketplaces:
             c1, c2 = st.columns(2)
             try:
