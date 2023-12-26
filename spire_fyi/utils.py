@@ -60,6 +60,10 @@ __all__ = [
 API_KEY = st.secrets["flipside"]["api_key"]
 sdk = Flipside(API_KEY)
 
+# NOTE: as of Dec 2023, a user-agent needs to be provided with pd.read_json() to load Flipside data
+# https://stackoverflow.com/a/68816828
+storage_options = {'User-Agent': 'Mozilla/5.0'}
+
 helius_key = st.secrets["helius"]["api_key"]
 rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
 
@@ -444,7 +448,7 @@ def load_weekly_new_user_data(user_type="Fee Payers"):
 @st.cache_data(ttl=1800)
 def load_nft_data():
     main_data = (
-        pd.read_json(f"{api_base}/2b945162-59a9-4ccc-95ee-fca67ac142c4/data/latest")
+        pd.read_json(f"{api_base}/2b945162-59a9-4ccc-95ee-fca67ac142c4/data/latest", storage_options=storage_options)
         .rename(
             columns={
                 "WEEK": "Date",
@@ -480,21 +484,21 @@ def load_nft_data():
         ]
     )
     mints_by_purchaser = (
-        pd.read_json(f"{api_base}/04be6d7d-b5cd-4c11-9f73-68288e1353d4/data/latest")
+        pd.read_json(f"{api_base}/04be6d7d-b5cd-4c11-9f73-68288e1353d4/data/latest", storage_options=storage_options)
         .rename(columns={"DATE": "Date", "AVERAGE_MINTS": "Average Mints per Address"})
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
     mints_by_purchaser["Date"] = pd.to_datetime(mints_by_purchaser["Date"], utc=True)
     mints_by_chain = (
-        pd.read_json(f"{api_base}/88cfaf1c-e485-4926-817f-61ed261d9cfb/data/latest")
+        pd.read_json(f"{api_base}/88cfaf1c-e485-4926-817f-61ed261d9cfb/data/latest", storage_options=storage_options)
         .rename(columns={"DATE": "Date", "CHAIN": "Chain", "MINTS": "Count", "MINTERS": "Unique Users"})
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
     mints_by_chain["Type"] = "Mints"
     mints_by_chain["Date"] = pd.to_datetime(mints_by_chain["Date"], utc=True)
-    sales_by_chain = pd.read_json(f"{api_base}/7daf5636-2364-4281-b1cb-2d44ae1bcffd/data/latest").rename(
+    sales_by_chain = pd.read_json(f"{api_base}/7daf5636-2364-4281-b1cb-2d44ae1bcffd/data/latest", storage_options=storage_options).rename(
         columns={"DATE": "Date", "CHAIN": "Chain", "SALES": "Count", "BUYERS": "Unique Users"}
     )
     sales_by_chain["Date"] = pd.to_datetime(sales_by_chain["Date"], utc=True)
@@ -510,7 +514,7 @@ def load_nft_data():
 @st.cache_data(ttl=1800)
 def load_royalty_data():
     df = (
-        pd.read_json(
+        (
             f"{api_base}/ffd713f1-4d05-4f3e-82b8-dc2c87db6691/data/latest"  # fork
             # f"{api_base}/7572e1e3-fbfb-4dd4-9d45-dd6cde7f42df/data/latest"  # original, see https://twitter.com/BlumbergKellen/status/1601245496789463045
         )
@@ -541,7 +545,7 @@ def load_royalty_data():
 
 @st.cache_data(ttl=1800)
 def load_sol_daily_price():
-    df = pd.read_json(f"{api_base}/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest")
+    df = pd.read_json(f"{api_base}/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest", storage_options=storage_options)
     df["Date"] = pd.to_datetime(df["Date"], utc=True)
     df = df.sort_values(by="Date")
     return df
@@ -599,7 +603,7 @@ def get_random_image(df):
 # @st.cache_data(ttl=1800)
 # def load_defi_data():
 #     df = (
-#         pd.read_json(f"{api_base}/02d025f0-9eb1-4bff-b317-299c8b251178/data/latest")
+#         pd.read_json(f"{api_base}/02d025f0-9eb1-4bff-b317-299c8b251178/data/latest", storage_options=storage_options)
 #         .sort_values(by=["WEEK", "SWAP_PROGRAM"])
 #         .reset_index(drop=True)
 #         .rename(
@@ -669,7 +673,7 @@ def reformat_columns(df: pd.DataFrame, datecols: Union[list, None]) -> pd.DataFr
 
 @st.cache_data(ttl=3600)
 def load_flipside_api_data(url: str, datecols: Union[list, None]) -> pd.DataFrame:
-    df = pd.read_json(url)
+    df = pd.read_json(url, storage_options=storage_options)
     df = reformat_columns(df, datecols)
     return df
 
