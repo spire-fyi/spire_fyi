@@ -692,7 +692,7 @@ with st.expander("View and Download Data Table"):
         "Download raw data used for this analysis (unfiltered by anything selected in [Settings](#settings))"
     )
     utils.data_downloader(staker_df, slug, comment, write=False)
-    if min_stake_value != 5000:  
+    if min_stake_value != 5000:
         st.subheader("Raw data: all")
         slug = "all_staker_lst_data_min_5000"
         comment = "Download all available raw data (unfiltered by anything selected in [Settings](#settings), and using a minimum stake value of 5000 SOL)"
