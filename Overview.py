@@ -167,7 +167,7 @@ with ecosystem:
     c1.altair_chart(chart, use_container_width=True)
     # New Solana Wallets
     chart = (
-        alt.Chart(overview_data_dict["New Wallets"], title=f"New Solana Wallets: Daily, Past 60d")
+        alt.Chart(overview_data_dict["New Wallets"], title=f"New Solana Wallets: Daily, Past 30d")
         .mark_area(
             line={"color": "#4B3D60", "size": 1},
             color=alt.Gradient(

@@ -682,7 +682,10 @@ def reformat_columns(df: pd.DataFrame, datecols: Union[list, None]) -> pd.DataFr
 @st.cache_data(ttl=3600)
 def load_flipside_api_data(url: str, datecols: Union[list, None]) -> pd.DataFrame:
     df = pd.read_json(url, storage_options=storage_options)
-    df = reformat_columns(df, datecols)
+    try:
+        df = reformat_columns(df, datecols)
+    except KeyError:
+        pass
     return df
 
 
