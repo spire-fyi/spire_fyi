@@ -62,7 +62,7 @@ sdk = Flipside(API_KEY)
 
 # NOTE: as of Dec 2023, a user-agent needs to be provided with pd.read_json() to load Flipside data
 # https://stackoverflow.com/a/68816828
-storage_options = {'User-Agent': 'Mozilla/5.0'}
+storage_options = {"User-Agent": "Mozilla/5.0"}
 
 helius_key = st.secrets["helius"]["api_key"]
 rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
@@ -448,7 +448,9 @@ def load_weekly_new_user_data(user_type="Fee Payers"):
 @st.cache_data(ttl=1800)
 def load_nft_data():
     main_data = (
-        pd.read_json(f"{api_base}/2b945162-59a9-4ccc-95ee-fca67ac142c4/data/latest", storage_options=storage_options)
+        pd.read_json(
+            f"{api_base}/2b945162-59a9-4ccc-95ee-fca67ac142c4/data/latest", storage_options=storage_options
+        )
         .rename(
             columns={
                 "WEEK": "Date",
@@ -484,23 +486,27 @@ def load_nft_data():
         ]
     )
     mints_by_purchaser = (
-        pd.read_json(f"{api_base}/04be6d7d-b5cd-4c11-9f73-68288e1353d4/data/latest", storage_options=storage_options)
+        pd.read_json(
+            f"{api_base}/04be6d7d-b5cd-4c11-9f73-68288e1353d4/data/latest", storage_options=storage_options
+        )
         .rename(columns={"DATE": "Date", "AVERAGE_MINTS": "Average Mints per Address"})
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
     mints_by_purchaser["Date"] = pd.to_datetime(mints_by_purchaser["Date"], utc=True)
     mints_by_chain = (
-        pd.read_json(f"{api_base}/88cfaf1c-e485-4926-817f-61ed261d9cfb/data/latest", storage_options=storage_options)
+        pd.read_json(
+            f"{api_base}/88cfaf1c-e485-4926-817f-61ed261d9cfb/data/latest", storage_options=storage_options
+        )
         .rename(columns={"DATE": "Date", "CHAIN": "Chain", "MINTS": "Count", "MINTERS": "Unique Users"})
         .sort_values(by="Date", ascending=False)
         .reset_index(drop=True)
     )
     mints_by_chain["Type"] = "Mints"
     mints_by_chain["Date"] = pd.to_datetime(mints_by_chain["Date"], utc=True)
-    sales_by_chain = pd.read_json(f"{api_base}/7daf5636-2364-4281-b1cb-2d44ae1bcffd/data/latest", storage_options=storage_options).rename(
-        columns={"DATE": "Date", "CHAIN": "Chain", "SALES": "Count", "BUYERS": "Unique Users"}
-    )
+    sales_by_chain = pd.read_json(
+        f"{api_base}/7daf5636-2364-4281-b1cb-2d44ae1bcffd/data/latest", storage_options=storage_options
+    ).rename(columns={"DATE": "Date", "CHAIN": "Chain", "SALES": "Count", "BUYERS": "Unique Users"})
     sales_by_chain["Date"] = pd.to_datetime(sales_by_chain["Date"], utc=True)
     sales_by_chain["Type"] = "Sales"
     by_chain_data = (
@@ -545,7 +551,9 @@ def load_royalty_data():
 
 @st.cache_data(ttl=1800)
 def load_sol_daily_price():
-    df = pd.read_json(f"{api_base}/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest", storage_options=storage_options)
+    df = pd.read_json(
+        f"{api_base}/398c8e9a-7178-4816-ae4a-74c3181dcafc/data/latest", storage_options=storage_options
+    )
     df["Date"] = pd.to_datetime(df["Date"], utc=True)
     df = df.sort_values(by="Date")
     return df
